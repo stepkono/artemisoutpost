@@ -1,6 +1,7 @@
 # Visual Studio 2015 user specific files
 .vs/
 .idea/
+.claude
 
 # General
 .DS_Store
@@ -54,6 +55,7 @@ SourceArt/**/*.tga
 # Binary Files
 Binaries/*
 Plugins/*/Binaries/*
+Plugins/*
 
 # Builds
 Build/*

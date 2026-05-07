@@ -1,8 +1,18 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.6",
+	"EngineAssociation": "{FBEB9F69-4A3D-1D25-2C6A-7BBC0DAB4806}",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "ArtemisOutpost",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "OculusXR",
