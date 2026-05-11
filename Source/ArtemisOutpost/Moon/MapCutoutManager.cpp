@@ -6,6 +6,7 @@
 #include <glm/gtx/string_cast.inl>
 
 #include "ArtemisOutpost/AnchorsManagerSubsystem.h"
+#include "Kismet/KismetMaterialLibrary.h"
 
 
 // Sets default values for this component's properties
@@ -25,6 +26,11 @@ void UMapCutoutManager::BeginPlay()
 	Super::BeginPlay();
 	
 	AnchorsManager = GetWorld()->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>();	
+	
+	if (AActor* Moon = GetOwner())
+	{
+		InitialMoonScalingFactor = Moon->GetActorScale3D().X; 
+	}
 	
 	if (AGameStateBase* DefaultGI = GetWorld()->GetGameState())
 	{
@@ -56,14 +62,16 @@ void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 
 void UMapCutoutManager::HandleAnchorsUpdate(const FCustomAnchors& RawAnchors)
 {
-	AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> OutAnchors)
+	AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> SpawnedAnchors)
 	{
 		FAnchorsPositions* RawAnchorsPositions = NewObject<FAnchorsPositions>(); 
 		
-		RawAnchorsPositions->AAnchorPos = OutAnchors[0]->GetActorLocation();
-		RawAnchorsPositions->BAnchorPos = OutAnchors[1]->GetActorLocation();
-		RawAnchorsPositions->CAnchorPos = OutAnchors[2]->GetActorLocation();
-		RawAnchorsPositions->DAnchorPos = OutAnchors[3]->GetActorLocation();
+		RawAnchorsPositions->AAnchorPos = SpawnedAnchors[0]->GetActorLocation();
+		RawAnchorsPositions->BAnchorPos = SpawnedAnchors[1]->GetActorLocation();
+		RawAnchorsPositions->CAnchorPos = SpawnedAnchors[2]->GetActorLocation();
+		RawAnchorsPositions->DAnchorPos = SpawnedAnchors[3]->GetActorLocation();
+		
+		BindGeoRefToAnchor(SpawnedAnchors[0]);
 		
 		CalibrateAnchors(RawAnchorsPositions);
 	}); 	
@@ -71,6 +79,65 @@ void UMapCutoutManager::HandleAnchorsUpdate(const FCustomAnchors& RawAnchors)
 
 void UMapCutoutManager::CalibrateAnchors(FAnchorsPositions* RawAnchorsPositions)
 {
+	const FVector A = RawAnchorsPositions->AAnchorPos;
+	const FVector B = RawAnchorsPositions->BAnchorPos;
+	const FVector C = RawAnchorsPositions->CAnchorPos;
+	const FVector D = RawAnchorsPositions->DAnchorPos;
+
+	// Flatten edge vectors onto the horizontal plane
+	const FVector AB = FVector(B.X - A.X, B.Y - A.Y, 0.f);
+	FVector AD = FVector(D.X - A.X, D.Y - A.Y, 0.f);
+
+	// Gram-Schmidt: force AD perpendicular to AB
+	// Projects out the AB component from AD, leaving only the orthogonal part
+	const FVector ABNorm = AB.GetSafeNormal();
+	AD = AD - FVector::DotProduct(AD, ABNorm) * ABNorm;
+
+	// Reconstruct clean corners: A stays fixed, B/D/C derived from orthogonal edges
+	AnchorPositions.AAnchorPos = A;
+	AnchorPositions.BAnchorPos = AnchorPositions.AAnchorPos + AB;
+	AnchorPositions.DAnchorPos = AnchorPositions.AAnchorPos + AD;
+	AnchorPositions.CAnchorPos = AnchorPositions.AAnchorPos + AB + AD;
 	
+	const FVector TableCenter = (AnchorPositions.AAnchorPos + AnchorPositions.BAnchorPos + AnchorPositions.CAnchorPos + AnchorPositions.AAnchorPos) * 0.25;
+	const FVector TableNormal = FVector::CrossProduct((AnchorPositions.DAnchorPos - AnchorPositions.AAnchorPos),(AnchorPositions.BAnchorPos - AnchorPositions.AAnchorPos)) 
+	
+	PutGeoRefIntoTablePlane(TableCenter, TableNormal);
+	
+	UpdateMaterialParamCollection();
 }
 
+void UMapCutoutManager::SetMaterialCollection(UMaterialParameterCollection* MaterialParameterCollection)
+{
+	AnchorsCollection = MaterialParameterCollection;
+}
+
+void UMapCutoutManager::UpdateMaterialParamCollection()
+{
+	const FLinearColor NewAnchorA(AnchorPositions.AAnchorPos); 
+	const FLinearColor NewAnchorB(AnchorPositions.BAnchorPos);
+	const FLinearColor NewAnchorC(AnchorPositions.CAnchorPos);
+	const FLinearColor NewAnchorD(AnchorPositions.DAnchorPos);
+	
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V1"), NewAnchorA); 
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V2"), NewAnchorB); 
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V3"), NewAnchorC); 
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V4"), NewAnchorD); 
+}
+
+void UMapCutoutManager::BindGeoRefToAnchor(AActor* SpawnedAnchor)
+{
+	const EAttachmentRule AttachmentRule = EAttachmentRule::SnapToTarget; 
+	FAttachmentTransformRules AttachmentTransformRule = FAttachmentTransformRules(AttachmentRule, true); 
+	GetOwner()->AttachToActor(SpawnedAnchor, AttachmentTransformRule);
+	GetOwner()->SetActorRelativeLocation(FVector::Zero());
+}
+
+void UMapCutoutManager::PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal)
+{
+	const FVector DiagonalOffset = TableCenter - AnchorPositions.AAnchorPos;
+	const FVector VerticalOffset = TableNormal * (173806785 * InitialMoonScalingFactor); 
+	const FVector FinalOffset = AnchorPositions.AAnchorPos + DiagonalOffset + VerticalOffset;
+	
+	GetOwner()->AddActorLocalOffset(VerticalOffset);
+}

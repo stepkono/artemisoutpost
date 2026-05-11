@@ -19,7 +19,7 @@ void UAnchorsManagerSubsystem::DiscoverAnchors(const FCustomAnchors& RawAnchors,
 {
 	// Store callback — fired when discovery is fully complete
 	PendingCallback = OnComplete;
-	AnchorsToSpawn.Reset();
+	RawAnchorsToSpawn.Reset();
 
 	// Record A/B/C/D order so we can restore it after unordered discovery results
 	OrderedUUIDs = { RawAnchors.AAnchorUUID, RawAnchors.BAnchorUUID, RawAnchors.CAnchorUUID, RawAnchors.DAnchorUUID };
@@ -49,7 +49,7 @@ void UAnchorsManagerSubsystem::OnAnchorDiscovered(const TArray<FOculusXRAnchorsD
 {
 	for (const FOculusXRAnchorsDiscoverResult& Incoming : DiscoveredAnchors)
 	{
-		const bool bAlreadyExists = AnchorsToSpawn.ContainsByPredicate(
+		const bool bAlreadyExists = RawAnchorsToSpawn.ContainsByPredicate(
 			[&Incoming](const FOculusXRAnchorsDiscoverResult& Existing)
 			{
 				return Existing.UUID == Incoming.UUID;
@@ -58,7 +58,7 @@ void UAnchorsManagerSubsystem::OnAnchorDiscovered(const TArray<FOculusXRAnchorsD
 
 		if (!bAlreadyExists)
 		{
-			AnchorsToSpawn.Add(Incoming);
+			RawAnchorsToSpawn.Add(Incoming);
 		}
 	}
 }
@@ -80,21 +80,21 @@ void UAnchorsManagerSubsystem::OnDiscoveryComplete(EOculusXRAnchorResult::Type R
 	}
 	
 	// Spawn in A/B/C/D order by matching each ordered UUID to its discovery result
-	TArray<AActor*> SpawnedActors;
+	TArray<AActor*> SpawnedAnchors;
 	for (const FOculusXRUUID& UUID : OrderedUUIDs)
 	{
-		const FOculusXRAnchorsDiscoverResult* Found = AnchorsToSpawn.FindByPredicate(
+		const FOculusXRAnchorsDiscoverResult* Found = RawAnchorsToSpawn.FindByPredicate(
 			[&UUID](const FOculusXRAnchorsDiscoverResult& R) { return R.UUID == UUID; }
 		);
 
 		if (!Found)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UAnchorsManagerSubsystem: No discovery result for one of the expected UUIDs."));
-			SpawnedActors.Add(nullptr); // preserve index alignment
+			SpawnedAnchors.Add(nullptr); // preserve index alignment
 			continue;
 		}
 
-		AActor* SpawnedActor = UOculusXRAnchorBPFunctionLibrary::SpawnActorWithAnchorHandle(
+		AActor* SpawnedAnchor = UOculusXRAnchorBPFunctionLibrary::SpawnActorWithAnchorHandle(
 			GetWorld(),
 			Found->Space,
 			Found->UUID,
@@ -105,20 +105,34 @@ void UAnchorsManagerSubsystem::OnDiscoveryComplete(EOculusXRAnchorResult::Type R
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn
 		);
 
-		if (!SpawnedActor)
+		if (!SpawnedAnchor)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UAnchorsManagerSubsystem: Failed to spawn anchor actor for UUID."));
 		}
 
-		SpawnedActors.Add(SpawnedActor); // nullptr slots preserved for index alignment
+		SpawnedAnchors.Add(SpawnedAnchor); // nullptr slots preserved for index alignment
 	}
-
+	
+	if (SpawnedAnchors.Num() > 0)
+	{
+		BaseAnchor = SpawnedAnchors[0]; 	
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Anchors were spawned."))
+	}
+	
 	// Fire callback with actors in A(0) B(1) C(2) D(3) order
 	if (PendingCallback)
 	{
-		PendingCallback(SpawnedActors);
+		PendingCallback(SpawnedAnchors);
 		PendingCallback = nullptr;
 	}
 
-	AnchorsToSpawn.Reset();
+	RawAnchorsToSpawn.Reset();
+}
+
+AActor* UAnchorsManagerSubsystem::GetBaseAnchor()
+{
+	return BaseAnchor;
 }
