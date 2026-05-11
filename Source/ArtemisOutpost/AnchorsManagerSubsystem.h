@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CesiumGeoreference.h"
+#include "DataTypes.h"
 #include "OculusXRAnchors.h"
 #include "GameData/ArtemisGameInstance.h"
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -27,6 +29,9 @@ public:
 	 * Calls OnComplete with the spawned actors when all anchors have been located.
 	 */
 	void DiscoverAnchors(const FCustomAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
+	
+	UFUNCTION()
+	void SetGeoRef(ACesiumGeoreference* GeoRef);
 
 private:
 	UFUNCTION()
@@ -34,6 +39,9 @@ private:
 
 	UFUNCTION()
 	void OnDiscoveryComplete(EOculusXRAnchorResult::Type Result);
+	
+	UFUNCTION(BlueprintCallable)
+	AActor* GetBaseAnchor();
 
 private:
 	FOculusXRDiscoverAnchorsResultsDelegate DiscoveredAnchorDelegate;
@@ -43,8 +51,14 @@ private:
 	TArray<FOculusXRUUID> OrderedUUIDs;
 
 	/** Accumulates raw discovery results across multiple OnAnchorDiscovered callbacks. */
-	TArray<FOculusXRAnchorsDiscoverResult> AnchorsToSpawn;
+	TArray<FOculusXRAnchorsDiscoverResult> RawAnchorsToSpawn;
 
 	/** Fired in OnDiscoveryComplete with spawned actors in A/B/C/D order. */
 	TFunction<void(TArray<AActor*>)> PendingCallback;
+	
+	UPROPERTY()
+	ACesiumGeoreference* Moon;
+	
+	UPROPERTY()
+	AActor* BaseAnchor; 
 };

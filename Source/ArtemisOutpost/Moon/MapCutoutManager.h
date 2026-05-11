@@ -4,27 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "ArtemisOutpost/AnchorsManagerSubsystem.h"
+#include "ArtemisOutpost/DataTypes.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "Components/ActorComponent.h"
 #include "MapCutoutManager.generated.h"
-
-USTRUCT()
-struct FAnchorsPositions
-{
-	GENERATED_BODY()
-	
-	UPROPERTY()
-	FVector AAnchorPos; 
-	
-	UPROPERTY()
-	FVector BAnchorPos;
-	
-	UPROPERTY()
-	FVector CAnchorPos;
-	
-	UPROPERTY()
-	FVector DAnchorPos;
-};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ARTEMISOUTPOST_API UMapCutoutManager : public UActorComponent
@@ -49,6 +32,18 @@ private:
 	UFUNCTION()
 	void CalibrateAnchors(FAnchorsPositions* RawAnchorsPositions); 
 	
+	UFUNCTION(BlueprintCallable)
+	void SetMaterialCollection(UMaterialParameterCollection* MaterialParameterCollection);
+	
+	UFUNCTION(BlueprintCallable)
+	void UpdateMaterialParamCollection();
+	
+	UFUNCTION()
+	void BindGeoRefToAnchor(AActor* SpawnedAnchor); 
+	
+	UFUNCTION()
+	void PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal); 
+	
 private:	
 	UPROPERTY()
 	AArtemisGameState* GS;
@@ -57,5 +52,11 @@ private:
 	FAnchorsPositions AnchorPositions;
 	
 	UPROPERTY()
+	UMaterialParameterCollection* AnchorsCollection; 
+	
+	UPROPERTY()
 	UAnchorsManagerSubsystem* AnchorsManager = nullptr; 
+	
+	UPROPERTY()
+	float InitialMoonScalingFactor; 
 };
