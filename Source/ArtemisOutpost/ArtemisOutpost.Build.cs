@@ -13,10 +13,11 @@ public class ArtemisOutpost : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"InputCore", 
+			"InputCore",
 			"OculusXRHMD",
-			"OculusXRAnchors", 
-			"AndroidPermission"
+			"OculusXRAnchors",
+			"AndroidPermission",
+			"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
