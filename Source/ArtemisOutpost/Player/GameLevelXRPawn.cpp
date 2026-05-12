@@ -22,11 +22,13 @@ void AGameLevelXRPawn::BeginPlay()
 		if (!GI)
 		{
 			UE_LOG(LogTemp, Error, TEXT("[GameLevelXRPawn]: Failed to cast to custom game instance.")); 
+			return; 
 		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[GameLevelXRPawn]: Failed to get current GameInstance."));
+		return; 
 	}
 	
 	// If this client has saved anchors in the current session -> share these anchors

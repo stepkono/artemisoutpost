@@ -28,6 +28,8 @@ public:
 	 * Calls OnComplete with the spawned actors when all anchors have been located.
 	 */
 	void DiscoverAnchors(const FCustomAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
+	
+	void RequestAnchors(const FCustomAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
 
 private:
 	UFUNCTION()
@@ -35,6 +37,8 @@ private:
 
 	UFUNCTION()
 	void OnDiscoveryComplete(EOculusXRAnchorResult::Type Result);
+	
+	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawAnchorsToSpawn);
 	
 	UFUNCTION(BlueprintCallable)
 	AActor* GetBaseAnchor();
@@ -47,7 +51,7 @@ private:
 	TArray<FOculusXRUUID> OrderedUUIDs;
 
 	/** Accumulates raw discovery results across multiple OnAnchorDiscovered callbacks. */
-	TArray<FOculusXRAnchorsDiscoverResult> RawAnchorsToSpawn;
+	TArray<FOculusXRAnchorsDiscoverResult> UnorderedDiscoveredAnchors;
 
 	/** Fired in OnDiscoveryComplete with spawned actors in A/B/C/D order. */
 	TFunction<void(TArray<AActor*>)> PendingCallback;
@@ -57,4 +61,7 @@ private:
 	
 	UPROPERTY()
 	AActor* BaseAnchor; 
+	
+	UPROPERTY()
+	TSubclassOf<AActor> AnchorClass;
 };

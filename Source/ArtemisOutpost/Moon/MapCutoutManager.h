@@ -41,6 +41,9 @@ private:
 	UFUNCTION()
 	void PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal) const; 
 	
+	UFUNCTION()
+	bool IsAuthoritativeClient() const; 
+	
 private:	
 	UPROPERTY()
 	AArtemisGameState* GS;
