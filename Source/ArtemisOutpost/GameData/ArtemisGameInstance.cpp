@@ -3,6 +3,14 @@
 
 #include "ArtemisGameInstance.h"
 
-
+bool UArtemisGameInstance::CheckForInitializedSpatialAnchors() const
+{
+	const bool bAnchorsInitialized = RawAnchors.AAnchorUUID.IsValidUUID()
+		&& RawAnchors.BAnchorUUID.IsValidUUID()
+		&& RawAnchors.CAnchorUUID.IsValidUUID()
+		&& RawAnchors.DAnchorUUID.IsValidUUID();
+	
+	return bAnchorsInitialized; 
+}
 
 

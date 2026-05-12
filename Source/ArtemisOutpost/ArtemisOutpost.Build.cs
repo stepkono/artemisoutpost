@@ -17,7 +17,15 @@ public class ArtemisOutpost : ModuleRules
 			"OculusXRHMD",
 			"OculusXRAnchors",
 			"AndroidPermission",
-			"DeveloperSettings"
+			"DeveloperSettings", 
+			"Json", 
+			"JsonUtilities",
+			"WebSockets", 
+			"Chaos", 
+			"ChaosVehiclesCore",
+			"ChaosVehicles",
+			"ChaosVehiclesEngine", 
+			"CesiumRuntime"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

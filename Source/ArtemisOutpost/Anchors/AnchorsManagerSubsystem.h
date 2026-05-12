@@ -4,9 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "CesiumGeoreference.h"
-#include "DataTypes.h"
 #include "OculusXRAnchors.h"
-#include "GameData/ArtemisGameInstance.h"
+#include "ArtemisOutpost/GameData/ArtemisGameInstance.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "AnchorsManagerSubsystem.generated.h"
 
@@ -29,9 +28,6 @@ public:
 	 * Calls OnComplete with the spawned actors when all anchors have been located.
 	 */
 	void DiscoverAnchors(const FCustomAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
-	
-	UFUNCTION()
-	void SetGeoRef(ACesiumGeoreference* GeoRef);
 
 private:
 	UFUNCTION()

@@ -34,6 +34,10 @@ class ARTEMISOUTPOST_API UArtemisGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	UFUNCTION()
+	bool CheckForInitializedSpatialAnchors() const; 
+	
+public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spatial Anchors")
 	FCustomAnchors RawAnchors;
 };

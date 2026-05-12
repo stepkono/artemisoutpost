@@ -105,11 +105,15 @@ void UAnchorsManagerSubsystem::OnDiscoveryComplete(EOculusXRAnchorResult::Type R
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn
 		);
 
-		if (!SpawnedAnchor)
+		if (SpawnedAnchor)
+		{
+			SpawnedAnchor->SetActorHiddenInGame(true);
+		}
+		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UAnchorsManagerSubsystem: Failed to spawn anchor actor for UUID."));
 		}
-
+		
 		SpawnedAnchors.Add(SpawnedAnchor); // nullptr slots preserved for index alignment
 	}
 	
@@ -119,7 +123,7 @@ void UAnchorsManagerSubsystem::OnDiscoveryComplete(EOculusXRAnchorResult::Type R
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No Anchors were spawned."))
+		UE_LOG(LogTemp, Warning, TEXT("No Anchors were spawned."));
 	}
 	
 	// Fire callback with actors in A(0) B(1) C(2) D(3) order

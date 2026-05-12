@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArtemisOutpost/AnchorsManagerSubsystem.h"
-#include "ArtemisOutpost/DataTypes.h"
+#include "ArtemisOutpost/Anchors/AnchorsManagerSubsystem.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
+#include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "Components/ActorComponent.h"
 #include "MapCutoutManager.generated.h"
 
@@ -30,19 +30,16 @@ private:
 	void HandleAnchorsUpdate(const FCustomAnchors& RawAnchors);
 	
 	UFUNCTION()
-	void CalibrateAnchors(FAnchorsPositions* RawAnchorsPositions); 
+	void CalibrateAnchors(FAnchorsPositions& RawAnchorsPositions); 
 	
 	UFUNCTION(BlueprintCallable)
-	void SetMaterialCollection(UMaterialParameterCollection* MaterialParameterCollection);
-	
-	UFUNCTION(BlueprintCallable)
-	void UpdateMaterialParamCollection();
+	void UpdateMaterialParamCollection() const;
 	
 	UFUNCTION()
-	void BindGeoRefToAnchor(AActor* SpawnedAnchor); 
+	void BindGeoRefToAnchor(AActor* SpawnedAnchor) const; 
 	
 	UFUNCTION()
-	void PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal); 
+	void PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal) const; 
 	
 private:	
 	UPROPERTY()
@@ -51,7 +48,7 @@ private:
 	UPROPERTY()
 	FAnchorsPositions AnchorPositions;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Material Collection")
 	UMaterialParameterCollection* AnchorsCollection; 
 	
 	UPROPERTY()
