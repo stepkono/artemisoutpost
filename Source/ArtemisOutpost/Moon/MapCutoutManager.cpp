@@ -60,19 +60,26 @@ void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 
 void UMapCutoutManager::HandleAnchorsUpdate(const FCustomAnchors& RawAnchors)
 {
-	AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> SpawnedAnchors)
+	if (IsAuthoritativeClient())
 	{
-		FAnchorsPositions RawAnchorsPositions; 
+		AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> SpawnedAnchors)
+		{
+			FAnchorsPositions RawAnchorsPositions; 
+				
+			RawAnchorsPositions.AAnchorPos = SpawnedAnchors[0]->GetActorLocation();
+			RawAnchorsPositions.BAnchorPos = SpawnedAnchors[1]->GetActorLocation();
+			RawAnchorsPositions.CAnchorPos = SpawnedAnchors[2]->GetActorLocation();
+			RawAnchorsPositions.DAnchorPos = SpawnedAnchors[3]->GetActorLocation();
+				
+			BindGeoRefToAnchor(SpawnedAnchors[0]);
+				
+			CalibrateAnchors(RawAnchorsPositions);
+		}); 
+	}
+	else
+	{
 		
-		RawAnchorsPositions.AAnchorPos = SpawnedAnchors[0]->GetActorLocation();
-		RawAnchorsPositions.BAnchorPos = SpawnedAnchors[1]->GetActorLocation();
-		RawAnchorsPositions.CAnchorPos = SpawnedAnchors[2]->GetActorLocation();
-		RawAnchorsPositions.DAnchorPos = SpawnedAnchors[3]->GetActorLocation();
-		
-		BindGeoRefToAnchor(SpawnedAnchors[0]);
-		
-		CalibrateAnchors(RawAnchorsPositions);
-	}); 	
+	}
 }
 
 void UMapCutoutManager::CalibrateAnchors(FAnchorsPositions& RawAnchorsPositions)
@@ -133,4 +140,25 @@ void UMapCutoutManager::PutGeoRefIntoTablePlane(const FVector& TableCenter, cons
 	const FVector FinalOffset = AnchorPositions.AAnchorPos + DiagonalOffset + VerticalOffset;
 	
 	GetOwner()->AddActorLocalOffset(FinalOffset);
+}
+
+bool UMapCutoutManager::IsAuthoritativeClient() const
+{
+	UArtemisGameInstance* GI; 
+	if (UGameInstance* DefaultGI = GetWorld()->GetGameInstance())
+	{
+		GI = Cast<UArtemisGameInstance>(DefaultGI);
+		if (GI)
+		{
+			return GI->CheckForInitializedSpatialAnchors(); 
+		}
+		
+		UE_LOG(LogTemp, Error, TEXT("UMapCutoutManager: Failed to cast to custom game state."));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("UMapCutoutManager: Failed to get the default game state."));
+	}
+	
+	return false; 
 }

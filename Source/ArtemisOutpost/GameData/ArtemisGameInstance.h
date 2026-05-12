@@ -11,18 +11,18 @@ USTRUCT(BlueprintType)
 struct FCustomAnchors
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(BlueprintReadWrite)
 	FOculusXRUUID AAnchorUUID;
-	
+
 	UPROPERTY(BlueprintReadWrite)
 	FOculusXRUUID BAnchorUUID;
-	
+
 	UPROPERTY(BlueprintReadWrite)
 	FOculusXRUUID CAnchorUUID;
-	
+
 	UPROPERTY(BlueprintReadWrite)
-	FOculusXRUUID DAnchorUUID; 
+	FOculusXRUUID DAnchorUUID;
 };
 
 /**

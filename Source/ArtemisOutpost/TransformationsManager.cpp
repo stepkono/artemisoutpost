@@ -9,7 +9,6 @@ void UTransformationsManager::OnWorldBeginPlay(UWorld& InWorld)
 	Super::OnWorldBeginPlay(InWorld);
 	
 	AArtemisGameState* GS; 
-	
 	if (AGameStateBase* DefaultGS = GetWorld()->GetGameState())
 	{
 		GS = Cast<AArtemisGameState>(DefaultGS);
