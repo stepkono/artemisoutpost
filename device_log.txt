@@ -1,0 +1,1622 @@
+﻿Log file open, 05/12/26 21:27:44
+LogAndroid: Display: Choreographer set up.
+LogAndroid: AndroidEventThreadWorker, Initial HW window lock.
+LogAndroid: Display: Android Version: 14, Make: Oculus, Model: Quest 3, BuildNumber: UP1A.231005.007.A1, Language: de_DE, Product name: [not set]
+LogAndroid: Case APP_CMD_START
+LogAndroid: Case APP_CMD_RESUME
+LogAndroid: PreInit android HW window lock. bAppIsActive_EventThread=0
+LogAndroid: Case APP_CMD_INPUT_CHANGED
+LogAndroid: Case APP_CMD_GAINED_FOCUS
+LogAndroid: Case APP_CMD_LOST_FOCUS
+LogAndroid: nativeSetSafezoneInfo bIsPortrait=0, left=0.000000, top=0.000000, right=0.000000, bottom=0.000000
+LogAndroid: nativeSetSafezoneInfo bIsPortrait=0, left=0.000000, top=0.000000, right=0.000000, bottom=0.000000
+LogAndroid: Case APP_CMD_INIT_WINDOW
+LogAndroid: Case APP_CMD_INIT_WINDOW: bHasWindow=1, bHasFocus=1, bIsResumed=1
+LogAndroid: event thread, activate app, unlocking HW window
+LogTrace: Initializing trace...
+LogTrace: Finished trace initialization.
+LogAndroid: Case APP_CMD_WINDOW_RESIZED
+LogCsvProfiler: Display: Metadata set : platform="Android"
+LogCsvProfiler: Display: Metadata set : config="Development"
+LogCsvProfiler: Display: Metadata set : buildversion="UE5-CL-0"
+LogCsvProfiler: Display: Metadata set : engineversion="5.7.4-0+UE5"
+LogCsvProfiler: Display: Metadata set : enginereleaseversion="5.7.4"
+LogCsvProfiler: Display: Metadata set : os="Android 14"
+LogCsvProfiler: Display: Metadata set : cpu="Oculus|Quest 3|eureka"
+LogCsvProfiler: Display: Metadata set : pgoenabled="0"
+LogCsvProfiler: Display: Metadata set : pgoprofilingenabled="0"
+LogCsvProfiler: Display: Metadata set : ltoenabled="0"
+LogCsvProfiler: Display: Metadata set : asan="0"
+LogCsvProfiler: Display: Metadata set : mergedmodules="0"
+LogCsvProfiler: Display: Metadata set : commandline="" -project="../../../ArtemisOutpost/ArtemisOutpost.uproject"""
+LogAndroid: Case APP_CMD_WINDOW_REDRAW_NEEDED
+LogCsvProfiler: Display: Metadata set : loginid="3169F2DE0D134EE3B620DA95F4840304"
+LogAndroid: nativeSetSafezoneInfo bIsPortrait=0, left=0.000000, top=0.000000, right=0.000000, bottom=0.000000
+LogCsvProfiler: Display: Metadata set : deviceid="6ba6965233675cc2"
+LogCsvProfiler: Display: Metadata set : llm="0"
+LogAndroid: Case APP_CMD_GAINED_FOCUS
+LogInit: Display: Project file not found: ../../../ArtemisOutpost/ArtemisOutpost.uproject
+LogInit: Display: 	Attempting to find via project info helper.
+LogTemp: 6 cores and 3 assignable cores
+LogPakFile: Initializing PakPlatformFile
+LogIoDispatcher: Display: Reading toc: ../../../ArtemisOutpost/Content/Paks/global.utoc
+LogIoDispatcher: Display: Toc loaded : ../../../ArtemisOutpost/Content/Paks/global.utoc, Id=ffffffffffffffff, Order=0, EntryCount=1, SignatureHash=0000000000000000000000000000000000000000
+LogIoDispatcher: Display: Mounting container '../../../ArtemisOutpost/Content/Paks/global.utoc' in location slot 0
+LogPakFile: Display: Initialized I/O dispatcher file backend. Mounted the global container: ../../../ArtemisOutpost/Content/Paks/global.utoc
+LogPakFile: Display: Found Pak file ArtemisOutpost/Content/Paks/ArtemisOutpost-Android_ASTC.pak attempting to mount.
+LogPakFile: Display: Mounting pak file ArtemisOutpost/Content/Paks/ArtemisOutpost-Android_ASTC.pak.
+LogIoDispatcher: Display: Reading toc: ArtemisOutpost/Content/Paks/ArtemisOutpost-Android_ASTC.utoc
+LogIoDispatcher: Display: Toc loaded : ArtemisOutpost/Content/Paks/ArtemisOutpost-Android_ASTC.utoc, Id=32d8f94c5714bc8d, Order=0, EntryCount=1160, SignatureHash=0000000000000000000000000000000000000000
+LogIoDispatcher: Display: Mounting container 'ArtemisOutpost/Content/Paks/ArtemisOutpost-Android_ASTC.utoc' in location slot 0
+LogFilePackageStore: Mounting container: Id=32d8f94c5714bc8d, Order=0, NumPackages=625
+LogPakFile: Display: Mounted IoStore container "ArtemisOutpost/Content/Paks/ArtemisOutpost-Android_ASTC.utoc"
+LogPakFile: Display: Mounted Pak file 'ArtemisOutpost/Content/Paks/ArtemisOutpost-Android_ASTC.pak', mount point: '../../../'
+LogStats: Stats thread started at 0.631915
+LogAssetRegistry: Premade AssetRegistry loaded from '../../../ArtemisOutpost/AssetRegistry.bin'
+LogCsvProfiler: Display: Metadata set : systemresolution.resx="1280"
+LogCsvProfiler: Display: Metadata set : systemresolution.resy="720"
+LogAndroid: nativeSetSafezoneInfo bIsPortrait=0, left=0.000000, top=0.000000, right=0.000000, bottom=0.000000
+LogICUInternationalization: OS requested locale 'de_DE' is not supported. Using the OS requested language of 'de-DE' as the locale.
+LogICUInternationalization: ICU TimeZone Detection - Raw Offset: +1:00, Platform Override: ''
+LogAndroid: EGL Extensions: 
+EGL_ANDROID_front_buffer_auto_refresh EGL_ANDROID_get_native_client_buffer EGL_ANDROID_presentation_time EGL_EXT_surface_CTA861_3_metadata EGL_EXT_surface_SMPTE2086_metadata EGL_KHR_get_all_proc_addresses EGL_KHR_swap_buffers_with_damage EGL_ANDROID_get_frame_timestamps EGL_ANDROID_image_native_buffer EGL_ANDROID_native_fence_sync EGL_ANDROID_recordable EGL_EXT_create_context_robustness EGL_EXT_image_gl_colorspace EGL_EXT_pixel_format_float EGL_EXT_protected_content EGL_EXT_yuv_surface EGL_IMG_context_priority EGL_KHR_create_context EGL_KHR_create_context_no_error EGL_KHR_fence_sync EGL_KHR_gl_colorspace EGL_KHR_gl_renderbuffer_image EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_image EGL_KHR_image_base EGL_KHR_lock_surface EGL_KHR_mutable_render_buffer EGL_KHR_no_config_context EGL_KHR_partial_update EGL_KHR_reusable_sync EGL_KHR_surfaceless_context EGL_KHR_wait_sync EGL_NV_context_priority_realtime 
+LogAndroid: Mobile HDR: YES
+LogAndroid: ***** Cached WindowRect 4128, 2208 (0)
+LogInit: Session CrashGUID >====================================================
+         Session CrashGUID >   UECC-Android-2D58EC6D8DDE4344A52A3EB89ECC8CC1
+         Session CrashGUID >====================================================
+LogAndroid: Vulkan library detected, checking for available driver
+LogAndroid: VulkanRHI is available, Vulkan capable device detected.
+LogConfig: No local boot hotfix file found at: [/storage/emulated/0/Android/data/com.samples.SpatialAnchorSampleUnreal/files/HotfixForNextBoot.txt]
+LogAudio: Display: Pre-Initializing Audio Device Manager...
+LogAudio: Display: AudioInfo: 'OPUS' Registered
+LogAudio: Display: AudioInfo: 'OGG' Registered
+LogAudio: Display: AudioInfo: 'ADPCM' Registered
+LogAudio: Display: AudioInfo: 'PCM' Registered
+LogAudio: Display: AudioInfo: 'BINKA' Registered
+LogAudio: Display: AudioInfo: 'RADA' Registered
+LogAudio: Display: Audio Device Manager Pre-Initialized
+LogPluginManager: Mounting Engine plugin Paper2D
+LogPluginManager: Mounting Engine plugin AISupport
+LogPluginManager: Mounting Engine plugin EnvironmentQueryEditor
+LogPluginManager: Mounting Engine plugin ACLPlugin
+LogPluginManager: Mounting Engine plugin AnimationData
+LogPluginManager: Mounting Engine plugin ControlRigModules
+LogPluginManager: Mounting Engine plugin ControlRigSpline
+LogPluginManager: Mounting Engine plugin ControlRig
+LogPluginManager: Mounting Engine plugin DeformerGraph
+LogPluginManager: Mounting Engine plugin EaseCurveTool
+LogPluginManager: Mounting Engine plugin IKRig
+LogPluginManager: Mounting Engine plugin LiveLink
+LogPluginManager: Mounting Engine plugin RigLogic
+LogPluginManager: Mounting Engine plugin SkeletalMeshModelingTools
+LogPluginManager: Mounting Engine plugin TweeningUtils
+LogPluginManager: Mounting Engine plugin AudioInsights
+LogPluginManager: Mounting Engine plugin BaseMaterial
+LogPluginManager: Mounting Engine plugin Bridge
+LogPluginManager: Mounting Engine plugin CameraShakePreviewer
+LogPluginManager: Mounting Engine plugin EngineCameras
+LogPluginManager: Mounting Engine plugin GameplayCameras
+LogPluginManager: Mounting Engine plugin ChaosCloth
+LogPluginManager: Mounting Engine plugin ChaosVD
+LogPluginManager: Mounting Engine plugin CompositeCore
+LogPluginManager: Mounting Engine plugin OodleNetwork
+LogPluginManager: Mounting Engine plugin AnimationSharing
+LogPluginManager: Mounting Engine plugin ConcertMain
+LogPluginManager: Mounting Engine plugin ConcertSyncClient
+LogPluginManager: Mounting Engine plugin ConcertSyncCore
+LogPluginManager: Mounting Engine plugin DumpGPUServices
+LogPluginManager: Mounting Engine plugin NamingTokens
+LogPluginManager: Mounting Engine plugin PluginUtils
+LogPluginManager: Mounting Engine plugin UObjectPlugin
+LogPluginManager: Mounting Engine plugin AssetManagerEditor
+LogPluginManager: Mounting Engine plugin BlueprintHeaderView
+LogPluginManager: Mounting Engine plugin BlueprintMaterialTextureNodes
+LogPluginManager: Mounting Engine plugin ColorGrading
+LogPluginManager: Mounting Engine plugin ContentBrowserAssetDataSource
+LogPluginManager: Mounting Engine plugin CurveEditorTools
+LogPluginManager: Mounting Engine plugin DataValidation
+LogPluginManager: Mounting Engine plugin EditorScriptingUtilities
+LogPluginManager: Mounting Engine plugin EngineAssetDefinitions
+LogPluginManager: Mounting Engine plugin FacialAnimation
+LogPluginManager: Mounting Engine plugin GeometryMode
+LogPluginManager: Mounting Engine plugin LightMixer
+LogPluginManager: Mounting Engine plugin ObjectMixer
+LogPluginManager: Mounting Engine plugin PluginBrowser
+LogPluginManager: Mounting Engine plugin SequencerAnimTools
+LogPluginManager: Mounting Engine plugin SpeedTreeImporter
+LogPluginManager: Mounting Engine plugin UMGWidgetPreview
+LogPluginManager: Mounting Engine plugin UVEditor
+LogPluginManager: Mounting Engine plugin EnhancedInput
+LogPluginManager: Mounting Engine plugin DatasmithContent
+LogPluginManager: Mounting Engine plugin GLTFExporter
+LogPluginManager: Mounting Engine plugin VariantManagerContent
+LogPluginManager: Mounting Engine plugin AutomationUtils
+LogPluginManager: Mounting Engine plugin BackChannel
+LogPluginManager: Mounting Engine plugin ChaosCaching
+LogPluginManager: Mounting Engine plugin ChaosEditor
+LogPluginManager: Mounting Engine plugin ChaosNiagara
+LogPluginManager: Mounting Engine plugin ChaosSolverPlugin
+LogPluginManager: Mounting Engine plugin ChaosUserDataPT
+LogPluginManager: Mounting Engine plugin ChaosVehiclesPlugin
+LogPluginManager: Mounting Engine plugin CharacterAI
+LogPluginManager: Mounting Engine plugin Dataflow
+LogPluginManager: Mounting Engine plugin EditorDataStorageFeatures
+LogPluginManager: Mounting Engine plugin EditorDataStorage
+LogPluginManager: Mounting Engine plugin Fracture
+LogPluginManager: Mounting Engine plugin FullBodyIK
+LogPluginManager: Mounting Engine plugin GeometryCollectionPlugin
+LogPluginManager: Mounting Engine plugin GeometryDataflow
+LogPluginManager: Mounting Engine plugin GlobalConfigurationData
+LogPluginManager: Mounting Engine plugin Landmass
+LogPluginManager: Mounting Engine plugin LevelSequenceNavigatorBridge
+LogPluginManager: Mounting Engine plugin LocalizableMessage
+LogPluginManager: Mounting Engine plugin PlatformCrypto
+LogPluginManager: Mounting Engine plugin PythonScriptPlugin
+LogPluginManager: Mounting Engine plugin RuntimeTelemetry
+LogPluginManager: Mounting Engine plugin ToolPresets
+LogPluginManager: Mounting Engine plugin Water
+LogPluginManager: Mounting Engine plugin Cascade
+LogPluginManager: Mounting Engine plugin NiagaraPreviewContent
+LogPluginManager: Mounting Engine plugin NiagaraSimCaching
+LogPluginManager: Mounting Engine plugin Niagara
+LogPluginManager: Mounting Engine plugin Fab
+LogPluginManager: Mounting Engine plugin AlembicImporter
+LogPluginManager: Mounting Engine plugin InterchangeAssets
+LogPluginManager: Mounting Engine plugin AndroidMedia
+LogPluginManager: Mounting Engine plugin ImgMedia
+LogPluginManager: Mounting Engine plugin MediaCompositing
+LogPluginManager: Mounting Engine plugin MediaPlate
+LogPluginManager: Mounting Engine plugin MeshPainting
+LogPluginManager: Mounting Engine plugin TcpMessaging
+LogPluginManager: Mounting Engine plugin UdpMessaging
+LogPluginManager: Mounting Engine plugin MetaHumanSDK
+LogPluginManager: Mounting Engine plugin ActorSequence
+LogPluginManager: Mounting Engine plugin LevelSequenceEditor
+LogPluginManager: Mounting Engine plugin SequenceValidator
+LogPluginManager: Mounting Engine plugin SequencerScripting
+LogPluginManager: Mounting Engine plugin TemplateSequence
+LogPluginManager: Mounting Engine plugin OnlineSubsystemGooglePlay
+LogPluginManager: Mounting Engine plugin OnlineBase
+LogPluginManager: Mounting Engine plugin OnlineServices
+LogPluginManager: Mounting Engine plugin OnlineSubsystemNull
+LogPluginManager: Mounting Engine plugin OnlineSubsystemUtils
+LogPluginManager: Mounting Engine plugin OnlineSubsystem
+LogPluginManager: Mounting Engine plugin ActorLayerUtilities
+LogPluginManager: Mounting Engine plugin AndroidDeviceProfileSelector
+LogPluginManager: Mounting Engine plugin AndroidFileServer
+LogPluginManager: Mounting Engine plugin AndroidMoviePlayer
+LogPluginManager: Mounting Engine plugin AndroidPermission
+LogPluginManager: Mounting Engine plugin AppleImageUtils
+LogPluginManager: Mounting Engine plugin ArchVisCharacter
+LogPluginManager: Mounting Engine plugin AssetTags
+LogPluginManager: Mounting Engine plugin AudioCapture
+LogPluginManager: Mounting Engine plugin AudioSynesthesia
+LogPluginManager: Mounting Engine plugin AudioWidgets
+LogPluginManager: Mounting Engine plugin CableComponent
+LogPluginManager: Mounting Engine plugin ChunkDownloader
+LogPluginManager: Mounting Engine plugin ComputeFramework
+LogPluginManager: Mounting Engine plugin CustomMeshComponent
+LogPluginManager: Mounting Engine plugin SQLiteCore
+LogPluginManager: Mounting Engine plugin ExampleDeviceProfileSelector
+LogPluginManager: Mounting Engine plugin GeometryCache
+LogPluginManager: Mounting Engine plugin GeometryProcessing
+LogPluginManager: Mounting Engine plugin GoogleCloudMessaging
+LogPluginManager: Mounting Engine plugin GooglePAD
+LogPluginManager: Mounting Engine plugin HairStrands
+LogPluginManager: Mounting Engine plugin InputDebugging
+LogPluginManager: Mounting Engine plugin LocationServicesBPLibrary
+LogPluginManager: Mounting Engine plugin Metasound
+LogPluginManager: Mounting Engine plugin MobilePatchingUtils
+LogPluginManager: Mounting Engine plugin OpenXRHandTracking
+LogPluginManager: Mounting Engine plugin OpenXR
+LogPluginManager: Mounting Engine plugin ProceduralMeshComponent
+LogPluginManager: Mounting Engine plugin PropertyAccessEditor
+LogPluginManager: Mounting Engine plugin PropertyBindingUtils
+LogPluginManager: Mounting Engine plugin ResonanceAudio
+LogPluginManager: Mounting Engine plugin RigVM
+LogPluginManager: Mounting Engine plugin SignificanceManager
+LogPluginManager: Mounting Engine plugin SoundFields
+LogPluginManager: Mounting Engine plugin StateTree
+LogPluginManager: Mounting Engine plugin SunPosition
+LogPluginManager: Mounting Engine plugin Synthesis
+LogPluginManager: Mounting Engine plugin WaveTable
+LogPluginManager: Mounting Engine plugin XRBase
+LogPluginManager: Mounting Engine plugin InterchangeTests
+LogPluginManager: Mounting Engine plugin TraceUtilities
+LogPluginManager: Mounting Engine plugin Takes
+LogPluginManager: Mounting Engine plugin WorldMetrics
+LogPluginManager: Mounting Project plugin CesiumForUnreal
+LogPluginManager: Mounting Project plugin OculusPlatform
+LogPluginManager: Mounting Project plugin OculusXR
+LogConfig: Warning: Found a deprecated ini key name in ../../../ArtemisOutpost/Plugins/Cesiumfo9eaf76ca58f3V10/Config/Engine.ini. Search for [RunningThreadedRequestLimit] and replace with [Removed]
+LogConfig: Applying CVar settings from Section [/Script/CompositeCore.CompositeCorePluginSettings] File [Engine]
+LogStudioTelemetry: Started StudioTelemetry Session
+LogInit: Using libcurl 8.12.1
+LogInit:  - built for aarch64-none-linux-android21
+LogInit:  - supports SSL with OpenSSL/1.1.1t
+LogInit:  - supports HTTP deflate (compression) using libz 1.3.1
+LogInit:  - other features:
+LogInit:      CURL_VERSION_SSL
+LogInit:      CURL_VERSION_LIBZ
+LogInit:      CURL_VERSION_IPV6
+LogInit:      CURL_VERSION_ASYNCHDNS
+LogInit:      CURL_VERSION_LARGEFILE
+LogInit:      CURL_VERSION_HTTP2
+LogInit:  CurlRequestOptions (configurable via config and command line):
+LogInit:  - bVerifyPeer = true  - Libcurl will verify peer certificate
+LogInit:  - bUseHttpProxy = false  - Libcurl will NOT use HTTP proxy
+LogInit:  - CVarHttpCurlReuseConnectionEnabled = true  - Libcurl will reuse connections
+LogInit:  - MaxHostConnections = 40  - Libcurl will limit the number of connections to a host
+LogInit:  - LocalHostAddr = Default
+LogInit:  - BufferSize = 65536
+LogInit: CreateHttpThread using FCurlMultiPollEventLoopHttpThread
+LogInit: Creating http thread with maximum 256 concurrent requests
+LogOnline: Display: OSS: OnlineSubsystemGooglePlayModule::StartupModule()
+LogOnline: Warning: OSS: FOnlineSubsystemGooglePlayModule was disabled
+LogOnline: OSS: Unable to create OnlineSubsystem instance GOOGLEPLAY
+LogOnline: OSS: Created online subsystem instance for: NULL
+LogOnline: OSS: TryLoadSubsystemAndSetDefault: Loaded subsystem for type [NULL]
+LogOnline: Warning: OSS: FOnlineSubsystemGooglePlayModule was disabled
+LogConfig: Applying CVar settings from Section [/Script/OpenXRHMD.OpenXRHMDSettings] File [Engine]
+LogConfig: CVar [[bIsFBFoveationEnabled:1]] deferred - dummy variable created
+LogAndroid: Warning: dlopen failed: dlopen failed: library "libOVRPlugin.so" not found
+LogHMD: Failed loading OVRPlugin 1.201.0
+LogOcInput: OculusXRInput pre-init called
+LogSoftwareOcclusion: Display: StartupModule: OculusXRSoftwareOcclusion
+LogOculusXRTelemetry: Starting Meta XR Telemetry Module.
+LogOculusXRTelemetry: EngineTelemetry -- Binding Functions
+LogOculusXRTelemetry:  engineTelemetry_Init [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_ShutDown [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_SendEvent [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_SendUnifiedEvent [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_AddCustomMetadata [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_SetDeveloperTelemetryConsent [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_SaveUnifiedConsent [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_SaveUnifiedConsentWithOlderVersion [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_GetUnifiedConsent [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_GetConsentTitle [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_GetConsentMarkdownText [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_GetConsentNotificationMarkdownText [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_ShouldShowTelemetryConsentWindow [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_ShouldShowTelemetryNotification [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_SetNotificationShown [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_GetConsentSettingsChangeText [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_IsConsentSettingsChangeEnabled [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplMarkerStart [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplMarkerEnd [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplMarkerPoint [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplMarkerPointCached [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplMarkerAnnotation [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplCreateMarkerHandle [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplDestroyMarkerHandle [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_OnEditorShutdown [SUCCESS]
+LogOculusXRTelemetry:  engineTelemetry_QplSetConsent [SUCCESS]
+LogOculusXRTelemetry: EngineTelemetry initialized successfully
+LogInit: ExecutableName: ArtemisOutpost
+LogInit: Build: UE5-CL-0
+LogInit: Platform=Android
+LogInit: MachineId=3169F2DE0D134EE3B620DA95F4840304
+LogInit: DeviceId=6ba6965233675cc2
+LogInit: Engine Version: 5.7.4-0+UE5
+LogInit: Compatible Engine Version: 5.7.0-0+UE5
+LogInit: Net CL: 0
+LogInit: OS: Android (14), CPU: Quest 3, GPU: Adreno (TM) 740
+LogInit: CPU Model ID: 0, microcode revision: 0
+LogInit: Compiled (64-bit): May  8 2026 12:12:39
+LogInit: Architecture: arm64
+LogInit: Compiled with Clang: 18.0.3 (https://android.googlesource.com/toolchain/llvm-project d8003a456d14a3deb8054cdaa529ffbf02d9b262)
+LogInit: Build Configuration: Development
+LogInit: Branch Name: UE5
+LogInit: Command Line:  -project="../../../ArtemisOutpost/ArtemisOutpost.uproject"
+LogInit: Base Directory: 
+LogInit: Allocator: Binned3
+LogInit: Installed Engine Build: 0
+LogInit: This binary is optimized with LTO: no, PGO: no, instrumented for PGO data collection: no
+LogDevObjectVersion: Number of dev versions registered: 40
+LogDevObjectVersion:   Dev-Blueprints (B0D832E4-1F89-4F0D-ACCF-7EB736FD4AA2): 10
+LogDevObjectVersion:   Dev-Build (E1C64328-A22C-4D53-A36C-8E866417BD8C): 0
+LogDevObjectVersion:   Dev-Core (375EC13C-06E4-48FB-B500-84F0262A717E): 4
+LogDevObjectVersion:   Dev-Editor (E4B068ED-F494-42E9-A231-DA0B2E46BB41): 40
+LogDevObjectVersion:   Dev-Framework (CFFC743F-43B0-4480-9391-14DF171D2073): 37
+LogDevObjectVersion:   Dev-Mobile (B02B49B5-BB20-44E9-A304-32B752E40360): 3
+LogDevObjectVersion:   Dev-Networking (A4E4105C-59A1-49B5-A7C5-40C4547EDFEE): 0
+LogDevObjectVersion:   Dev-Online (39C831C9-5AE6-47DC-9A44-9C173E1C8E7C): 0
+LogDevObjectVersion:   Dev-Physics (78F01B33-EBEA-4F98-B9B4-84EACCB95AA2): 20
+LogDevObjectVersion:   Dev-Platform (6631380F-2D4D-43E0-8009-CF276956A95A): 0
+LogDevObjectVersion:   Dev-Rendering (12F88B9F-8875-4AFC-A67C-D90C383ABD29): 49
+LogDevObjectVersion:   Dev-Sequencer (7B5AE74C-D270-4C10-A958-57980B212A5A): 13
+LogDevObjectVersion:   Dev-VR (D7296918-1DD6-4BDD-9DE2-64A83CC13884): 3
+LogDevObjectVersion:   Dev-LoadTimes (C2A15278-BFE7-4AFE-6C17-90FF531DF755): 1
+LogDevObjectVersion:   Private-Geometry (6EACA3D4-40EC-4CC1-B786-8BED09428FC5): 3
+LogDevObjectVersion:   Dev-AnimPhys (29E575DD-E0A3-4627-9D10-D276232CDCEA): 17
+LogDevObjectVersion:   Dev-Anim (AF43A65D-7FD3-4947-9873-3E8ED9C1BB05): 15
+LogDevObjectVersion:   Dev-ReflectionCapture (6B266CEC-1EC7-4B8F-A30B-E4D90942FC07): 1
+LogDevObjectVersion:   Dev-Automation (0DF73D61-A23F-47EA-B727-89E90C41499A): 1
+LogDevObjectVersion:   FortniteMain (601D1886-AC64-4F84-AA16-D3DE0DEAC7D6): 225
+LogDevObjectVersion:   FortniteValkyrie (8DBC2C5B-54A7-43E0-A768-FCBB7DA29060): 8
+LogDevObjectVersion:   FortniteSeason (5B4C06B7-2463-4AF8-805B-BF70CDF5D0DD): 15
+LogDevObjectVersion:   FortniteRelease (E7086368-6B23-4C58-8439-1B7016265E91): 17
+LogDevObjectVersion:   Dev-Enterprise (9DFFBCD6-494F-0158-E221-12823C92A888): 11
+LogDevObjectVersion:   Dev-Niagara (F2AED0AC-9AFE-416F-8664-AA7FFA26D6FC): 1
+LogDevObjectVersion:   Dev-Destruction (174F1F0B-B4C6-45A5-B13F-2EE8D0FB917D): 10
+LogDevObjectVersion:   Dev-Physics-Ext (35F94A83-E258-406C-A318-09F59610247C): 41
+LogDevObjectVersion:   Dev-PhysicsMaterial-Chaos (B68FC16E-8B1B-42E2-B453-215C058844FE): 1
+LogDevObjectVersion:   Dev-CineCamera (B2E18506-4273-CFC2-A54E-F4BB758BBA07): 1
+LogDevObjectVersion:   Dev-VirtualProduction (64F58936-FD1B-42BA-BA96-7289D5D0FA4E): 1
+LogDevObjectVersion:   UE5-Main (697DD581-E64F-41AB-AA4A-51ECBEB7B628): 121
+LogDevObjectVersion:   UE5-Release (D89B5E42-24BD-4D46-8412-ACA8DF641779): 61
+LogDevObjectVersion:   UE5-SpecialProject (59DA5D52-1232-4948-B878-597870B8E98B): 9
+LogDevObjectVersion:   Dev-MediaFramework (6F0ED827-A609-4895-9C91-998D90180EA4): 2
+LogDevObjectVersion:   Dev-NaniteResearch (30D58BE3-95EA-4282-A6E3-B159D8EBB06A): 1
+LogDevObjectVersion:   Dev-RigVM (DC49959B-53C0-4DE7-9156-EA885E7C5D39): 19
+LogDevObjectVersion:   Dev-ControlRig (A7820CFB-20A7-4359-8C54-2C149623CF50): 40
+LogDevObjectVersion:   Dev-IKRig (F6DFBB78-BB50-A0E4-4018-B84D60CBAF23): 11
+LogDevObjectVersion:   Dev-ComputeFramework (6304A3E7-0059-4F59-8CFC-21BD7721FD4E): 0
+LogDevObjectVersion:   Dev-Optimus (93EDE1AA-10CA-7375-4DF9-8A2849B157A0): 14
+LogInit: Presizing for max 131072 objects, including 1 objects not considered by GC.
+LogInit: Object subsystem initialized
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[con.DebugEarlyDefault:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[con.DebugLateDefault:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[con.DebugLateCheat:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[LogNamedEventFilters:Frame *]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[QualityLevelMapping:low]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[fx.Niagara.QualityLevel.Min:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[fx.Niagara.QualityLevel.Max:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[con.DebugLateDefault:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[con.DebugLateCheat:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[LogNamedEventFilters:Frame *]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[QualityLevelMapping:low]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [/Script/Engine.RendererSettings] File [Engine]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[VisualizeCalibrationColorMaterialPath:/Engine/EngineMaterials/PPM_DefaultCalibrationColor.PPM_DefaultCalibrationColor]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[VisualizeCalibrationGrayscaleMaterialPath:/Engine/EngineMaterials/PPM_DefaultCalibrationGrayscale.PPM_DefaultCalibrationGrayscale]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GPUCrashDebugging:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[MaxSkinBones:(Default=65536,PerPlatform=(("Mobile", 256)))]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DistanceFields:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TemporalAA.Mobile.UseCompute:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Visibility.DynamicMeshElements.Parallel:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VolumetricCloud.Support:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.OIT.SortedTriangles:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.ShadingPath:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.AntiAliasing:3]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.FloatPrecisionMode:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.AllowDitheredLODTransition:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.VirtualTextures:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DiscardUnusedQuality:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AllowOcclusionQueries:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MinScreenRadiusForLights:0.030000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MinScreenRadiusForDepthPrepass:0.030000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.PrecomputedVisibilityWarning:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TextureStreaming:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[Compat.UseDXT5NormalMaps:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VirtualTextures:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VirtualTexturedLightmaps:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VT.TileSize:128]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VT.TileBorderSize:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VT.AnisotropicFiltering:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VT.EnableAutoImport:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[bEnableVirtualTextureOpacityMask:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MeshPaintVirtualTexture.Support:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MeshPaintVirtualTexture.TileSize:32]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MeshPaintVirtualTexture.TileBorderSize:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MeshPaintVirtualTexture.UseCompression:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.StaticMesh.DefaultMeshPaintTextureSupport:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MeshPaintVirtualTexture.DefaultTexelsPerVertex:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MeshPaintVirtualTexture.MaxTextureSize:4096]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.vt.rvt.EnableBaseColor:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.vt.rvt.EnableBaseColorRoughness:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.vt.rvt.EnableBaseColorSpecular:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.vt.rvt.EnableMask4:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.vt.rvt.EnableWorldHeight:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.vt.rvt.EnableDisplacement:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.vt.rvt.HighQualityPerPixelHeight:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[WorkingColorSpaceChoice:sRGB]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[RedChromaticityCoordinate:(X=0.640000,Y=0.330000)]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[GreenChromaticityCoordinate:(X=0.300000,Y=0.600000)]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[BlueChromaticityCoordinate:(X=0.150000,Y=0.060000)]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[WhiteChromaticityCoordinate:(X=0.312700,Y=0.329000)]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LegacyLuminanceFactors:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ClearCoatNormal:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DynamicGlobalIlluminationMethod:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ReflectionMethod:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ReflectionCaptureResolution:128]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ReflectionEnvironmentLightmapMixBasedOnRoughness:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.HardwareRayTracing:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.HardwareRayTracing.LightingMode:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyReflections.FrontLayer.EnableForProject:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TraceMeshSDFs:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenTracingSource:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.Reflections.HardwareRayTracing.Translucent.Refraction.EnableForProject:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MegaLights.EnableForProject:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.RayTracing.Shadows:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.Enable:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.RayTracing:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.RayTracing.RayTracingProxies.ProjectEnabled:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.RayTracing.UseTextureLod:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.PathTracing:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GenerateMeshDistanceFields:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DistanceFields.DefaultVoxelDensity:0.200000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Nanite.ProjectEnabled:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AllowStaticLighting:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.NormalMapsForStaticLighting:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ForwardShading:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VertexFoggingForOpaque:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SeparateTranslucency:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TranslucentSortPolicy:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[TranslucentSortAxis:(X=0.000000,Y=-1.000000,Z=0.000000)]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LocalFogVolume.ApplyOnTranslucent:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[xr.VRS.FoveationLevel:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[xr.VRS.DynamicFoveation:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.CustomDepth:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.CustomDepthTemporalAAJitter:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.PostProcessing.PropagateAlpha:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Deferred.SupportPrimitiveAlphaHoldout:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.Bloom:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.AmbientOcclusion:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.AmbientOcclusionStaticFraction:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.AutoExposure:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.AutoExposure.Method:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.AutoExposure.Bias:1.000000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.LocalExposure.HighlightContrastScale:1.000000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.LocalExposure.ShadowContrastScale:1.000000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.MotionBlur:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.LensFlare:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TemporalAA.Upsampling:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AntiAliasingMethod:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MSAACount:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultFeature.LightUnits:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DefaultBackBufferPixelFormat:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ScreenPercentage.Default:100.000000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ScreenPercentage.Default.Desktop.Mode:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ScreenPercentage.Default.Mobile.Mode:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ScreenPercentage.Default.VR.Mode:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ScreenPercentage.Default.PathTracer.Mode:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.UnbuiltPreviewInGame:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.StencilForLODDither:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.EarlyZPass:3]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.EarlyZPassOnlyMaterialMasking:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.CSMCaching:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DBuffer:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ClearSceneMethod:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VelocityOutputPass:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Velocity.EnableVertexDeformation:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SelectiveBasePassOutputs:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[bDefaultParticleCutouts:0]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[fx.GPUSimulationTextureSizeX:1024]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[fx.GPUSimulationTextureSizeY:1024]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AllowGlobalClipPlane:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GBufferFormat:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MorphTarget.Mode:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MorphTarget.MaxBlendWeight:5.000000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportSkyAtmosphere:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportSkyAtmosphereAffectsHeightFog:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportExpFogMatchesVolumetricFog:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportLocalFogVolumes:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportCloudShadowOnForwardLitTranslucent:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ClusteredDeferredShading.EnableForProject:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LightFunctionAtlas.Format:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VolumetricFog.LightFunction:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Deferred.UsesLightFunctionAtlas:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SingleLayerWater.UsesLightFunctionAtlas:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Translucent.UsesLightFunctionAtlas:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Translucent.UsesIESProfiles:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Translucent.UsesRectLights:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Translucent.UsesShadowedLocalLights:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[vr.InstancedStereo:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MobileHDR:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[vr.MobileMultiView:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.UseHWsRGBEncoding:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[vr.RoundRobinOcclusion:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MeshStreaming:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.HeterogeneousVolumes:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.HeterogeneousVolumes.Shadows:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Translucency.HeterogeneousVolumes:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.WireframeCullThreshold:5.000000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportStationarySkylight:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportLowQualityLightmaps:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportPointLightWholeSceneShadows:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.TranslucentPerObject.ProjectEnabled:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Water.SingleLayerWater.SupportCloudShadow:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate.ProjectGBufferFormat:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate.ProjectClosuresPerPixel:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate.ProjectClosuresPerPixelOverride:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate.BytesPerPixel:80]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate.OpaqueMaterialRoughRefraction:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Refraction.Blur:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate.Debug.AdvancedVisualizationShaders:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Substrate.EnableLayerSupport:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Material.RoughDiffuse:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Material.EnergyConservation:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[r.Material.DefaultAutoMaterialUsage:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.OIT.SortedPixels:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.HairStrands.LODMode:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SkinCache.CompileShaders:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VRS.Support:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SkinCache.SkipCompilingGPUSkinVF:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SkinCache.DefaultBehavior:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SkinCache.SceneMemoryLimitInMB:128.000000]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.EnableStaticAndCSMShadowReceivers:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.EnableMovableLightCSMShaderCulling:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.Forward.EnableLocalLights:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.Forward.EnableClusteredReflections:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.AllowDistanceFieldShadows:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.EnableMovableSpotlightsShadow:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GPUSkin.Support16BitBoneIndex:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GPUSkin.Limit2BoneInfluences:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportDepthOnlyIndexBuffers:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SupportReversedIndexBuffers:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.AmbientOcclusion:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.ScreenSpaceReflections:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.DBuffer:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.PropagateAlpha:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GPUSkin.UnlimitedBoneInfluences:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GPUSkin.AlwaysUseDeformerForUnlimitedBoneInfluences:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.GPUSkin.UnlimitedBoneInfluencesThreshold:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[DefaultBoneInfluenceLimit:(Default=0,PerPlatform=())]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Nanite.Foliage:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[bStreamSkeletalMeshLODs:(Default=False,PerPlatform=())]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[bDiscardSkeletalMeshOptionalLODs:(Default=False,PerPlatform=())]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[VisualizeCalibrationCustomMaterialPath:None]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [/Script/Engine.RendererOverrideSettings] File [Engine]
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [/Script/Engine.StreamingSettings] File [Engine]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.MinBulkDataSizeForAsyncLoading:131072]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.AsyncLoadingThreadEnabled:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.EventDrivenLoaderEnabled:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.WarnIfTimeLimitExceeded:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.TimeLimitExceededMultiplier:1.5]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.TimeLimitExceededMinTime:0.005]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.UseBackgroundLevelStreaming:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.PriorityAsyncLoadingExtraTime:15.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.LevelStreamingActorsUpdateTimeLimit:5.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.PriorityLevelStreamingActorsUpdateExtraTime:5.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.LevelStreamingComponentsRegistrationGranularity:10]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.UnregisterComponentsTimeLimit:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.LevelStreamingComponentsUnregistrationGranularity:5]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[s.MaxPackageSummarySize:16384]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[s.FlushStreamingOnExit:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[FixedBootOrder:/Script/Engine/Default__SoundBase]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[FixedBootOrder:/Script/Engine/Default__MaterialInterface]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[FixedBootOrder:/Script/Engine/Default__DeviceProfileManager]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [/Script/Engine.GarbageCollectionSettings] File [Engine]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.MaxObjectsNotConsideredByGC:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.FlushStreamingOnGC:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.NumRetriesBeforeForcingGC:10]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.AllowParallelGC:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.TimeBetweenPurgingPendingKillObjects:61.1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.MaxObjectsInEditor:25165824]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.IncrementalBeginDestroyEnabled:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.CreateGCClusters:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.MinGCClusterSize:5]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.AssetClustreringEnabled:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.ActorClusteringEnabled:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.VerifyUObjectsAreNotFGCObjects:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.GarbageEliminationEnabled:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[gc.MaxObjectsInGame:131072]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [/Script/Engine.NetworkSettings] File [Engine]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[NetworkEmulationProfiles:(ProfileName="Average",ToolTip="Simulates average internet conditions")]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[NetworkEmulationProfiles:(ProfileName="Bad",ToolTip="Simulates laggy internet conditions")]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[NetworkEmulationProfiles:(ProfileName="BufferBloat",ToolTip="Simulates a connection affected by buffer bloat (in and out)")]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [ViewDistanceQuality@3] File [Scalability]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SkeletalMeshLODBias:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ViewDistanceScale:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.NeverOcclusionTestDistance:200]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [AntiAliasingQuality@3] File [Scalability]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.FXAA.Quality:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TemporalAA.Quality:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TSR.History.R11G11B10:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TSR.History.ScreenPercentage:200]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TSR.History.UpdateQuality:3]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TSR.ShadingRejection.Flickering:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TSR.RejectionAntiAliasingQuality:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TSR.ReprojectionField:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.TSR.Resurrection:1]]
+[2026.05.12-19.27.45:000][  0]LogConsoleManager: Warning: Setting the console variable 'r.Mobile.AntiAliasing' with 'SetByScalability' was ignored as it is lower priority than the previous 'SetByProjectSetting'. Value remains '3'
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [ShadowQuality@3] File [Scalability]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LightFunctionQuality:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ShadowQuality:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.CSM.MaxCascades:3]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.MaxResolution:2048]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.MaxCSMResolution:2048]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.RadiusThreshold:0.06]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.DistanceScale:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.CSM.TransitionScale:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.PreShadowResolutionFactor:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DistanceFieldShadowing:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VolumetricFog:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VolumetricFog.GridPixelSize:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VolumetricFog.GridSizeZ:128]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.VolumetricFog.HistoryMissSupersampleCount:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LightMaxDrawDistanceScale:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.CapsuleShadows:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.MaxPhysicalPages:4096]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectional:-1.5]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectionalMoving:-1.5]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasLocal:0.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasLocalMoving:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.RayCountDirectional:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.SamplesPerRayDirectional:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.RayCountLocal:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.SamplesPerRayLocal:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Shadow.Virtual.MarkCoarsePagesLocal:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.ContactShadows:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DFShadowQuality:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Mobile.SupportInsetShadows:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [GlobalIlluminationQuality@3] File [Scalability]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DistanceFieldAO:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SkylightIntensityMultiplier:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AOQuality:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.DiffuseIndirect.Allow:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LumenScene.DirectLighting.MaxLightsPerTile:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LumenScene.DirectLighting.UpdateFactor:32]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LumenScene.Radiosity.UpdateFactor:64]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LumenScene.Radiosity.ProbeSpacing:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LumenScene.Radiosity.HemisphereProbeResolution:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TraceMeshSDFs.Allow:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution:32]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.RadianceCache.NumProbesToTraceBudget:100]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.DownsampleFactor:16]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.NumAdaptiveProbes:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.TracingOctahedronResolution:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.IrradianceFormat:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.StochasticInterpolation:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.FullResolutionJitterWidth:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.TwoSidedFoliageBackfaceDiffuse:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ScreenTraces.HZBTraversal.FullResDepth:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.BentNormal:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.HorizonSearch.HZB:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.ShortRangeAO.HorizonSearch.ForegroundSampleRejectPower:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.GridPixelSize:32]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.TraceFromVolume:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.TracingOctahedronResolution:3]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.RadianceCache.ProbeResolution:8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyVolume.RadianceCache.NumProbesToTraceBudget:70]]
+[2026.05.12-19.27.45:000][  0]LogConfig: CVar [[r.RayTracing.Scene.BuildMode:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [ReflectionQuality@3] File [Scalability]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SSR.Quality:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SSR.HalfResSceneColor:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.Reflections.Allow:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.Reflections.DownsampleFactor:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.Reflections.MaxRoughnessToTraceForFoliage:0.4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.ScreenProbeGather.MaxRoughnessToEvaluateRoughSpecularForFoliage:0.8]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.Reflections.ScreenSpaceReconstruction.NumSamples:5]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.Reflections.ScreenSpaceReconstruction.MinWeight:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyReflections.FrontLayer.Allow:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Lumen.TranslucencyReflections.FrontLayer.Enable:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Applying CVar settings from Section [PostProcessQuality@3] File [Scalability]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MotionBlurQuality:4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.MotionBlur.HalfResGather:0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AmbientOcclusionMipLevelFactor:0.4]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AmbientOcclusionMaxQuality:100]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AmbientOcclusionLevels:-1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.AmbientOcclusionRadiusScale:1.0]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.DepthOfFieldQuality:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.RenderTargetPoolMin:400]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.LensFlareQuality:2]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.SceneColorFringeQuality:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.EyeAdaptationQuality:1]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.BloomQuality:3]]
+[2026.05.12-19.27.45:000][  0]LogConfig: Set CVar [[r.Bloom.ScreenPercentage:50.000]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.FastBlurThreshold:100]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Upscale.Quality:3]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.LightShaftQuality:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Filter.SizeScale:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Tonemapper.Quality:3]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Gather.ResolutionDivisor:2         ; lower gathering resolution]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Gather.AccumulatorQuality:1        ; higher gathering accumulator quality]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Gather.PostfilterMethod:1          ; Median3x3 postfilering method]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Gather.EnableBokehSettings:0       ; no bokeh simulation when gathering]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Gather.RingCount:4                 ; medium number of samples when gathering]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Scatter.ForegroundCompositing:1    ; additive foreground scattering]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Scatter.BackgroundCompositing:2    ; additive background scattering]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Scatter.EnableBokehSettings:1      ; bokeh simulation when scattering]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Scatter.MaxSpriteRatio:0.1         ; only a maximum of 10% of scattered bokeh]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Recombine.Quality:1                ; cheap slight out of focus]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Recombine.EnableBokehSettings:0    ; no bokeh simulation on slight out of focus]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.TemporalAAQuality:1                ; more stable temporal accumulation]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Kernel.MaxForegroundRadius:0.025]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DOF.Kernel.MaxBackgroundRadius:0.025]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Mobile.AmbientOcclusionQuality:3]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Applying CVar settings from Section [TextureQuality@3] File [Scalability]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Streaming.MipBias:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Streaming.AmortizeCPUToGPUCopy:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Streaming.MaxNumTexturesToStreamPerFrame:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Streaming.Boost:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.MaxAnisotropy:4]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.VT.MaxAnisotropy:8]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Streaming.LimitPoolSizeToVRAM:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Streaming.PoolSize:1000]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Streaming.MaxEffectiveScreenSize:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Applying CVar settings from Section [EffectsQuality@3] File [Scalability]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.TranslucencyLightingVolume.Dim:64]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.RefractionQuality:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SceneColorFormat:4]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.DetailMode:3]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.TranslucencyLightingVolume.Blur:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.MaterialQualityLevel:1 ; High quality]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SSS.Scale:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SSS.SampleSet:2]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SSS.Quality:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SSS.HalfRes:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SSGI.Quality:3]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.EmitterSpawnRateScale:1.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.ParticleLightQuality:2]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.AerialPerspectiveLUT.FastApplyOnOpaque:1 ; Always have FastSkyLUT 1 in this case to avoid wrong sky]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.AerialPerspectiveLUT.SampleCountMaxPerSlice:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.AerialPerspectiveLUT.DepthResolution:4]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT.SampleCountMin:1.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT.SampleCountMax:8.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.SampleCountMin:4.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.SampleCountMax:128.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.TransmittanceLUT.UseSmallFormat:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.TransmittanceLUT.SampleCount:10.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.MultiScatteringLUT.SampleCount:15.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[fx.Niagara.QualityLevel:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.Refraction.OffsetQuality:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HeterogeneousVolumes.DownsampleFactor:2]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HeterogeneousVolumes.MaxStepCount:256]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HeterogeneousVolumes.Shadows.Resolution:512]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HeterogeneousVolumes.Shadows.Precision:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HeterogeneousVolumes.UseExistenceMask:0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT.Width:96]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.SkyAtmosphere.FastSkyLUT.Height:50]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Applying CVar settings from Section [FoliageQuality@3] File [Scalability]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[foliage.DensityScale:1.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[grass.DensityScale:1.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[grass.CullDistanceScale:1.0]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Applying CVar settings from Section [ShadingQuality@3] File [Scalability]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HairStrands.SkyLighting.IntegrationType:2]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HairStrands.SkyAO.SampleCount:4]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.HairStrands.Visibility.MSAA.SamplePerPixel:4]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Set CVar [[r.AnisotropicMaterials:1]]
+[2026.05.12-19.27.45:002][  0]LogConfig: Applying CVar settings from Section [LandscapeQuality@3] File [Scalability]
+[2026.05.12-19.27.45:002][  0]LogHMD: OpenXRHMDModule: App is packaged for Oculus Mobile OpenXR
+[2026.05.12-19.27.45:002][  0]LogHMD: OpenXRHMDModule::InitInstance using DefaultLoader.
+[2026.05.12-19.27.45:115][  0]LogHMD: OpenXR runtime supported extensions:
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_android_create_instance
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_android_surface_swapchain
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_android_thread_settings
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_android_surface_swapchain_create
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_opengl_es_enable
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_vulkan_enable
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_vulkan_enable2
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_composition_layer_cube
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_composition_layer_cylinder
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_composition_layer_equirect2
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_composition_layer_color_scale_bias
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_composition_layer_depth
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_color_space
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_EXT_performance_settings
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_EXT_hand_tracking
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_EXT_debug_utils
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_display_refresh_rate
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_swapchain_update_state
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_swapchain_update_state_opengl_es
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_swapchain_update_state_vulkan
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_swapchain_update_state_android_surface
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_OCULUS_common_reference_spaces
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_composition_layer_image_layout
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_composition_layer_alpha_blend
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_EXT_composition_layer_inverted_alpha
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_common_events
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_hand_tracking_mesh
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_hand_tracking_aim
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_hand_tracking_capsules
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_META_hand_tracking_microgestures
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_foveation
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_foveation_configuration
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_foveation_vulkan
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_composition_layer_secure_content
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_KHR_convert_timespec_time
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_spatial_entity
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_triangle_mesh
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_passthrough
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_META_passthrough_color_lut
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_META_passthrough_layer_resumed_event
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_META_passthrough_preferences
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_spatial_entity_query
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_META_spatial_entity_persistence
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_META_spatial_entity_discovery
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_touch_controller_proximity
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_touch_controller_pro
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_META_touch_controller_plus
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_haptic_amplitude_envelope
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_haptic_pcm
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_spatial_entity_storage
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_spatial_entity_storage_batch
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_spatial_entity_user
+[2026.05.12-19.27.45:115][  0]LogHMD: 	XR_FB_space_warp
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_FB_spatial_entity_container
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_FB_scene
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_FB_scene_capture
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_vulkan_swapchain_create_info
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_FB_composition_layer_settings
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_feature_fidelity
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_FB_composition_layer_depth_test
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_hand_joints_motion_range
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_hand_tracking_data_source
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_hand_tracking_frequency_hint
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_hand_tracking_unextrapolated_poses
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_performance_metrics
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_virtual_keyboard
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_detached_controllers
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_MSFT_hand_interaction
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_headset_id
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_recommended_layer_resolution
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_active_action_set_priority
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_automatic_layer_filter
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_palm_pose
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_simultaneous_hands_and_controllers
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_local_floor
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_hand_interaction
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_user_presence
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_KHR_visibility_mask
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_LOGITECH_mx_ink_stylus_interaction
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_future
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_frame_synthesis
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_spatial_entity
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_spatial_anchor
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_spatial_persistence
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_EXT_spatial_persistence_operations
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_META_tile_properties_hint
+[2026.05.12-19.27.45:116][  0]LogHMD: 	XR_KHR_maintenance1
+[2026.05.12-19.27.45:116][  0]LogHMD: Optional extension XR_KHR_vulkan_swapchain_format_list is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_KHR_composition_layer_equirect is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_VARJO_quad_views is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_KHR_binding_modification is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_EPIC_view_configuration_fov is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_EXT_dpad_binding is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Warning: Required extension XR_META_colocation_discovery is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Could not enable all required OpenXR extensions for OpenXRExtensionPlugin on current system. This plugin will be loaded but ignored, but will be enabled on a target platform that supports the required extension.
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_spatial_entity_room_mesh is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_environment_raycast is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_dynamic_object_tracker is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_dynamic_object_keyboard is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_EXT_spatial_marker_tracking is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Warning: Required extension XR_FB_face_tracking2 is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Could not enable all required OpenXR extensions for OpenXRExtensionPlugin on current system. This plugin will be loaded but ignored, but will be enabled on a target platform that supports the required extension.
+[2026.05.12-19.27.45:117][  0]LogHMD: Warning: Required extension XR_FB_eye_tracking_social is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Could not enable all required OpenXR extensions for OpenXRExtensionPlugin on current system. This plugin will be loaded but ignored, but will be enabled on a target platform that supports the required extension.
+[2026.05.12-19.27.45:117][  0]LogHMD: Warning: Required extension XR_FB_body_tracking is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Could not enable all required OpenXR extensions for OpenXRExtensionPlugin on current system. This plugin will be loaded but ignored, but will be enabled on a target platform that supports the required extension.
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_spatial_entity_mesh is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_boundary_visibility is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_FB_spatial_entity_sharing is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_spatial_entity_sharing is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_spatial_entity_group_sharing is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_hand_tracking_wide_motion_mode is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_METAX2_debug_utils_region_profiling is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_METAX3_debug_utils_region_profiling is not available
+[2026.05.12-19.27.45:117][  0]LogHMD: Optional extension XR_META_local_dimming is not available
+[2026.05.12-19.27.45:117][  0]LogOculusXRScene: [SCENE] Extensions available
+[2026.05.12-19.27.45:117][  0]LogOculusXRScene: 			Scene:         ENABLED
+[2026.05.12-19.27.45:117][  0]LogOculusXRScene: 			Scene Capture: ENABLED
+[2026.05.12-19.27.45:117][  0]LogOculusXRScene: 			Boundary:	   DISABLED
+[2026.05.12-19.27.45:117][  0]LogOculusXRScene: 			Mesh:		   DISABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: [Anchors] Extensions available
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Spatial Entity: ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Container:		ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Query:			ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Sharing:		DISABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Storage:		ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Storage Batch:  ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Users:			ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Discovery:		ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Persistence:	ENABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Sharing Meta:	DISABLED
+[2026.05.12-19.27.45:118][  0]LogOculusXRAnchors: 			Group Sharing:	DISABLED
+[2026.05.12-19.27.45:289][  0]LogHMD: xrCreateInstance succeeded with XR_API_VERSION_1_1
+[2026.05.12-19.27.45:289][  0]LogHMD: xrCreateInstance created: 1
+[2026.05.12-19.27.45:289][  0]LogHMD: Initialized OpenXR on Oculus runtime version 203.100.0
+[2026.05.12-19.27.45:294][  0]LogAndroid: Checking 59 rules from DeviceProfile ini file.
+[2026.05.12-19.27.45:294][  0]LogAndroid:   Default profile: Android_Default
+[2026.05.12-19.27.45:294][  0]LogAndroid:   Android selector params: 
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_GPUFamily: Adreno (TM) 740
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_GLVersion: OpenGL ES 3.2 V@0837.0.7 (GIT@3dbacedba8, I13e643cb5c, 1768227585) (Date:01/12/26)
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_VulkanAvailable: true
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_VulkanVersion: 1.3.295
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_AndroidVersion: 14
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_DeviceMake: Oculus
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_DeviceModel: Quest 3
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_DeviceBuildNumber: UP1A.231005.007.A1
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_UsingHoudini: false
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_Hardware: eureka
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_Chipset: unknown
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_HMDSystemName: Meta Quest 3
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_TotalPhysicalGB: 7
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_SM5Available: false
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_VKQuality: VulkanBecausePredictionMatch
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_DeviceModel]: Quest 3
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_GpuVendor]: Qualcomm
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[ro.soc.model]: SXR2230P
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[screenWidth]: 4128
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[memory]: 7756
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_DeviceMake]: Oculus
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_UsingHoudini]: false
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[ro.hardware]: eureka
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[versionName]: 1.0
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_AndroidVersion]: 14
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_VulkanAvailable]: false
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[OverrideProfile]: true
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_VulkanVersion]: 0.0.0
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[configRulesVersion]: 0
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[unsupportedDevice]: false
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[statusBarHeight]: 0
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[navigationBarHeight]: 70
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_SDKLevel]: 34
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[hardware]: eureka
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[processorCount]: 6
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[earlyrestart]: true
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[screenHeight]: 2208
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_GpuFamily]: Adreno (TM) 740
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[supportsFloatingPointRenderTargets]: true
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[littleCoreMask]: 0x0
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[targetSdkVersion]: 34
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[processor]: 
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[versionCode]: 1
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_HMDSystemName]: 
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_DeviceBuildNumber]: UP1A.231005.007.A1
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[isARM64]: true
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[hasNEON]: true
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[TextureFormats]: ASTC,DXT,ATC,ETC2,ETC1
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[bigCoreMask]: 0xffff
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_BuildConfig]: Development
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[useAffinity]: false
+[2026.05.12-19.27.45:294][  0]LogAndroid:   SRC_ConfigRuleVar[SRC_GlVersion]: OpenGL ES 3.2 V@0837.0.7 (GIT@3dbacedba8, I13e643cb5c, 1768227585) (Date:01/12/26)
+[2026.05.12-19.27.45:294][  0]LogAndroid: Selected Device Profile: [Meta_Quest_3]
+[2026.05.12-19.27.45:294][  0]LogInit: Selected Device Profile: [Meta_Quest_3]
+[2026.05.12-19.27.45:294][  0]LogHAL: Display: Platform has ~ 7 GB [8133779456 / 8589934592 / 8], which maps to Larger [LargestMinGB=8, LargerMinGB=6, DefaultMinGB=4, SmallerMinGB=3, SmallestMinGB=0)
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Going up to parent DeviceProfile [Android_OpenXR]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Going up to parent DeviceProfile [Android_Mid]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Going up to parent DeviceProfile [Android]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Going up to parent DeviceProfile []
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Mobile.Oculus.ForceSymmetric:0 -> 1]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.OcclusionFeedback.Enable:0 -> 0]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Mobile.AdrenoOcclusionMode:0 -> 1]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Android.DisableVulkanSupport:0 -> 0]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[vr.MobileMultiView:1 -> 1]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Mobile.AntiAliasing:3 -> 3]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.ForceStartInVR:0 -> 1]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[xr.VRS.DynamicFoveation:0 -> 1]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Vulkan.VRSFormat:0 -> 3]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.ShadowQuality:3 -> 2]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Applying CVar settings from Section [ShadowQuality@2] File [Scalability]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.CSM.MaxCascades:2]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.MaxResolution:1024]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.CSM.TransitionScale:0.8]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.PreShadowResolutionFactor:0.5]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.VolumetricFog.GridPixelSize:16]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.VolumetricFog.GridSizeZ:64]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.Virtual.MaxPhysicalPages:2048]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectional:0.0]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.Virtual.ResolutionLodBiasDirectionalMoving:0.0]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.Shadow.Virtual.SMRT.RayCountLocal:4]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.DFShadowQuality:1]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.MobileContentScaleFactor:1 -> 1.0]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.ViewDistanceQuality:3 -> 1]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Applying CVar settings from Section [ViewDistanceQuality@1] File [Scalability]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.SkeletalMeshLODBias:1]]
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.AntiAliasingQuality:3 -> 1]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Applying CVar settings from Section [AntiAliasingQuality@1] File [Scalability]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.TemporalAA.Quality:1]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.TSR.History.ScreenPercentage:100]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.TSR.History.UpdateQuality:1]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.TSR.ShadingRejection.Flickering:0]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.TSR.RejectionAntiAliasingQuality:1]]
+[2026.05.12-19.27.45:295][  0]LogConfig: Set CVar [[r.TSR.ReprojectionField:0]]
+[2026.05.12-19.27.45:295][  0]LogConsoleManager: Setting the console variable 'r.Mobile.AntiAliasing' with 'SetByScalability' was ignored as it is lower priority than the previous 'SetByDeviceProfile'. Value remains '3'
+[2026.05.12-19.27.45:295][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.GlobalIlluminationQuality:3 -> 1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Applying CVar settings from Section [GlobalIlluminationQuality@1] File [Scalability]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.AOQuality:1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Lumen.DiffuseIndirect.Allow:0]]
+[2026.05.12-19.27.45:296][  0]LogConfig: CVar [[r.RayTracing.Scene.BuildMode:0]] deferred - dummy variable created
+[2026.05.12-19.27.45:296][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.ReflectionQuality:3 -> 1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Applying CVar settings from Section [ReflectionQuality@1] File [Scalability]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.SSR.Quality:0]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.SSR.HalfResSceneColor:1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Lumen.Reflections.Allow:0]]
+[2026.05.12-19.27.45:296][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.PostProcessQuality:3 -> 1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Applying CVar settings from Section [PostProcessQuality@1] File [Scalability]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.MotionBlurQuality:3]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.MotionBlur.HalfResGather:1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.AmbientOcclusionMipLevelFactor:1.0]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.AmbientOcclusionMaxQuality:60]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.AmbientOcclusionRadiusScale:1.5]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.RenderTargetPoolMin:350]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.LensFlareQuality:1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.SceneColorFringeQuality:0]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.BloomQuality:1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Bloom.ScreenPercentage:35.355]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.FastBlurThreshold:2]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Upscale.Quality:2]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Filter.SizeScale:0.7]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Tonemapper.Quality:2]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Gather.AccumulatorQuality:0        ; lower gathering accumulator quality]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Gather.PostfilterMethod:2          ; Max3x3 postfilering method]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Gather.RingCount:3                 ; low number of samples when gathering]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Scatter.ForegroundCompositing:0    ; no foreground scattering]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Scatter.BackgroundCompositing:0    ; no foreground scattering]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Recombine.Quality:0                ; no slight out of focus]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.TemporalAAQuality:0                ; faster temporal accumulation]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Kernel.MaxForegroundRadius:0.006   ; required because low gathering and no scattering and not looking great at 1080p]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.DOF.Kernel.MaxBackgroundRadius:0.006   ; required because low gathering and no scattering and not looking great at 1080p]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Mobile.AmbientOcclusionQuality:0]]
+[2026.05.12-19.27.45:296][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.TextureQuality:3 -> 1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Applying CVar settings from Section [TextureQuality@1] File [Scalability]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Streaming.MipBias:1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.MaxAnisotropy:1]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.VT.MaxAnisotropy:4]]
+[2026.05.12-19.27.45:296][  0]LogConfig: Set CVar [[r.Streaming.LimitPoolSizeToVRAM:1]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.Streaming.PoolSize:600]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.EffectsQuality:3 -> 1]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Applying CVar settings from Section [EffectsQuality@1] File [Scalability]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.TranslucencyLightingVolume.Dim:32]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.RefractionQuality:0]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.SceneColorFormat:3]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.DetailMode:1]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.TranslucencyLightingVolume.Blur:0]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.MaterialQualityLevel:2 ; Medium quality]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.SSS.Scale:0.75]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.SSS.SampleSet:0]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.SSS.Quality:0]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.SSS.HalfRes:1]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.SSGI.Quality:1]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.EmitterSpawnRateScale:0.25]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.ParticleLightQuality:0]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[r.SkyAtmosphere.SampleCountMax:32.0]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[fx.Niagara.QualityLevel:0]]
+[2026.05.12-19.27.45:297][  0]LogConsoleManager: Warning: Setting the console variable 'r.HeterogeneousVolumes' with 'SetByScalability' was ignored as it is lower priority than the previous 'SetByProjectSetting'. Value remains '1'
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.FoliageQuality:3 -> 1]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Applying CVar settings from Section [FoliageQuality@1] File [Scalability]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[foliage.DensityScale:0.8]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[grass.DensityScale:0.8]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Set CVar [[grass.CullDistanceScale:0.8]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[sg.LandscapeQuality:3 -> 1]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Applying CVar settings from Section [LandscapeQuality@1] File [Scalability]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.ResolutionLevel:2 -> 2]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Vulkan.RobustBufferAccess:1 -> 1]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Android.DisableVulkanSM5Support:0 -> 1]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.DefaultBackBufferPixelFormat:4 -> 0]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Forward.LightLinkedListCulling:1 -> 0]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.SkylightCapture.LODDistanceScale:1 -> 2]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[UI.SlateSDFText.RasterizationMode:Bitmap -> SdfApproximation]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[fx.GPUSimulationTextureSizeX:1024 -> 512]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[fx.GPUSimulationTextureSizeY:1024 -> 512]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[r.Streaming.MaxTempMemoryAllowed:50 -> 25]]
+[2026.05.12-19.27.45:297][  0]LogDeviceProfileManager: Pushing Device Profile CVar: [[AsyncTraceDelegateHitchThresholdMS:-1 -> 1.5]]
+[2026.05.12-19.27.45:297][  0]LogConfig: Applying CVar settings from Section [Startup] File [../../../Engine/Config/ConsoleVariables.ini]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.DumpShaderDebugInfo:2]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[p.chaos.AllowCreatePhysxBodies:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[fx.SkipVectorVMBackendOptimizations:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Applying CVar settings from Section [Startup_Android] File [../../../Engine/Config/ConsoleVariables.ini]
+[2026.05.12-19.27.45:298][  0]LogConfig: Applying CVar settings from Section [ConsoleVariables] File [Engine]
+[2026.05.12-19.27.45:298][  0]LogConfig: CVar [[Slate.CacheRenderData:0]] deferred - dummy variable created
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.VSync:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: CVar [[TaskGraph.EnablePowerSavingThreadPriorityReduction:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.Depth24Bit:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Forward.LightGridSizeZ:8]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Forward.MaxCulledLightsPerCell:8]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.HairStrands.Simulation:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.HairStrands.Strands:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.HairStrands.Binding:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.TemporalAA.R11G11B10History:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.MemoryBacktrace:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.Submission.AllowTimelineSemaphores:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.Submission.UseInterruptThread:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.Submission.UseSubmissionThread:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.RHIThread:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.UseMinimalSubmits:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.AllowAsyncCompute:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.AllowSplitBarriers:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.DiagnosticBuffer:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.EnableTransientResourceAllocator:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[r.Vulkan.AllowSparseResidency:0]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[s.StreamableStripDebugName:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[s.StreamableStripDebugNameInShipping:1]]
+[2026.05.12-19.27.45:298][  0]LogConfig: CVar [[r.CEFGPUAcceleration:1]] deferred - dummy variable created
+[2026.05.12-19.27.45:298][  0]LogConfig: Set CVar [[XR.StereoLayers.UseLegacyFacing:1]]
+[2026.05.12-19.27.45:298][  0]LogVirtualTexturing: Display: Recreating virtual texture pools.
+[2026.05.12-19.27.45:299][  0]LogAndroid: InitializeJavaEventReceivers
+[2026.05.12-19.27.45:301][  0]LogAndroid: Display: No CPU thermal sensor was detected. To manually override the sensor path set android.CPUThermalSensorFilePath CVar.
+[2026.05.12-19.27.45:301][  0]LogInit: Memory total: Physical=7756.98MB (8GB approx) Available=3209.83MB PageSize=4.0KB
+[2026.05.12-19.27.45:301][  0]LogInit:  - VirtualMemoryAllocator pools will grow at scale 1
+[2026.05.12-19.27.45:301][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.05.12-19.27.45:305][  0]LogSpline: Registered spline type: TypeId=0x54E3AD22, Impl=MultiSpline, Value=Vector
+[2026.05.12-19.27.45:306][  0]LogChaosDD: Chaos Debug Draw Startup
+[2026.05.12-19.27.45:306][  0]LogInit: Physics initialised using underlying interface: Chaos
+[2026.05.12-19.27.45:306][  0]LogInit: Using OS detected language (de-DE).
+[2026.05.12-19.27.45:306][  0]LogInit: Using OS detected locale (de-DE).
+[2026.05.12-19.27.45:307][  0]LogTextLocalizationManager: No localization for 'de-DE' exists, so 'en' will be used for the language.
+[2026.05.12-19.27.45:307][  0]LogTextLocalizationManager: No localization for 'de-DE' exists, so 'en' will be used for the locale.
+[2026.05.12-19.27.45:413][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.05.12-19.27.45:428][  0]LogAndroid: Display: ComputePhysicalScreenDimensions : NativeScreenResolution: X=4128 Y=2208, ScreenDensity: 320, OutScreenDimensions (inches): X=12.900 Y=6.900, OutScreenSize (inches): 14.629423
+[2026.05.12-19.27.45:428][  0]LogSlate: New Slate User Created. Platform User Id 0, User Index 0, Is Virtual User: 0
+[2026.05.12-19.27.45:428][  0]LogSlate: Slate User Registered.  User Index 0, Is Virtual User: 0
+[2026.05.12-19.27.45:479][  0]LogAndroid: VulkanRHI will be used!
+[2026.05.12-19.27.45:481][  0]LogAndroid: Vulkan SM5 is available but disabled for this device.
+[2026.05.12-19.27.45:481][  0]LogVulkanRHI: Display: Vulkan RHI ShaderPlatform for ES3_1: VULKAN_ES3_1_ANDROID.
+[2026.05.12-19.27.45:481][  0]LogVulkanRHI: Vulkan PSO Precaching = 1, PipelineFileCache = 0
+[2026.05.12-19.27.45:481][  0]LogVulkanRHI: Display: Built with Vulkan header version 1.4.321
+[2026.05.12-19.27.45:481][  0]LogVulkanRHI: Starting Vulkan Profile check for VP_UE_Vulkan_ES3_1_Android_RT:
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Vulkan Profile check complete.
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display: Vulkan RayTracing disabled because SM6 shader platform is required.
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Using API Version 1.1.
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Warning: HMD requested instance extension [VK_KHR_external_memory_capabilities] isn't part of the engine's core extension list. Adding it on-the-fly...
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Warning: HMD requested instance extension [VK_KHR_get_physical_device_properties2] isn't part of the engine's core extension list. Adding it on-the-fly...
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display: Found 14 available instance extensions :
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_EXT_debug_report
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   + VK_EXT_debug_utils
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_EXT_surface_maintenance1
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   + VK_EXT_swapchain_colorspace
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_GOOGLE_surfaceless_query
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   + VK_KHR_android_surface
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_KHR_device_group_creation
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_KHR_external_fence_capabilities
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   + VK_KHR_external_memory_capabilities
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_KHR_external_semaphore_capabilities
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   + VK_KHR_get_physical_device_properties2
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_KHR_get_surface_capabilities2
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   + VK_KHR_surface
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   - VK_KHR_surface_protected_capabilities
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display: Intance Layer VK_LAYER_KHRONOS_validation provides 4 extensions:
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   VK_EXT_debug_report
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   VK_EXT_debug_utils
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   VK_EXT_layer_settings
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   VK_EXT_validation_features
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display: Found 1 available instance layers :
+[2026.05.12-19.27.45:483][  0]LogVulkanRHI: Display:   * VK_LAYER_KHRONOS_validation
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: Creating Vulkan Device using VkPhysicalDevice 0xc443cf10.
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: Display: - DeviceName: Adreno (TM) 740
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: Display: - API=1.3.295 (0x403127) Driver=0x80345007 VendorId=0x5143
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: Display: - DeviceID=0x43050b00 Type=VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: Display: - Max Descriptor Sets Bound 7
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: Display: - Timestamps:  ComputeAndGraphics=1  Domain=VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR  Period=52.083332
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: API Version: 1.3.295|OpenGL ES 3.2 V@0837.0.7 (GIT@3dbacedba8, I13e643cb5c, 1768227585) (Date:01/12/26)
+[2026.05.12-19.27.45:488][  0]LogVulkanRHI: Warning: HMD requested device extension [VK_KHR_external_memory] isn't part of the engine's core extension list. Adding it on-the-fly...
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display: Found 137 available device extensions :
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_ANDROID_external_memory_android_hardware_buffer
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_4444_formats
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_astc_decode_mode
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_blend_operation_advanced
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_border_color_swizzle
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_color_write_enable
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_conservative_rasterization
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_custom_border_color
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_depth_clamp_zero_one
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_depth_clip_control
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_depth_clip_enable
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_descriptor_indexing
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_device_address_binding_report
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_device_fault
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_device_memory_report
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_extended_dynamic_state
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_extended_dynamic_state2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_external_memory_acquire_unmodified
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_filter_cubic
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_fragment_density_map
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_fragment_density_map2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_global_priority
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_global_priority_query
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_host_image_copy
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_host_query_reset
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_image_2d_view_of_3d
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_image_robustness
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_image_view_min_lod
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_index_type_uint8
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_inline_uniform_block
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_line_rasterization
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_load_store_op_none
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_multi_draw
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_multisampled_render_to_single_sampled
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_pipeline_creation_cache_control
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_pipeline_creation_feedback
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_pipeline_protected_access
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_pipeline_robustness
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_primitive_topology_list_restart
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_private_data
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_provoking_vertex
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_queue_family_foreign
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_robustness2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_sample_locations
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_sampler_filter_minmax
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_scalar_block_layout
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_separate_stencil_usage
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_shader_atomic_float
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_shader_demote_to_helper_invocation
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_shader_module_identifier
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_shader_stencil_export
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_shader_subgroup_ballot
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_shader_subgroup_vote
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_shader_viewport_index_layer
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_subgroup_size_control
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_swapchain_maintenance1
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_texel_buffer_alignment
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_texture_compression_astc_hdr
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_tooling_info
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_transform_feedback
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_EXT_vertex_attribute_divisor
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_EXT_vertex_input_dynamic_state
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_GOOGLE_display_timing
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_IMG_filter_cubic
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_16bit_storage
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_8bit_storage
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_acceleration_structure
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_bind_memory2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_buffer_device_address
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_copy_commands2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_create_renderpass2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_dedicated_allocation
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_deferred_host_operations
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_depth_stencil_resolve
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_descriptor_update_template
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_device_group
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_draw_indirect_count
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_driver_properties
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_dynamic_rendering
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_external_fence
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_external_fence_fd
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_external_memory
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_external_memory_fd
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_external_semaphore
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_external_semaphore_fd
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_format_feature_flags2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_fragment_shading_rate
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   * VK_KHR_get_memory_requirements2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_global_priority
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_image_format_list
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_imageless_framebuffer
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_incremental_present
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_maintenance1
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_maintenance2
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_maintenance3
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_maintenance4
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_maintenance5
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   * VK_KHR_multiview
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_pipeline_binary
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_pipeline_executable_properties
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_push_descriptor
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_ray_query
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_relaxed_block_layout
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   - VK_KHR_sampler_mirror_clamp_to_edge
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   * VK_KHR_sampler_ycbcr_conversion
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_separate_depth_stencil_layouts
+[2026.05.12-19.27.45:489][  0]LogVulkanRHI: Display:   + VK_KHR_shader_atomic_int64
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shader_clock
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shader_draw_parameters
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   + VK_KHR_shader_float16_int8
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   + VK_KHR_shader_float_controls
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shader_integer_dot_product
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shader_non_semantic_info
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shader_subgroup_extended_types
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shader_subgroup_uniform_control_flow
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shader_terminate_invocation
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_shared_presentable_image
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   + VK_KHR_spirv_1_4
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_storage_buffer_storage_class
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   + VK_KHR_swapchain
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   + VK_KHR_synchronization2
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   + VK_KHR_timeline_semaphore
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_uniform_buffer_standard_layout
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_variable_pointers
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_vulkan_memory_model
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_workgroup_memory_explicit_layout
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_KHR_zero_initialize_workgroup_memory
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_NV_optical_flow
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_fragment_density_map_offset
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_image_processing
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_multiview_per_view_render_areas
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_multiview_per_view_viewports
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   + VK_QCOM_render_pass_shader_resolve
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_render_pass_store_ops
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_render_pass_transform
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_rotated_copy_commands
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display:   - VK_QCOM_tile_properties
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display: Found 0 available device layers !
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display: Image-based Variable Rate Shading supported via EXTFragmentDensityMap extension. Selected VRS tile size 16 by 16 pixels per VRS image texel.
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display: Vulkan Variable Rate Shading choice: 3.
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display: Device properties: Geometry 1 BufferAtomic64 1 ImageAtomic64 0
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display: Found 2 Queue Families
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display: Initializing Queue Family 0: 4 queues Gfx Compute Xfer Sparse
+[2026.05.12-19.27.45:490][  0]LogVulkanRHI: Display: Skipping unnecessary Queue Family 1: 1 queues Sparse
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Swappy requires 1 extensions:
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: bHasGoogleDisplayTiming = 1
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: TimestampValidBits=48
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: Using 0 device layers.
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: Using 40 device extensions:
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_swapchain
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_create_renderpass2
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_deferred_host_operations
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_spirv_1_4
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_shader_float_controls
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_image_format_list
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_EXT_load_store_op_none
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_QCOM_render_pass_shader_resolve
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_EXT_tooling_info
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_maintenance4
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_maintenance5
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_shader_atomic_int64
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_EXT_scalar_block_layout
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_EXT_shader_viewport_index_layer
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_separate_depth_stencil_layouts
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_synchronization2
+[2026.05.12-19.27.45:494][  0]LogVulkanRHI: Display: * VK_KHR_fragment_shading_rate
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_fragment_density_map
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_fragment_density_map2
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_multiview
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_get_memory_requirements2
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_descriptor_indexing
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_host_query_reset
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_subgroup_size_control
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_device_fault
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_shader_demote_to_helper_invocation
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_16bit_storage
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_shader_float16_int8
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_depth_stencil_resolve
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_pipeline_creation_cache_control
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_sampler_ycbcr_conversion
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_timeline_semaphore
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_dynamic_rendering
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_buffer_device_address
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_GOOGLE_display_timing
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_astc_decode_mode
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_texture_compression_astc_hdr
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_EXT_queue_family_foreign
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_ANDROID_external_memory_android_hardware_buffer
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: * VK_KHR_external_memory
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: Vulkan debug markers support: resource names disabled, begin/end labels disabled.
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: Max memory allocations 4294967295.
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: 2 Device Memory Heaps:
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   0: Flags 0x1 - Size 8133779456 (7756.98 MB) - Used 0 (0.00%) - DeviceLocal
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   1: Flags 0x1 - Size 268435456 (256.00 MB) - Used 0 (0.00%) - DeviceLocal
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: 9 Device Memory Types (unified):
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   0: Flags 0x00001 - Heap  0 - 1
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   1: Flags 0x00001 - Heap  0 - 1
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   2: Flags 0x00001 - Heap  0 - 1
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   3: Flags 0x0000b - Heap  0 - 11
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   4: Flags 0x00007 - Heap  0 - 7
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   5: Flags 0x00007 - Heap  0 - 7
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   6: Flags 0x0000f - Heap  0 - 15
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   8: Flags 0x00011 - Heap  0 - 17
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display:   7: Flags 0x00021 - Heap  1 - 33
+[2026.05.12-19.27.45:495][  0]LogVulkanRHI: Display: Memory Budget unavailable
+[2026.05.12-19.27.45:498][  0]LogVulkanRHI: FVulkanChunkedPipelineCacheManager: loading /storage/emulated/0/Android/data/com.samples.SpatialAnchorSampleUnreal/files/RHICache/Vulkan/SF_VULKAN_ES31_ANDROID.996fe8bc.5143.43050b00UP1A.231005.007.A1/VulkanPSOChunks
+[2026.05.12-19.27.45:500][  0]LogRHI: Opened binary cache for write (/storage/emulated/0/Android/data/com.samples.SpatialAnchorSampleUnreal/files/RHICache/Vulkan/SF_VULKAN_ES31_ANDROID.996fe8bc.5143.43050b00UP1A.231005.007.A1/VulkanPSOChunks)
+[2026.05.12-19.27.45:500][  0]LogVulkanRHI: FVulkanPipelineStateCacheManager will check for loading, etc when ShaderPipelineCache opens its file
+[2026.05.12-19.27.45:501][  0]LogRHI: Display: Enabling workaround to reduce memory requirement for ASTC textures (VK_IMAGE_TILING_LINEAR). 128x128 - 8 Mips ASTC_8x8 texture: 12 KiB -> 5 KiB
+[2026.05.12-19.27.45:501][  0]LogRHI: External PSO compilers = disabled
+[2026.05.12-19.27.45:501][  0]LogVulkanRHI: Display: Vulkan Async Compute has been DISABLED.
+[2026.05.12-19.27.45:501][  0]LogVulkanRHI: Display: Wave Operations have been ENABLED (wave size: min=64 max=128).
+[2026.05.12-19.27.45:506][  0]LogVRS: Current RHI supports screenspace Variable Rate Shading
+[2026.05.12-19.27.45:508][  0]LogRHI: Texture pool is 600 MB (of 8012 MB total graphics mem)
+[2026.05.12-19.27.45:508][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Vulkan"
+[2026.05.12-19.27.45:508][  0]LogCsvProfiler: Display: Metadata set : rhiname="Vulkan_ES31"
+[2026.05.12-19.27.45:508][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="ES3_1"
+[2026.05.12-19.27.45:508][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="VULKAN_ES3_1_ANDROID"
+[2026.05.12-19.27.45:508][  0]LogInit: Initializing FReadOnlyCVARCache
+[2026.05.12-19.27.45:518][  0]LogRendererCore: Ray tracing is disabled. Reason: disabled through project setting (r.RayTracing=0).
+[2026.05.12-19.27.45:519][  0]LogShaderLibrary: Display: Using IoDispatcher for shader code library Global. Total 2019 unique shaders.
+[2026.05.12-19.27.45:519][  0]LogShaderLibrary: Display: Cooked Context: Using Shared Shader Library Global
+[2026.05.12-19.27.45:519][  0]LogShaderLibrary: Display: Logical shader library 'Global' has been created as a monolithic library
+[2026.05.12-19.27.45:519][  0]LogTemp: Display: Clearing the OS Cache
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: --- StereoAspects begin ---
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: Platform=VULKAN_ES3_1_ANDROID (21)
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bInstancedStereo = 1
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMobilePlatform = 1
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMobilePostprocessing = 0
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMobileMultiView = 1
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMultiViewportCapable = 0
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bInstancedStereoNative = 0
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: ---
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: RHISupportsMobileMultiView(VULKAN_ES3_1_ANDROID) = 1.
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: RHISupportsInstancedStereo(VULKAN_ES3_1_ANDROID) = 0.
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMobileMultiViewCoreSupport = 1
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMobileMultiViewNative = 1
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMobileMultiViewFallback = 0
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: ---
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bInstancedMultiViewportEnabled = 0
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bInstancedStereoEnabled = 0
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: bMobileMultiViewEnabled = 1
+[2026.05.12-19.27.45:525][  0]LogInit: FStereoShaderAspects: --- StereoAspects end ---
+[2026.05.12-19.27.45:529][  0]LogAndroid: Unlocking android HW window during preinit. bAppIsActive_EventThread=1
+[2026.05.12-19.27.45:529][  0]LogInit: XR: Instanced Stereo Rendering is Disabled
+[2026.05.12-19.27.45:529][  0]LogInit: XR: MultiViewport is Disabled
+[2026.05.12-19.27.45:529][  0]LogInit: XR: Mobile Multiview is Enabled
+[2026.05.12-19.27.45:545][  0]LogSlate: Using FreeType 2.10.4
+[2026.05.12-19.27.45:545][  0]LogSlate: SlateFontServices - WITH_FREETYPE: 1, WITH_HARFBUZZ: 1
+[2026.05.12-19.27.45:582][  0]LogConsoleManager: Display: Trying to Replace Cvar=r.SetRes Set By Constructor Value implicitly by calling SetWithCurrentPriority or ReplaceCurrentPriorityAndTag.
+This is not allowed, possible solutions:
+1. Use SetWithCurrentPriority or ReplaceCurrentPriorityAndTag with explicit MinPriority and MaxPriority values, with MinPriority >= ECVF_SetByScalability.
+2. Use explicit Set, Cvar->Set(<Value>, <SetByPriority>)
+[2026.05.12-19.27.45:582][  0]LogConsoleManager: Display: Trying to Replace Cvar=r.SetRes Set By Constructor Value implicitly by calling SetWithCurrentPriority or ReplaceCurrentPriorityAndTag.
+This is not allowed, possible solutions:
+1. Use SetWithCurrentPriority or ReplaceCurrentPriorityAndTag with explicit MinPriority and MaxPriority values, with MinPriority >= ECVF_SetByScalability.
+2. Use explicit Set, Cvar->Set(<Value>, <SetByPriority>)
+[2026.05.12-19.27.45:582][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resx="4128"
+[2026.05.12-19.27.45:582][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resy="2208"
+[2026.05.12-19.27.45:594][  0]LogAndroid: Window orientation changed: Landscape, GDeviceScreenOrientation=3
+[2026.05.12-19.27.45:601][  0]LogShaderLibrary: Display: Using IoDispatcher for shader code library ArtemisOutpost. Total 1535 unique shaders.
+[2026.05.12-19.27.45:601][  0]LogShaderLibrary: Display: Cooked Context: Using Shared Shader Library ArtemisOutpost
+[2026.05.12-19.27.45:601][  0]LogShaderLibrary: Display: Logical shader library 'ArtemisOutpost' has been created as a monolithic library
+[2026.05.12-19.27.45:601][  0]LogShaderLibrary: Display: Tried to open again shader library 'ArtemisOutpost', but could not find new components for it (existing components: 1).
+[2026.05.12-19.27.45:601][  0]LogInit: Using OS detected language (de-DE).
+[2026.05.12-19.27.45:601][  0]LogInit: Using OS detected locale (de-DE).
+[2026.05.12-19.27.45:601][  0]LogTextLocalizationManager: No localization for 'de-DE' exists, so 'en' will be used for the language.
+[2026.05.12-19.27.45:601][  0]LogTextLocalizationManager: No localization for 'de-DE' exists, so 'en' will be used for the locale.
+[2026.05.12-19.27.45:602][  0]LogAssetRegistry: FAssetRegistry took 0.0001 seconds to start up
+[2026.05.12-19.27.45:890][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+[2026.05.12-19.27.45:890][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+[2026.05.12-19.27.45:894][  0]LogDeviceProfileManager: Active device profile: [0x69636184f8][0x7484614550 82] Meta_Quest_3
+[2026.05.12-19.27.45:894][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="Meta_Quest_3"
+[2026.05.12-19.27.45:896][  0]LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
+[2026.05.12-19.27.45:898][  0]LogFilePackageStore: Updated: NewPackages=625, OldPackages=0, TotalPackages=626
+[2026.05.12-19.27.45:900][  0]LogConfig: Display: Audio Stream Cache "Max Cache Size KB" set to 0 by config: "../../../ArtemisOutpost/Config/Engine.ini". Default value of 65536 KB will be used. You can update Project Settings here: Project Settings->Platforms->Android->Audio->Cook Overrides->Stream Caching->Max Cache Size (KB)
+[2026.05.12-19.27.45:955][  0]LogHMD: PokeAHoleMaterial loaded successfully
+[2026.05.12-19.27.45:993][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.05.12-19.27.46:010][  0]LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
+[2026.05.12-19.27.46:013][  0]LogPackageLocalizationCache: Processed 74 localized package path(s) for 1 prioritized culture(s) in 0.000249 seconds
+[2026.05.12-19.27.46:027][  0]LogStats: UGameplayTagsManager::InitializeManager -  0.000 s
+[2026.05.12-19.27.46:039][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.05.12-19.27.46:065][  0]LogMoviePlayer: Initializing movie player
+[2026.05.12-19.27.46:070][  0]LogNiagaraDebuggerClient: Niagara Debugger Client Initialized | Session: 5035150AAC5646818000000000002600 | Instance: 89C8E736594E42C1B26DEF49257644B7 (Quest 3-8833).
+[2026.05.12-19.27.46:097][  0]LogAudio: Display: Registering Engine Module Parameter Interfaces...
+[2026.05.12-19.27.46:102][  0]LogMetaSound: MetaSound Engine Initialized
+[2026.05.12-19.27.46:115][  0]LogAndroidPermission: UAndroidPermissionCallbackProxy::GetInstance
+[2026.05.12-19.27.46:115][  0]LogGooglePAD: Display: GooglePAD disabled.
+[2026.05.12-19.27.46:130][  0]LogUObjectArray: 29861 objects as part of root set at end of initial load.
+[2026.05.12-19.27.46:130][  0]LogUObjectArray: 16 objects are not in the root set, but can never be destroyed because they are in the DisregardForGC set.
+[2026.05.12-19.27.46:130][  0]LogUObjectArray: CloseDisregardForGC: 29861/29861 objects in disregard for GC pool
+[2026.05.12-19.27.46:159][  0]LogAndroid: Display: Passed PreInit()
+[2026.05.12-19.27.46:160][  0]LogEngine: Initializing Engine...
+[2026.05.12-19.27.46:161][  0]LogHMD: HMD configured for shader platform VULKAN_ES3_1_ANDROID, bIsMobileMultiViewEnabled=1, bProjectionLayerAlphaEnabled=0
+[2026.05.12-19.27.46:215][  0]LogOculusSystemInfoExtensionPlugin: UID 8 27 46 ba - a0 71 4c f7 - 8f 87 ba de - 5c ce 43 ce
+[2026.05.12-19.27.46:215][  0]LogHMD: Collecting Telemetry Data
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/app/gpu_frametime
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/compositor/gpu_frametime
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/compositor/dropped_frame_count
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/compositor/spacewarp_mode
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/gpu_utilization
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu_utilization_average
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu_utilization_worst
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu0_utilization
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu1_utilization
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu2_utilization
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu3_utilization
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu4_utilization
+[2026.05.12-19.27.46:215][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu5_utilization
+[2026.05.12-19.27.46:216][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu6_utilization
+[2026.05.12-19.27.46:216][  0]LogOculusPerformanceExtensionPlugin: Supported Performance Metrics: /perfmetrics_meta/device/cpu7_utilization
+[2026.05.12-19.27.46:233][  0]LogNetVersion: Set ProjectVersion to 1.0.0.0. Version Checksum will be recalculated on next use.
+[2026.05.12-19.27.46:233][  0]LogInit: Texture streaming: Enabled
+[2026.05.12-19.27.46:234][  0]LogAudio: Display: Initializing Audio Device Manager...
+[2026.05.12-19.27.46:234][  0]LogAudio: Display: Loading Default Audio Settings Objects...
+[2026.05.12-19.27.46:234][  0]LogAudio: Display: No default SoundConcurrencyObject specified (or failed to load).
+[2026.05.12-19.27.46:234][  0]LogAudio: Display: Audio Device Manager Initialized
+[2026.05.12-19.27.46:234][  0]LogAudio: Display: Creating Audio Device:                 Id: 1, Scope: Shared, Realtime: True
+[2026.05.12-19.27.46:235][  0]LogAudioMixer: Display: Audio Mixer Platform Settings:
+[2026.05.12-19.27.46:235][  0]LogAudioMixer: Display: 	Sample Rate:						  44100
+[2026.05.12-19.27.46:235][  0]LogAudioMixer: Display: 	Callback Buffer Frame Size Requested: 1152
+[2026.05.12-19.27.46:235][  0]LogAudioMixer: Display: 	Callback Buffer Frame Size To Use:	  1152
+[2026.05.12-19.27.46:235][  0]LogAudioMixer: Display: 	Number of buffers to queue:			  4
+[2026.05.12-19.27.46:235][  0]LogAudioMixer: Display: 	Max Channels (voices):				  32
+[2026.05.12-19.27.46:235][  0]LogAudioMixer: Display: 	Number of Async Source Workers:		  0
+[2026.05.12-19.27.46:235][  0]LogAudio: Display: AudioDevice MaxSources: 32
+[2026.05.12-19.27.46:236][  0]LogAudio: Display: Audio Spatialization Plugin: None (built-in).
+[2026.05.12-19.27.46:236][  0]LogAudio: Display: Audio Reverb Plugin: None (built-in).
+[2026.05.12-19.27.46:236][  0]LogAudio: Display: Audio Occlusion Plugin: None (built-in).
+[2026.05.12-19.27.46:238][  0]LogAudioMixer: Display: Initializing audio mixer using platform API: 'OpenSLES'
+[2026.05.12-19.27.46:246][  0]LogAudioMixer: Display: Using Audio Hardware Device Android Audio Device
+[2026.05.12-19.27.46:247][  0]LogAudioMixer: Display: Initializing Sound Submixes...
+[2026.05.12-19.27.46:247][  0]LogAudioMixer: Display: Creating Master Submix 'MasterSubmixDefault'
+[2026.05.12-19.27.46:247][  0]LogAudioMixer: Display: Creating Master Submix 'MasterReverbSubmixDefault'
+[2026.05.12-19.27.46:250][  0]LogAudioMixer: Display: Output buffers initialized: Frames=1152, Channels=2, Samples=2304, InstanceID=1
+[2026.05.12-19.27.46:252][  0]LogAudioMixer: Display: Starting AudioMixerPlatformInterface::RunInternal(), InstanceID=1
+[2026.05.12-19.27.46:252][  0]LogInit: FAudioDevice initialized with ID 1.
+[2026.05.12-19.27.46:252][  0]LogAudioMixer: Display: Audio Buffer Underrun (starvation) detected. InstanceID=1
+[2026.05.12-19.27.46:252][  0]LogAudioMixer: Initializing Audio Bus Subsystem for audio device with ID 1
+[2026.05.12-19.27.46:253][  0]LogCsvProfiler: Display: Metadata set : largeworldcoordinates="1"
+[2026.05.12-19.27.46:258][  0]LogChaosDD: Creating Chaos Debug Draw Scene for world Untitled
+[2026.05.12-19.27.46:273][  0]LogMRUK: Loading MR Utility Kit Shared library
+[2026.05.12-19.27.46:274][  0]LogMRUK: Global context initialized successfully
+[2026.05.12-19.27.46:274][  0]LogMRUK: Open XR initialized successfully
+[2026.05.12-19.27.46:274][  0]LogOvrPlatform: Display: UOvrPlatformSubsystem::Initialize
+[2026.05.12-19.27.46:557][  0]LogAudio: Display: Audio Device (ID: 1) registered with world 'Untitled'.
+[2026.05.12-19.27.46:558][  0]LogSlate: Updating window title bar state: overlay mode, drag disabled, window buttons hidden, title bar hidden
+[2026.05.12-19.27.46:558][  0]LogInit: Display: Game Engine Initialized.
+[2026.05.12-19.27.46:558][  0]LogOculusXRColocation: Warning: Unable to retrieve OculusXRHMD, cannot add event polling delegate.
+[2026.05.12-19.27.46:558][  0]LogOculusXRPassthrough: Warning: Unable to retrieve OculusXRHMD, cannot add event polling delegate. (current xrsystem : OpenXR)
+[2026.05.12-19.27.46:558][  0]LogOculusXRScene: Warning: Unable to retrieve OculusXRHMD, cannot add event polling delegates.
+[2026.05.12-19.27.46:558][  0]LogOculusXRAnchors: Warning: Unable to retrieve OculusXRHMD, cannot add event polling delegates.
+[2026.05.12-19.27.46:568][  0]LogStreaming: Warning: Failed to read file '../../../Engine/Plugins/Runtime/SunPosition/Resources/SunPosition.png' error.
+[2026.05.12-19.27.46:568][  0]LogSlate: Could not load file for Slate resource: [../../../Engine/Plugins/Runtime/SunPosition/Resources/SunPosition.png] file: [../../../Engine/Plugins/Runtime/SunPosition/Resources/SunPosition.png]
+[2026.05.12-19.27.46:568][  0]LogInit: Display: Starting Game.
+[2026.05.12-19.27.46:569][  0]LogGlobalStatus: Browse Started Browse: "/Game/Maps/SA_Showcase?Name=Player"
+[2026.05.12-19.27.46:569][  0]LogNet: Browse: /Game/Maps/SA_Showcase?Name=Player
+[2026.05.12-19.27.46:569][  0]LogLoad: LoadMap: /Game/Maps/SA_Showcase?Name=Player
+[2026.05.12-19.27.46:569][  0]LogWorld: BeginTearingDown for /Temp/Untitled_0
+[2026.05.12-19.27.46:569][  0]LogWorld: UWorld::CleanupWorld for Untitled, bSessionEnded=true, bCleanupResources=true
+[2026.05.12-19.27.46:569][  0]LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
+[2026.05.12-19.27.46:574][  0]LogAudio: Display: Audio Device unregistered from world 'None'.
+[2026.05.12-19.27.46:577][  0]LogUObjectHash: Compacting FUObjectHashTables data took   1.25ms
+[2026.05.12-19.27.46:634][  0]LogAudio: Display: Audio Device (ID: 1) registered with world 'SA_Showcase'.
+[2026.05.12-19.27.46:634][  0]LogChaosDD: Creating Chaos Debug Draw Scene for world SA_Showcase
+[2026.05.12-19.27.46:641][  0]LogLoad: Game class is 'GameModeBase'
+[2026.05.12-19.27.46:642][  0]LogWorld: Bringing World /Game/Maps/SA_Showcase.SA_Showcase up for play (max tick rate 0) at 2026.05.12-21.27.46
+[2026.05.12-19.27.46:642][  0]LogWorld: Bringing up level for play took: 0.001218
+[2026.05.12-19.27.46:643][  0]LogOnline: Warning: OSS: FOnlineSubsystemGooglePlayModule was disabled
+[2026.05.12-19.27.46:643][  0]LogTemp: Error: TransformationsManager: Failed to cast to custom game state.
+[2026.05.12-19.27.46:652][  0]LogAndroidPermission: UAndroidPermissionFunctionLibrary::CheckPermission android.permission.WRITE_EXTERNAL_STORAGE (Android)
+[2026.05.12-19.27.46:654][  0]LogLoad: Took 0.085421 seconds to LoadMap(/Game/Maps/SA_Showcase)
+[2026.05.12-19.27.46:654][  0]LogGlobalStatus: LoadMap Load map complete /Game/Maps/SA_Showcase
+[2026.05.12-19.27.46:660][  0]LogHMD: Warning: Swapchain format not supported (50), falling back to runtime preferred format (43).
+[2026.05.12-19.27.46:698][  0]LogSlate: Took 0.000773 seconds to synchronously load lazily loaded font '../../../Engine/Content/Slate/Fonts/Roboto-Regular.ttf' (155K)
+[2026.05.12-19.27.46:699][  0]LogRHI: Display: ShaderPipelineCache: Paused Batching. 1
+[2026.05.12-19.27.46:699][  0]LogPakFile: AllPaks IndexSizes: DirectoryHashSize=32, PathHashSize=16, EntriesSize=24576, DirTreeIndexSize=151832, TotalSize=176456
+[2026.05.12-19.27.46:699][  0]LogRHI: Display: ShaderPipelineCache: Resumed Batching. 0
+[2026.05.12-19.27.46:699][  0]LogRHI: Display: ShaderPipelineCache: Batching Resumed.
+[2026.05.12-19.27.46:776][  0]LogRenderer: Warning: Resizing VR buffer to 1680 by 1760
+[2026.05.12-19.27.46:776][  0]LogSlate: Took 0.000581 seconds to synchronously load lazily loaded font '../../../Engine/Content/Slate/Fonts/Roboto-Regular.ttf' (155K)
+[2026.05.12-19.27.46:776][  0]LogInit: Display: Engine is initialized. Leaving FEngineLoop::Init()
+[2026.05.12-19.27.46:776][  0]LogAndroid: Passed GEngineLoop.Init()
+[2026.05.12-19.27.46:776][  0]LogLoad: (Engine Initialization) Total time: 2.75 seconds
+[2026.05.12-19.27.46:776][  0]LogAndroidStats: HWCPipe: GAndroidHWCPipeStatsEnabled=1 (set on commandline)
+[2026.05.12-19.27.46:776][  0]LogAndroidStats: HWCPipe: GPU 0 not valid
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 9, [width=-1, height=-1], APP_EVENT_STATE_ON_START
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 7, [width=-1, height=-1], APP_EVENT_STATE_ON_RESUME
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 11, [width=-1, height=-1], APP_EVENT_STATE_WINDOW_GAINED_FOCUS
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 15, [width=-1, height=-1], APP_EVENT_STATE_SAFE_ZONE_UPDATED
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 0, [width=4128, height=2208], APP_EVENT_STATE_WINDOW_CREATED
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: ExecWindowCreated (using new behavior 0)
+[2026.05.12-19.27.46:776][  0]LogConsoleManager: Display: Trying to Replace Cvar=r.SetRes Set By Constructor Value implicitly by calling SetWithCurrentPriority or ReplaceCurrentPriorityAndTag.
+This is not allowed, possible solutions:
+1. Use SetWithCurrentPriority or ReplaceCurrentPriorityAndTag with explicit MinPriority and MaxPriority values, with MinPriority >= ECVF_SetByScalability.
+2. Use explicit Set, Cvar->Set(<Value>, <SetByPriority>)
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 14, [width=-1, height=-1], APP_EVENT_STATE_APP_ACTIVATED
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 16, [width=-1, height=-1], APP_EVENT_RUN_CALLBACK
+[2026.05.12-19.27.46:776][  0]LogAndroidEvents: Display: Event thread callback running.
+[2026.05.12-19.27.46:776][  0]LogAndroid: performing app foregrounding callback.
+[2026.05.12-19.27.46:776][  0]LogMRUK: Passthrough Camera Access eye 0 resume
+[2026.05.12-19.27.46:782][  0]LogCore: Display: AppLifetime: Application has entered foreground
+[2026.05.12-19.27.46:782][  0]LogCore: Display: AppLifetime: Application has reactivated
+[2026.05.12-19.27.46:782][  0]LogAndroidEvents: Android resume audio
+[2026.05.12-19.27.46:782][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 1, [width=4128, height=2208], APP_EVENT_STATE_WINDOW_RESIZED
+[2026.05.12-19.27.46:799][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 4, [width=-1, height=-1], APP_EVENT_STATE_WINDOW_REDRAW_NEEDED
+[2026.05.12-19.27.46:799][  0]LogAndroidEvents: Display: Application Event : 4  not handled. 
+[2026.05.12-19.27.46:799][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 2, [width=-1, height=-1], APP_EVENT_STATE_WINDOW_CHANGED
+[2026.05.12-19.27.46:799][  0]LogAndroidEvents: Display: LogAndroidEvents::DequeueAppEvent : 15, [width=-1, height=-1], APP_EVENT_STATE_SAFE_ZONE_UPDATED
+[2026.05.12-19.27.46:807][  0]LogAndroid: Mobile HDR: no
+[2026.05.12-19.27.46:807][  0]LogAndroid: ***** Cached WindowRect 4128, 2208 (0)
+[2026.05.12-19.27.46:807][  0]LogEngine: Changing dynamic resolution state.
+[2026.05.12-19.27.46:808][  0]LogAndroid: New input device recorded: ControllerId = 0, DeviceId=6, ControllerType=2, DeviceName=Device 0xC2C2265CCB3F472D, Descriptor=96e179e7eecd77a031dd00bc9145ea715941e6e6, FeedbackMotorCount=0
+[2026.05.12-19.27.46:808][  0]LogConsoleManager: Display: Trying to Replace Cvar=r.SetRes Set By Constructor Value implicitly by calling SetWithCurrentPriority or ReplaceCurrentPriorityAndTag.
+This is not allowed, possible solutions:
+1. Use SetWithCurrentPriority or ReplaceCurrentPriorityAndTag with explicit MinPriority and MaxPriority values, with MinPriority >= ECVF_SetByScalability.
+2. Use explicit Set, Cvar->Set(<Value>, <SetByPriority>)
+[2026.05.12-19.27.46:815][  0]LogHMD: Warning: No mapping context provided in the OpenXR Input project settings, action bindings will not be visible to the OpenXR runtime. Action/Axis mappings from the Input configuration are deprecated for XR in favor of Enhanced Input.
+[2026.05.12-19.27.46:842][  0]LogOculusPerformanceExtensionPlugin: Oculus OpenXR SetPerformanceLevel CPU=1, GPU=2
+[2026.05.12-19.27.46:844][  0]LogMRUK: Warning: MRUK Shared: World Lock anchor handle is null
+[2026.05.12-19.27.46:852][  0]LogSlate: InvalidateAllWidgets triggered.  All widgets were invalidated
+[2026.05.12-19.27.46:852][  0]LogTrace: Display: Control listening on port 1985
+[2026.05.12-19.27.46:902][  1]LogHMD: Warning: Swapchain format not supported (50), falling back to runtime preferred format (43).
+[2026.05.12-19.27.46:953][  2]LogRenderer: Warning: Resizing VR buffer to 2020 by 2112
+[2026.05.12-19.27.46:953][  2]LogOculusXRPassthrough: FOculusXRPassthroughEventHandling - Passthrough Layer #1 resumed
+[2026.05.12-19.27.46:953][  2]LogOculusXRPassthrough: UOculusXRPassthroughSubsystem - Received layer #1 resumed event
+[2026.05.12-19.28.25:775][791]LogAndroid: New input device recorded: ControllerId = -1, DeviceId=3, ControllerType=0, DeviceName=pmic_resin, Descriptor=653e1ca6257fe659881d6f71b799cb02b0d69ace, FeedbackMotorCount=0
+[2026.05.12-19.28.25:775][791]LogAndroid: New input device recorded: ControllerId = -1, DeviceId=4, ControllerType=0, DeviceName=gpio-keys, Descriptor=485d69228e24f5e46da1598745890b214130dbc4, FeedbackMotorCount=0
+[2026.05.12-19.28.25:776][791]LogAndroid: New input device recorded: ControllerId = -1, DeviceId=2, ControllerType=0, DeviceName=pmic_pwrkey, Descriptor=39f0cc2fda6f8287fd99ffa0db53ae80f4837e18, FeedbackMotorCount=0
+[2026.05.12-19.30.00:543][609]LogOculusXRAnchors: Warning: [GetAnchorComponentStatus] Get space component status failed. Result: -1000113000
+[2026.05.12-19.30.00:545][609]LogBlueprintUserMessages: [SpatialAnchorManager_AC] Successfully saved anchors
+[2026.05.12-19.30.00:548][609]LogTemp: ShareAnchorsWithGroup: Saving 1 anchors before sharing...
+[2026.05.12-19.30.00:557][610]LogTemp: ShareAnchorsWithGroup: Saved 1 anchors. Starting share...
+[2026.05.12-19.30.00:557][610]LogOculusXRAnchors: Warning: [ShareAnchorsWithGroups] Spatial entity sharing (Meta) extensions are unsupported.
+[2026.05.12-19.30.00:557][610]LogOculusXRAnchors: Started FShareAnchorsWithGroups: RequestId: 0 -- EventId: 1 -- Result: Failure_InvalidParameter
+[2026.05.12-19.30.00:557][610]LogTemp: Error: ShareAnchorsWithGroup [Share]: Invalid parameter. Check anchor handles and UUID format (32-char hex, no hyphens).
+[2026.05.12-19.30.18:127][875]LogBlueprintUserMessages: [SpatialAnchorManager_AC] Successfully saved anchors
+[2026.05.12-19.30.23:128][235]LogOculusXRAnchors: Warning: [GetAnchorComponentStatus] Get space component status failed. Result: -1000113000
+[2026.05.12-19.30.23:128][235]LogBlueprintUserMessages: [SpatialAnchorManager_AC] Successfully saved anchors
+[2026.05.12-19.30.23:132][235]LogTemp: ShareAnchorsWithGroup: Saving 1 anchors before sharing...
+[2026.05.12-19.30.23:140][236]LogTemp: ShareAnchorsWithGroup: Saved 1 anchors. Starting share...
+[2026.05.12-19.30.23:140][236]LogOculusXRAnchors: Warning: [ShareAnchorsWithGroups] Spatial entity sharing (Meta) extensions are unsupported.
+[2026.05.12-19.30.23:140][236]LogOculusXRAnchors: Started FShareAnchorsWithGroups: RequestId: 0 -- EventId: 2 -- Result: Failure_InvalidParameter
+[2026.05.12-19.30.23:140][236]LogTemp: Error: ShareAnchorsWithGroup [Share]: Invalid parameter. Check anchor handles and UUID format (32-char hex, no hyphens).

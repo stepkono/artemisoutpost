@@ -36,10 +36,6 @@ void AGameLevelXRPawn::BeginPlay()
 	{
 		ShareAnchorsWithServer(GI->RawAnchors); 
 	}
-	else
-	{
-		RequestAnchorsFromServer();
-	}
 }
 
 // Called every frame
@@ -57,11 +53,6 @@ void AGameLevelXRPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 bool AGameLevelXRPawn::IsAuthoritativeClient() const
 {
 	return GI->CheckForInitializedSpatialAnchors(); 	
-}
-
-void AGameLevelXRPawn::RequestAnchorsFromServer()
-{
-	
 }
 
 void AGameLevelXRPawn::ShareAnchorsWithServer_Implementation(FCustomAnchors RawAnchors)

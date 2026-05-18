@@ -118,7 +118,14 @@ void AWebsocketManager::HandleMessage(const FString& Message)
 				: 0.0f;
 			UE_LOG(LogTemp, Warning, TEXT("[WebsocketManager]: Control command — Accelerator: %f, Steering: %f"), Command.Accelerator, Command.Steering);
 			
-			GS->WriteControlCommand(Command); 
+			if (GS)
+			{
+				GS->WriteControlCommand(Command);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("[WebsocketManager]: Cannot write control command — GameState is not AArtemisGameState (cast failed in BeginPlay)."));
+			}
 		}
 	}
 	else
@@ -233,5 +240,12 @@ void AWebsocketManager::ProcessBufferedMessage()
 		LatestCoordinates.Reset();
 	}
 
-	GS->WriteMapCoordinates(DataToSend.GetValue());
+	if (GS)
+	{
+		GS->WriteMapCoordinates(DataToSend.GetValue());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[WebsocketManager]: Cannot write map coordinates — GameState is not AArtemisGameState."));
+	}
 }
