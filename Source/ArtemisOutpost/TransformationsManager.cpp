@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "TransformationsManager.h"
+
+#include "OculusXRAnchorBPFunctionLibrary.h"
 #include "GameData/ArtemisGameState.h"
 
 #pragma region Constructors

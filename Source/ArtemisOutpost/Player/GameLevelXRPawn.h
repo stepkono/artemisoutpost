@@ -32,8 +32,6 @@ private:
 	
 	UFUNCTION(Server, Reliable)
 	void ShareAnchorsWithServer(FCustomAnchors RawAnchors); 
-
-	void RequestAnchorsFromServer();
 	
 private: 
 	UPROPERTY()

@@ -60,26 +60,31 @@ void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 
 void UMapCutoutManager::HandleAnchorsUpdate(const FCustomAnchors& RawAnchors)
 {
+	FAnchorsPositions RawAnchorsPositions; 
+	TArray<AActor*> SpawnedRawAnchors; 
+	
 	if (IsAuthoritativeClient())
 	{
-		AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> SpawnedAnchors)
+		AnchorsManager->DiscoverAnchors(RawAnchors, [SpawnedRawAnchors](TArray<AActor*> SpawnedAnchors) mutable
 		{
-			FAnchorsPositions RawAnchorsPositions; 
-				
-			RawAnchorsPositions.AAnchorPos = SpawnedAnchors[0]->GetActorLocation();
-			RawAnchorsPositions.BAnchorPos = SpawnedAnchors[1]->GetActorLocation();
-			RawAnchorsPositions.CAnchorPos = SpawnedAnchors[2]->GetActorLocation();
-			RawAnchorsPositions.DAnchorPos = SpawnedAnchors[3]->GetActorLocation();
-				
-			BindGeoRefToAnchor(SpawnedAnchors[0]);
-				
-			CalibrateAnchors(RawAnchorsPositions);
+			SpawnedRawAnchors = SpawnedAnchors;
 		}); 
 	}
 	else
 	{
-		
+		AnchorsManager->RequestSharedAnchors(RawAnchors, [SpawnedRawAnchors](TArray<AActor*> SpawnedAnchors) mutable
+		{
+			SpawnedRawAnchors = SpawnedAnchors; 
+		}); 
 	}
+	
+	RawAnchorsPositions.AAnchorPos = SpawnedRawAnchors[0]->GetActorLocation();
+	RawAnchorsPositions.BAnchorPos = SpawnedRawAnchors[1]->GetActorLocation();
+	RawAnchorsPositions.CAnchorPos = SpawnedRawAnchors[2]->GetActorLocation();
+	RawAnchorsPositions.DAnchorPos = SpawnedRawAnchors[3]->GetActorLocation();
+	
+	BindGeoRefToAnchor(SpawnedRawAnchors[0]);
+	CalibrateAnchors(RawAnchorsPositions);
 }
 
 void UMapCutoutManager::CalibrateAnchors(FAnchorsPositions& RawAnchorsPositions)
