@@ -27,10 +27,10 @@ protected:
 
 private: 
 	UFUNCTION()
-	void HandleAnchorsUpdate(const FCustomAnchors& RawAnchors);
+	void HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors);
 	
 	UFUNCTION()
-	void CalibrateAnchors(FAnchorsPositions& RawAnchorsPositions); 
+	void CalibrateAnchors(FOrderedAnchorsPositions& RawAnchorsPositions); 
 	
 	UFUNCTION(BlueprintCallable)
 	void UpdateMaterialParamCollection() const;
@@ -44,12 +44,15 @@ private:
 	UFUNCTION()
 	bool IsAuthoritativeClient() const; 
 	
+	UFUNCTION()
+	void HandleAnchorsSpawned(TArray<AActor*>& SpawnedOrderedAnchors);
+	
 private:	
 	UPROPERTY()
 	AArtemisGameState* GS;
 	
 	UPROPERTY()
-	FAnchorsPositions AnchorPositions;
+	FOrderedAnchorsPositions AnchorPositions;
 	
 	UPROPERTY(EditAnywhere, Category="Material Collection")
 	UMaterialParameterCollection* AnchorsCollection; 

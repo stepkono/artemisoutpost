@@ -23,8 +23,6 @@ void UMapCutoutManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	AnchorsManager = GetWorld()->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>();	
-	
 	if (AActor* Moon = GetOwner())
 	{
 		InitialMoonScalingFactor = Moon->GetActorScale3D().X; 
@@ -46,7 +44,24 @@ void UMapCutoutManager::BeginPlay()
 		return; 
 	}
 	
+	// Spatial anchors require the OculusXR runtime which is not available on dedicated servers
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	
+	AnchorsManager = GetWorld()->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>();
+	
 	GS->OnRawAnchorsUpdated.AddDynamic(this, &UMapCutoutManager::HandleAnchorsUpdate);
+	
+	if (!IsAuthoritativeClient())
+	{
+		FOrderedAnchors AnchorsFromServer; 
+		if (GS->GetAnchorsFromPreviousSessions(AnchorsFromServer))
+		{
+			HandleAnchorsUpdate(AnchorsFromServer); 	
+		}	
+	}
 }
 
 
@@ -58,36 +73,60 @@ void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	// ...
 }
 
-void UMapCutoutManager::HandleAnchorsUpdate(const FCustomAnchors& RawAnchors)
+void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
 {
-	FAnchorsPositions RawAnchorsPositions; 
-	TArray<AActor*> SpawnedRawAnchors; 
+	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Received new anchors to handle...")); 
 	
 	if (IsAuthoritativeClient())
 	{
-		AnchorsManager->DiscoverAnchors(RawAnchors, [SpawnedRawAnchors](TArray<AActor*> SpawnedAnchors) mutable
+		AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> SpawnedOrderedAnchors)
 		{
-			SpawnedRawAnchors = SpawnedAnchors;
+			HandleAnchorsSpawned(SpawnedOrderedAnchors);
 		}); 
 	}
 	else
 	{
-		AnchorsManager->RequestSharedAnchors(RawAnchors, [SpawnedRawAnchors](TArray<AActor*> SpawnedAnchors) mutable
+		AnchorsManager->RequestSharedAnchors(RawAnchors, [this](TArray<AActor*> SpawnedOrderedAnchors)
 		{
-			SpawnedRawAnchors = SpawnedAnchors; 
+			HandleAnchorsSpawned(SpawnedOrderedAnchors); 
 		}); 
 	}
+}
+
+void UMapCutoutManager::HandleAnchorsSpawned(TArray<AActor*>& SpawnedOrderedAnchors)
+{
+	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Handling physical anchor positions...")); 
 	
-	RawAnchorsPositions.AAnchorPos = SpawnedRawAnchors[0]->GetActorLocation();
-	RawAnchorsPositions.BAnchorPos = SpawnedRawAnchors[1]->GetActorLocation();
-	RawAnchorsPositions.CAnchorPos = SpawnedRawAnchors[2]->GetActorLocation();
-	RawAnchorsPositions.DAnchorPos = SpawnedRawAnchors[3]->GetActorLocation();
+	if (SpawnedOrderedAnchors.Num() != 4)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: SpawnedOrderedAnchors array is misformed.")); 
+		return; 
+	}
 	
-	BindGeoRefToAnchor(SpawnedRawAnchors[0]);
+	FOrderedAnchorsPositions RawAnchorsPositions; 
+	
+	if (SpawnedOrderedAnchors[0])
+	{
+		RawAnchorsPositions.AAnchorPos = SpawnedOrderedAnchors[0]->GetActorLocation();
+		BindGeoRefToAnchor(SpawnedOrderedAnchors[0]);
+	}
+	if (SpawnedOrderedAnchors[1])
+	{
+		RawAnchorsPositions.AAnchorPos = SpawnedOrderedAnchors[1]->GetActorLocation();
+	}
+	if (SpawnedOrderedAnchors[2])
+	{
+		RawAnchorsPositions.BAnchorPos = SpawnedOrderedAnchors[2]->GetActorLocation();	
+	}
+	if (SpawnedOrderedAnchors[3])
+	{
+		RawAnchorsPositions.DAnchorPos = SpawnedOrderedAnchors[3]->GetActorLocation();	
+	}
+	
 	CalibrateAnchors(RawAnchorsPositions);
 }
 
-void UMapCutoutManager::CalibrateAnchors(FAnchorsPositions& RawAnchorsPositions)
+void UMapCutoutManager::CalibrateAnchors(FOrderedAnchorsPositions& RawAnchorsPositions)
 {
 	const FVector A = RawAnchorsPositions.AAnchorPos;
 	const FVector B = RawAnchorsPositions.BAnchorPos;

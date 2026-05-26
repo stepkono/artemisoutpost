@@ -6,7 +6,7 @@
 #include "DataTypes.generated.h"
 
 USTRUCT()
-struct FAnchorsPositions
+struct FOrderedAnchorsPositions
 {
 	GENERATED_BODY()
 	

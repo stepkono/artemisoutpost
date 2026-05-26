@@ -34,6 +34,7 @@ void AGameLevelXRPawn::BeginPlay()
 	// If this client has saved anchors in the current session -> share these anchors
 	if (IsAuthoritativeClient())
 	{
+		UE_LOG(LogTemp, Display, TEXT("GameLevelXRPawn: Calling anchor sharing from authoritative client."))
 		ShareAnchorsWithServer(GI->RawAnchors); 
 	}
 }
@@ -55,7 +56,7 @@ bool AGameLevelXRPawn::IsAuthoritativeClient() const
 	return GI->CheckForInitializedSpatialAnchors(); 	
 }
 
-void AGameLevelXRPawn::ShareAnchorsWithServer_Implementation(FCustomAnchors RawAnchors)
+void AGameLevelXRPawn::ShareAnchorsWithServer_Implementation(FOrderedAnchors RawAnchors)
 {
 	AArtemisGameState* GS; 
 	if (AGameStateBase* DefaultGS = GetWorld()->GetGameState())
@@ -73,5 +74,6 @@ void AGameLevelXRPawn::ShareAnchorsWithServer_Implementation(FCustomAnchors RawA
 		return; 
 	}
 	
+	UE_LOG(LogTemp, Display, TEXT("Server: GameLevelXRPawn: Writing shared anchors to game state..."));
 	GS->WriteRawAnchors(RawAnchors);
 }

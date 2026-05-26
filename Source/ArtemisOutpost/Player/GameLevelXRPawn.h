@@ -31,7 +31,7 @@ private:
 	bool IsAuthoritativeClient() const; 
 	
 	UFUNCTION(Server, Reliable)
-	void ShareAnchorsWithServer(FCustomAnchors RawAnchors); 
+	void ShareAnchorsWithServer(FOrderedAnchors RawAnchors); 
 	
 private: 
 	UPROPERTY()
