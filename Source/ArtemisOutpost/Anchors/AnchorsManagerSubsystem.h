@@ -29,7 +29,7 @@ public:
 	 * Discovers local anchors by UUID, spawns a hidden actor for each.
 	 * Results arrive in A(0) B(1) C(2) D(3) order via OnComplete.
 	 */
-	void DiscoverAnchors(const FCustomAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
+	void DiscoverAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
 
 	/**
 	 * Saves the given anchor actors and shares them with the hardcoded group.
@@ -49,7 +49,7 @@ public:
 	 * @param RawAnchors  The expected anchor UUIDs (for A/B/C/D ordering).
 	 * @param OnComplete  Callback with spawned actors in A(0) B(1) C(2) D(3) order.
 	 */
-	void RequestSharedAnchors(const FCustomAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
+	void RequestSharedAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
 
 	UFUNCTION(BlueprintCallable, Category="Spatial Anchors")
 	AActor* GetBaseAnchor();
@@ -64,8 +64,11 @@ private:
 
 	UFUNCTION()
 	void OnDiscoveryComplete(EOculusXRAnchorResult::Type Result);
+	
+	UFUNCTION()
+	void OnAnchorsSaved(EOculusXRAnchorResult::Type Result, const TArray<UOculusXRAnchorComponent*>& SavedAnchor);
 
-	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawAnchorsToSpawn);
+	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawOrderedAnchorsToSpawn);
 
 	/** Logs common OculusXR anchor error codes with human-readable context. */
 	static void LogAnchorError(const TCHAR* Context, EOculusXRAnchorResult::Type Result);
@@ -73,6 +76,7 @@ private:
 private:
 	FOculusXRDiscoverAnchorsResultsDelegate DiscoveredAnchorDelegate;
 	FOculusXRDiscoverAnchorsCompleteDelegate DiscoveredAnchorsCompleteDelegate;
+	FOculusXRSaveAnchorsDelegate SavedAnchorsDelegate; 
 
 	/** Ordered list of UUIDs (A=0, B=1, C=2, D=3) — used to restore index after unordered results. */
 	TArray<FOculusXRUUID> OrderedUUIDs;

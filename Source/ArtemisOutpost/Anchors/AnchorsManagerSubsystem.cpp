@@ -14,6 +14,7 @@ void UAnchorsManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	DiscoveredAnchorDelegate.BindUObject(this, &UAnchorsManagerSubsystem::OnAnchorDiscovered);
 	DiscoveredAnchorsCompleteDelegate.BindUObject(this, &UAnchorsManagerSubsystem::OnDiscoveryComplete);
+	SavedAnchorsDelegate.BindUObject(this, &UAnchorsManagerSubsystem::OnAnchorsSaved);
 
 	const UArtemisAnchorSettings* Settings = GetDefault<UArtemisAnchorSettings>();
 	AnchorClass = Settings->SpatialAnchorModelClass.LoadSynchronous();
@@ -32,8 +33,16 @@ void UAnchorsManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 //  Local Discovery (host discovers anchors already on this device)
 // ────────────────────────────────────────────────────────────────────
 
-void UAnchorsManagerSubsystem::DiscoverAnchors(const FCustomAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete)
+void UAnchorsManagerSubsystem::DiscoverAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete)
 {
+	if (PendingCallback)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscoverAnchors: already in progress, ignoring."));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("AnchorsManagerSubsystem: Discovering anchors..."))
+	
 	PendingCallback = OnComplete;
 	UnorderedDiscoveredAnchors.Reset();
 
@@ -106,7 +115,7 @@ void UAnchorsManagerSubsystem::OnDiscoveryComplete(EOculusXRAnchorResult::Type R
 
 		AnchorsToSpawn.Add(*Found);
 	}
-
+	
 	UnorderedDiscoveredAnchors.Reset();
 	SpawnRawAnchors(AnchorsToSpawn);
 }
@@ -123,6 +132,8 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 		OnAnchorsSharedResult.Broadcast(false);
 		return;
 	}
+
+	UE_LOG(LogTemp, Display, TEXT("AnchorsManagerSubsystem: Sharing %d anchor(s)."), AnchorActors.Num()); 
 
 	// Extract anchor components from the spawned actors
 	TArray<UOculusXRAnchorComponent*> AnchorComponents;
@@ -156,70 +167,7 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 
 	// Step 1 — Save anchors (persists them so the cloud share can reference them)
 	EOculusXRAnchorResult::Type SaveResult;
-	const bool bSaveStarted = OculusXRAnchors::FOculusXRAnchors::SaveAnchors(
-		AnchorComponents,
-		FOculusXRSaveAnchorsDelegate::CreateLambda(
-			[this](EOculusXRAnchorResult::Type Result, const TArray<UOculusXRAnchorComponent*>& SavedAnchors)
-			{
-				if (Result != EOculusXRAnchorResult::Success)
-				{
-					LogAnchorError(TEXT("ShareAnchorsWithGroup [Save]"), Result);
-					OnAnchorsSharedResult.Broadcast(false);
-					return;
-				}
-
-				UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Saved %d anchors. Starting share..."), SavedAnchors.Num());
-
-				// Step 2 — Collect handles from the saved components
-				TArray<FOculusXRUInt64> AnchorHandles;
-				for (const UOculusXRAnchorComponent* Comp : SavedAnchors)
-				{
-					if (IsValid(Comp))
-					{
-						AnchorHandles.Add(Comp->GetHandle());
-					}
-				}
-
-				if (AnchorHandles.Num() == 0)
-				{
-					UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: No valid handles after save. Cannot share."));
-					OnAnchorsSharedResult.Broadcast(false);
-					return;
-				}
-
-				// Step 3 — Share with group via the recommended async API
-				const TArray<FOculusXRUUID> Groups = { SharingGroupUUID };
-
-				TSharedPtr<OculusXRAnchors::FShareAnchorsWithGroups> ShareRequest =
-					OculusXRAnchors::FOculusXRAnchors::ShareAnchorsAsync(
-						AnchorHandles,
-						Groups,
-						OculusXRAnchors::FShareAnchorsWithGroups::FCompleteDelegate::CreateLambda(
-							[this](const OculusXRAnchors::FShareAnchorsWithGroups::FResultType& ShareResult)
-							{
-								if (ShareResult.IsSuccess())
-								{
-									UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Anchors shared successfully with group."));
-									OnAnchorsSharedResult.Broadcast(true);
-								}
-								else
-								{
-									LogAnchorError(TEXT("ShareAnchorsWithGroup [Share]"), ShareResult.GetStatus());
-									OnAnchorsSharedResult.Broadcast(false);
-								}
-							}
-						)
-					);
-
-				if (!ShareRequest.IsValid())
-				{
-					UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: Failed to create share request."));
-					OnAnchorsSharedResult.Broadcast(false);
-				}
-			}
-		),
-		SaveResult
-	);
+	const bool bSaveStarted = OculusXRAnchors::FOculusXRAnchors::SaveAnchors(AnchorComponents, SavedAnchorsDelegate, SaveResult);
 
 	if (!bSaveStarted)
 	{
@@ -228,14 +176,83 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 	}
 }
 
+void UAnchorsManagerSubsystem::OnAnchorsSaved(EOculusXRAnchorResult::Type Result, const TArray<UOculusXRAnchorComponent*>& SavedAnchors)
+{
+	if (Result != EOculusXRAnchorResult::Success)
+	{
+		LogAnchorError(TEXT("ShareAnchorsWithGroup [Save]"), Result);
+		OnAnchorsSharedResult.Broadcast(false);
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Saved %d anchors. Starting share..."), SavedAnchors.Num());
+
+	// Step 2 — Collect handles from the saved components
+	TArray<FOculusXRUInt64> AnchorHandles;
+	for (const UOculusXRAnchorComponent* Comp : SavedAnchors)
+	{
+		if (IsValid(Comp))
+		{
+			AnchorHandles.Add(Comp->GetHandle());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ShareAnchorsWithGroup: Not a valid anchor handle. Skipping."));
+		}
+	}
+
+	if (AnchorHandles.Num() == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: No valid handles after save. Cannot share."));
+		OnAnchorsSharedResult.Broadcast(false);
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Sharing %d anchor(s)..."), AnchorHandles.Num());
+
+	// Step 3 — Share with group via the recommended async API
+	const TArray<FOculusXRUUID> Groups = { SharingGroupUUID };
+
+	TSharedPtr<OculusXRAnchors::FShareAnchorsWithGroups> ShareRequest =
+		OculusXRAnchors::FOculusXRAnchors::ShareAnchorsAsync(
+			AnchorHandles,
+			Groups,
+			OculusXRAnchors::FShareAnchorsWithGroups::FCompleteDelegate::CreateLambda(
+				[this](const OculusXRAnchors::FShareAnchorsWithGroups::FResultType& ShareResult)
+				{
+					if (ShareResult.IsSuccess())
+					{
+						UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Anchors shared successfully with group."));
+						OnAnchorsSharedResult.Broadcast(true);
+					}
+					else
+					{
+						LogAnchorError(TEXT("ShareAnchorsWithGroup [Share]"), ShareResult.GetStatus());
+						OnAnchorsSharedResult.Broadcast(false);
+					}
+				}
+			)
+		);
+
+	if (!ShareRequest.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: Failed to create share request."));
+		OnAnchorsSharedResult.Broadcast(false);
+	}
+}
+
 // ────────────────────────────────────────────────────────────────────
 //  Group Retrieval — Client fetches shared anchors and spawns actors
 // ────────────────────────────────────────────────────────────────────
 
-void UAnchorsManagerSubsystem::RequestSharedAnchors(
-	const FCustomAnchors& RawAnchors,
-	TFunction<void(TArray<AActor*>)> OnComplete)
+void UAnchorsManagerSubsystem::RequestSharedAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete)
 {
+	if (PendingCallback)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiscoverAnchors: already in progress, ignoring."));
+		return;
+	}
+	
 	PendingCallback = OnComplete;
 
 	if (!SharingGroupUUID.IsValidUUID())
@@ -249,7 +266,7 @@ void UAnchorsManagerSubsystem::RequestSharedAnchors(
 		return;
 	}
 
-	const TArray<FOculusXRUUID> WantedUUIDs = {
+	OrderedUUIDs = {
 		RawAnchors.AAnchorUUID,
 		RawAnchors.BAnchorUUID,
 		RawAnchors.CAnchorUUID,
@@ -261,9 +278,9 @@ void UAnchorsManagerSubsystem::RequestSharedAnchors(
 	const TSharedPtr<OculusXRAnchors::FGetAnchorsSharedWithGroup> Request =
 		OculusXRAnchors::FOculusXRAnchors::GetSharedAnchorsAsync(
 			SharingGroupUUID,
-			WantedUUIDs,
+			OrderedUUIDs,
 			OculusXRAnchors::FGetAnchorsSharedWithGroup::FCompleteDelegate::CreateLambda(
-				[this, WantedUUIDs](const OculusXRAnchors::FGetAnchorsSharedWithGroup::FResultType& Result)
+				[this](const OculusXRAnchors::FGetAnchorsSharedWithGroup::FResultType& Result) 
 				{
 					if (!Result.IsSuccess())
 					{
@@ -281,25 +298,23 @@ void UAnchorsManagerSubsystem::RequestSharedAnchors(
 						RetrievedAnchors.Num());
 
 					// Rebuild in A/B/C/D order — convert FOculusXRAnchor to FOculusXRAnchorsDiscoverResult for SpawnRawAnchors
-					TArray<FOculusXRAnchorsDiscoverResult> AnchorsToSpawn;
-					for (const FOculusXRUUID& UUID : WantedUUIDs)
+					TArray<FOculusXRAnchorsDiscoverResult> OrderedAnchorsToSpawn;
+					for (const FOculusXRUUID& UUID : OrderedUUIDs)
 					{
-						const FOculusXRAnchor* Found = RetrievedAnchors.FindByPredicate(
-							[&UUID](const FOculusXRAnchor& A) { return A.Uuid == UUID; }
-						);
-
+						const FOculusXRAnchor* Found = RetrievedAnchors.FindByPredicate([&UUID](const FOculusXRAnchor& A) { return A.Uuid == UUID; });
+						
 						if (!Found)
 						{
 							UE_LOG(LogTemp, Warning, TEXT("RequestSharedAnchors: UUID not found in results. Inserting sentinel."));
-							AnchorsToSpawn.Add(FOculusXRAnchorsDiscoverResult{});
+							OrderedAnchorsToSpawn.Add(FOculusXRAnchorsDiscoverResult{});
 							continue;
 						}
 
 						// FOculusXRAnchor::AnchorHandle maps to FOculusXRAnchorsDiscoverResult::Space
-						AnchorsToSpawn.Add(FOculusXRAnchorsDiscoverResult(Found->AnchorHandle, Found->Uuid));
+						OrderedAnchorsToSpawn.Add(FOculusXRAnchorsDiscoverResult(Found->AnchorHandle, Found->Uuid));
 					}
 
-					SpawnRawAnchors(AnchorsToSpawn);
+					SpawnRawAnchors(OrderedAnchorsToSpawn);
 				}
 			)
 		);
@@ -319,18 +334,24 @@ void UAnchorsManagerSubsystem::RequestSharedAnchors(
 //  Spawning — shared by both discovery and retrieval paths
 // ────────────────────────────────────────────────────────────────────
 
-void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawAnchorsToSpawn)
+void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawOrderedAnchorsToSpawn)
 {
 	if (!AnchorClass)
 	{
 		UE_LOG(LogTemp, Error, TEXT("SpawnRawAnchors: AnchorClass is null. Set SpatialAnchorModelClass in Project Settings."));
-		if (PendingCallback) { PendingCallback({}); PendingCallback = nullptr; }
+		if (PendingCallback)
+		{
+			PendingCallback({}); 
+			PendingCallback = nullptr;
+		}
 		return;
 	}
+	
+	UE_LOG(LogTemp, Log, TEXT("AnchorsManagerSubsystem: Spawning raw anchors..."))
 
 	TArray<AActor*> SpawnedAnchors;
 
-	for (const FOculusXRAnchorsDiscoverResult& AnchorData : RawAnchorsToSpawn)
+	for (const FOculusXRAnchorsDiscoverResult& AnchorData : RawOrderedAnchorsToSpawn)
 	{
 		// Empty sentinel (UUID not found during ordering) — preserve the nullptr slot
 		if (!AnchorData.UUID.IsValidUUID())
@@ -352,7 +373,7 @@ void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDisc
 
 		if (SpawnedAnchor)
 		{
-			SpawnedAnchor->SetActorHiddenInGame(true);
+			SpawnedAnchor->SetActorHiddenInGame(false);
 		}
 		else
 		{

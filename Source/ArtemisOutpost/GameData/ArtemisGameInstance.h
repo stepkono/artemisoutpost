@@ -8,7 +8,7 @@
 #include "ArtemisGameInstance.generated.h"
 
 USTRUCT(BlueprintType)
-struct FCustomAnchors
+struct FOrderedAnchors
 {
 	GENERATED_BODY()
 
@@ -39,5 +39,5 @@ public:
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spatial Anchors")
-	FCustomAnchors RawAnchors;
+	FOrderedAnchors RawAnchors;
 };
