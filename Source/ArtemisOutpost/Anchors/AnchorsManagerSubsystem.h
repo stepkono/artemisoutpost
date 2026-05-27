@@ -70,13 +70,23 @@ private:
 
 	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawOrderedAnchorsToSpawn);
 
+	/**
+	 * Polls every LocatedPollIntervalSec until every valid entry in SpawnedAnchors
+	 * has been localized by the XR runtime (IsLocated() == true), then fires
+	 * PendingCallback with the actor array.
+	 * Gives up after LocatedPollMaxAttempts and fires with whatever is available.
+	 */
+	void WaitForAnchorsLocated();
+
+	void RemoveOldAnchors();
+
 	/** Logs common OculusXR anchor error codes with human-readable context. */
 	static void LogAnchorError(const TCHAR* Context, EOculusXRAnchorResult::Type Result);
 
 private:
 	FOculusXRDiscoverAnchorsResultsDelegate DiscoveredAnchorDelegate;
 	FOculusXRDiscoverAnchorsCompleteDelegate DiscoveredAnchorsCompleteDelegate;
-	FOculusXRSaveAnchorsDelegate SavedAnchorsDelegate; 
+	FOculusXRSaveAnchorsDelegate SavedAnchorsDelegate;
 
 	/** Ordered list of UUIDs (A=0, B=1, C=2, D=3) — used to restore index after unordered results. */
 	TArray<FOculusXRUUID> OrderedUUIDs;
@@ -87,6 +97,18 @@ private:
 	/** Fired in OnDiscoveryComplete / SpawnRawAnchors with spawned actors in A/B/C/D order. */
 	TFunction<void(TArray<AActor*>)> PendingCallback;
 
+	/** Timer handle for the IsLocated() polling loop. */
+	FTimerHandle LocatedPollTimer;
+
+	/** How many poll ticks have fired since WaitForAnchorsLocated was started. */
+	int32 LocatedPollAttempts = 0;
+
+	/** Seconds between each IsLocated() poll. */
+	static constexpr float LocatedPollIntervalSec = 0.05f;
+
+	/** Maximum poll attempts before giving up (~3 seconds at 50 ms intervals). */
+	static constexpr int32 LocatedPollMaxAttempts = 60;
+
 	UPROPERTY()
 	ACesiumGeoreference* Moon;
 
@@ -95,6 +117,9 @@ private:
 
 	UPROPERTY()
 	TSubclassOf<AActor> AnchorClass;
+
+	UPROPERTY()
+	TArray<AActor*> SpawnedAnchors;
 
 	/** Fixed group UUID for anchor sharing — all devices use the same group. */
 	FOculusXRUUID SharingGroupUUID;

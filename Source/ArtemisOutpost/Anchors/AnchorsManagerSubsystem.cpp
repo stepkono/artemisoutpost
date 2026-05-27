@@ -152,7 +152,8 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 				*Actor->GetName());
 			continue;
 		}
-
+		
+		UE_LOG(LogTemp, Display, TEXT("AnchorsManagerSS: Valid UUID to share: %s"), *Comp->GetUUID().ToString());
 		AnchorComponents.Add(Comp);
 	}
 
@@ -294,7 +295,7 @@ void UAnchorsManagerSubsystem::RequestSharedAnchors(const FOrderedAnchors& RawAn
 					}
 
 					const TArray<FOculusXRAnchor>& RetrievedAnchors = Result.GetValue();
-					UE_LOG(LogTemp, Log, TEXT("RequestSharedAnchors: Retrieved %d anchors. Ordering and spawning..."),
+					UE_LOG(LogTemp, Log, TEXT("RequestSharedAnchors: Retrieved %d anchor(s). Ordering and spawning..."),
 						RetrievedAnchors.Num());
 
 					// Rebuild in A/B/C/D order — convert FOculusXRAnchor to FOculusXRAnchorsDiscoverResult for SpawnRawAnchors
@@ -347,10 +348,9 @@ void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDisc
 		return;
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("AnchorsManagerSubsystem: Spawning raw anchors..."))
-
-	TArray<AActor*> SpawnedAnchors;
-
+	RemoveOldAnchors();
+	UE_LOG(LogTemp, Log, TEXT("AnchorsManagerSubsystem: Spawning %d new raw anchor(s)..."), RawOrderedAnchorsToSpawn.Num());
+	
 	for (const FOculusXRAnchorsDiscoverResult& AnchorData : RawOrderedAnchorsToSpawn)
 	{
 		// Empty sentinel (UUID not found during ordering) — preserve the nullptr slot
@@ -359,6 +359,8 @@ void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDisc
 			SpawnedAnchors.Add(nullptr);
 			continue;
 		}
+		
+		UE_LOG(LogTemp, Display, TEXT("AnchorsManagerSubsystem: UUID to spawn: %s"), *AnchorData.UUID.ToString());
 
 		AActor* SpawnedAnchor = UOculusXRAnchorBPFunctionLibrary::SpawnActorWithAnchorHandle(
 			GetWorld(),
@@ -377,7 +379,7 @@ void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDisc
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("SpawnRawAnchors: SpawnActorWithAnchorHandle returned null for a UUID."));
+			UE_LOG(LogTemp, Warning, TEXT("SpawnRawAnchors: SpawnActorWithAnchorHandle returned null for UUID: %s"), *AnchorData.UUID.ToString());
 		}
 
 		// Always add — nullptr preserved so caller indices stay aligned with A/B/C/D
@@ -395,9 +397,85 @@ void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDisc
 
 	if (PendingCallback)
 	{
-		PendingCallback(SpawnedAnchors);
-		PendingCallback = nullptr;
+		// Don't fire the callback yet — the XR runtime updates anchor transforms on the
+		// next tick, so GetActorLocation() returns (0,0,0) at this point even though the
+		// actors are visually in the right place. Poll until all anchors are localized.
+		LocatedPollAttempts = 0;
+		WaitForAnchorsLocated();
 	}
+}
+
+void UAnchorsManagerSubsystem::WaitForAnchorsLocated()
+{
+	// Check whether every valid (non-sentinel) anchor has been localized by the XR runtime.
+	// GetAnchorTransformByHandle() is the same call TickComponent uses internally — it returns
+	// false if the runtime hasn't resolved the pose yet, true once it has.
+	bool bAllLocated = true;
+	for (AActor* Anchor : SpawnedAnchors)
+	{
+		if (!IsValid(Anchor)) continue; // nullptr sentinel — skip
+
+		const UOculusXRAnchorComponent* Comp = Anchor->FindComponentByClass<UOculusXRAnchorComponent>();
+		if (!Comp || !Comp->HasValidHandle())
+		{
+			bAllLocated = false;
+			break;
+		}
+
+		FTransform OutTransform;
+		if (!UOculusXRAnchorBPFunctionLibrary::GetAnchorTransformByHandle(Comp->GetHandle(), OutTransform))
+		{
+			bAllLocated = false;
+			break;
+		}
+		
+		UE_LOG(LogTemp, Warning, TEXT("WaitForAnchorsLocated: Got anchor location: %s"), *Anchor->GetActorLocation().ToString());
+	}
+
+	if (bAllLocated)
+	{
+		UE_LOG(LogTemp, Log, TEXT("AnchorsManagerSubsystem: All anchors located after %d poll(s)."),
+			LocatedPollAttempts + 1);
+
+		GetWorld()->GetTimerManager().ClearTimer(LocatedPollTimer);
+
+		if (PendingCallback)
+		{
+			PendingCallback(SpawnedAnchors);
+			PendingCallback = nullptr;
+		}
+		return;
+	}
+
+	/*--------------------- If not all anchors are yet located ---------------------*/
+	++LocatedPollAttempts;
+
+	if (LocatedPollAttempts >= LocatedPollMaxAttempts)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("AnchorsManagerSubsystem: Timed out waiting for anchor localization after %d attempts (~%.1f s). "
+			     "Firing callback with partially-located anchors."),
+			LocatedPollAttempts,
+			LocatedPollAttempts * LocatedPollIntervalSec);
+
+		GetWorld()->GetTimerManager().ClearTimer(LocatedPollTimer);
+
+		if (PendingCallback)
+		{
+			PendingCallback(SpawnedAnchors);
+			PendingCallback = nullptr;
+		}
+		return;
+	}
+
+	// Not all located yet — reschedule for the next interval.
+	GetWorld()->GetTimerManager().SetTimer(
+		LocatedPollTimer,
+		this,
+		&UAnchorsManagerSubsystem::WaitForAnchorsLocated,
+		LocatedPollIntervalSec,
+		false // one-shot; we re-arm manually so there's no risk of a stale loop
+	);
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -447,6 +525,17 @@ void UAnchorsManagerSubsystem::LogAnchorError(const TCHAR* Context, EOculusXRAnc
 	}
 }
 
+void UAnchorsManagerSubsystem::RemoveOldAnchors()
+{
+	for (AActor* Anchor : SpawnedAnchors)
+	{
+		if (IsValid(Anchor))
+		{
+			Anchor->Destroy();
+		}
+	}
+	SpawnedAnchors.Reset();  
+}
 // ────────────────────────────────────────────────────────────────────
 //  Getters
 // ────────────────────────────────────────────────────────────────────

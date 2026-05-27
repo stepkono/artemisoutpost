@@ -47,6 +47,11 @@ void AArtemisGameState::OnRep_ControlCommand()
 
 void AArtemisGameState::WriteRawAnchors(const FOrderedAnchors& Anchors)
 {
+	UE_LOG(LogTemp, Display, TEXT("Written Anchor UUID: %s"), *Anchors.AAnchorUUID.ToString());
+	UE_LOG(LogTemp, Display, TEXT("Written Anchor UUID: %s"), *Anchors.BAnchorUUID.ToString());
+	UE_LOG(LogTemp, Display, TEXT("Written Anchor UUID: %s"), *Anchors.CAnchorUUID.ToString());
+	UE_LOG(LogTemp, Display, TEXT("Written Anchor UUID: %s"), *Anchors.DAnchorUUID.ToString());
+	
 	RawAnchors = Anchors;
 	SaveAnchorsToDisk();
 }
