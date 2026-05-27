@@ -23,9 +23,9 @@ void UMapCutoutManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (AActor* Moon = GetOwner())
+	if ((MoonGeoRef = GetOwner()))
 	{
-		InitialMoonScalingFactor = Moon->GetActorScale3D().X; 
+		InitialMoonScalingFactor = MoonGeoRef->GetActorScale3D().X; 
 	}
 	
 	if (AGameStateBase* DefaultGS = GetWorld()->GetGameState())
@@ -72,7 +72,12 @@ void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	if (!bAnchorsSpawned)
+	{
+		return; 
+	}
+	
+	UpdateMaterialParamCollection();
 }
 
 void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
@@ -83,62 +88,35 @@ void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
 	{
 		AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> SpawnedOrderedAnchors)
 		{
-			HandleAnchorsSpawned(SpawnedOrderedAnchors);
+			HandleAnchorsSpawned();
 		}); 
 	}
 	else
 	{
 		AnchorsManager->RequestSharedAnchors(RawAnchors, [this](TArray<AActor*> SpawnedOrderedAnchors)
 		{
-			HandleAnchorsSpawned(SpawnedOrderedAnchors); 
+			HandleAnchorsSpawned(); 
 		}); 
 	}
 }
 
-void UMapCutoutManager::HandleAnchorsSpawned(TArray<AActor*>& SpawnedOrderedAnchors)
+void UMapCutoutManager::HandleAnchorsSpawned()
 {
 	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Handling physical anchor positions...")); 
 	
-	if (SpawnedOrderedAnchors.Num() != 4)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: SpawnedOrderedAnchors array is misformed.")); 
-		return; 
-	}
+	BindGeoRefToAnchor();
 	
-	FOrderedAnchorsPositions RawAnchorsPositions; 
+	CalibrateAnchors(AnchorsManager->GetAnchors());
 	
-	for (int i = 0; i < SpawnedOrderedAnchors.Num(); ++i)
-	{
-		if (!SpawnedOrderedAnchors[i])
-		{
-			UE_LOG(LogTemp, Warning, TEXT("MapCutout: Found a null anchor with index: %d"), i);
-			continue;
-		}
-
-		switch (i)
-		{
-			case 0:
-				{
-					RawAnchorsPositions.AAnchorPos = SpawnedOrderedAnchors[i]->GetActorLocation();
-					BindGeoRefToAnchor(SpawnedOrderedAnchors[0]);
-					break;
-				} 
-			case 1: RawAnchorsPositions.BAnchorPos = SpawnedOrderedAnchors[i]->GetActorLocation(); break;
-			case 2: RawAnchorsPositions.CAnchorPos = SpawnedOrderedAnchors[i]->GetActorLocation(); break;
-			case 3: RawAnchorsPositions.DAnchorPos = SpawnedOrderedAnchors[i]->GetActorLocation(); break; 
-			default: break; 
-		}
-	}
-	
-	CalibrateAnchors(RawAnchorsPositions);
+	bAnchorsSpawned = true; 
 }
 
-void UMapCutoutManager::CalibrateAnchors(FOrderedAnchorsPositions& RawAnchorsPositions)
+void UMapCutoutManager::CalibrateAnchors(TArray<AActor*> Anchors)
 {
-	const FVector A = RawAnchorsPositions.AAnchorPos;
-	const FVector B = RawAnchorsPositions.BAnchorPos;
-	const FVector C = RawAnchorsPositions.CAnchorPos;
-	const FVector D = RawAnchorsPositions.DAnchorPos;
+	const FVector A = Anchors[0]->GetActorLocation();
+	const FVector B = Anchors[1]->GetActorLocation();
+	const FVector C = Anchors[2]->GetActorLocation();
+	const FVector D = Anchors[3]->GetActorLocation();
 
 	// Flatten edge vectors onto the horizontal plane
 	const FVector AB = FVector(B.X - A.X, B.Y - A.Y, 0.f);
@@ -156,53 +134,58 @@ void UMapCutoutManager::CalibrateAnchors(FOrderedAnchorsPositions& RawAnchorsPos
 	AnchorPositions.CAnchorPos = AnchorPositions.AAnchorPos + AB + AD;
 	
 	const FVector TableCenter = (AnchorPositions.AAnchorPos + AnchorPositions.BAnchorPos + AnchorPositions.CAnchorPos + AnchorPositions.DAnchorPos) * 0.25;
-	const FVector TableNormal = FVector::CrossProduct((AnchorPositions.DAnchorPos - AnchorPositions.AAnchorPos),(AnchorPositions.BAnchorPos - AnchorPositions.AAnchorPos)).GetSafeNormal(); 
+	const FVector TableNormal = FVector::CrossProduct(AnchorPositions.BAnchorPos - AnchorPositions.AAnchorPos, AnchorPositions.DAnchorPos - AnchorPositions.AAnchorPos).GetSafeNormal(); 
 	
 	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table center: %s"), *TableCenter.ToString());
 	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table normal: %s"), *TableNormal.ToString());
 	
 	PutGeoRefIntoTablePlane(TableCenter, TableNormal);
+}
+
+void UMapCutoutManager::BindGeoRefToAnchor() const
+{
+	AActor* AAnchor = AnchorsManager->GetAnchors()[0];
 	
-	UpdateMaterialParamCollection();
+	constexpr EAttachmentRule AttachmentRule = EAttachmentRule::SnapToTarget; 
+	const FAttachmentTransformRules AttachmentTransformRule = FAttachmentTransformRules(AttachmentRule, true);
+
+	GetOwner()->AttachToActor(AAnchor, AttachmentTransformRule);
+	GetOwner()->SetActorRelativeLocation(FVector::Zero());
+	
+	UE_LOG(LogTemp, Log, TEXT("Owner Location AFTER transform: %s"), *GetOwner()->GetActorLocation().ToString());
+}
+
+void UMapCutoutManager::PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal) const
+{
+	const AActor* AAnchor = AnchorsManager->GetAnchors()[0];
+	
+	const FVector DiagonalOffset = TableCenter - AAnchor->GetActorLocation();
+	const FVector VerticalOffset = -1 * TableNormal * (173806785 * InitialMoonScalingFactor); 
+	const FVector FinalOffset = DiagonalOffset + VerticalOffset;
+
+	MoonGeoRef->AddActorLocalOffset(FinalOffset);
+	
+	UE_LOG(LogTemp, Log, TEXT("Moon set to: %s"), *GetOwner()->GetActorLocation().ToString());
+	
+	OnCutoutSet.Broadcast();
 }
 
 void UMapCutoutManager::UpdateMaterialParamCollection() const
 {
-	const FLinearColor NewAnchorA(AnchorPositions.AAnchorPos); 
-	const FLinearColor NewAnchorB(AnchorPositions.BAnchorPos);
-	const FLinearColor NewAnchorC(AnchorPositions.CAnchorPos);
-	const FLinearColor NewAnchorD(AnchorPositions.DAnchorPos);
+	const AActor* AAnchor = AnchorsManager->GetAnchors()[0];
+	const AActor* BAnchor = AnchorsManager->GetAnchors()[1];
+	const AActor* CAnchor = AnchorsManager->GetAnchors()[2];
+	const AActor* DAnchor = AnchorsManager->GetAnchors()[3];
+	
+	const FLinearColor NewAnchorA(AAnchor->GetActorLocation()); 
+	const FLinearColor NewAnchorB(BAnchor->GetActorLocation());
+	const FLinearColor NewAnchorC(CAnchor->GetActorLocation());
+	const FLinearColor NewAnchorD(DAnchor->GetActorLocation());
 	
 	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorA"), NewAnchorA); 
 	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorB"), NewAnchorB); 
 	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorC"), NewAnchorC); 
 	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorD"), NewAnchorD); 
-}
-
-void UMapCutoutManager::BindGeoRefToAnchor(AActor* SpawnedAnchor) const
-{
-	constexpr EAttachmentRule AttachmentRule = EAttachmentRule::SnapToTarget; 
-	const FAttachmentTransformRules AttachmentTransformRule = FAttachmentTransformRules(AttachmentRule, true);
-	
-	const FVector LocationBefore = GetOwner()->GetActorLocation();
-	UE_LOG(LogTemp, Log, TEXT("Owner Location BEFORE transform: %s"), *LocationBefore.ToString());
-	
-	GetOwner()->SetActorLocation(SpawnedAnchor->GetActorLocation());
-	
-	UE_LOG(LogTemp, Log, TEXT("Owner Location AFTER transform: %s"), *GetOwner()->GetActorLocation().ToString());
-	//GetOwner()->AttachToActor(SpawnedAnchor, AttachmentTransformRule);
-	//GetOwner()->SetActorRelativeLocation(FVector::Zero());
-}
-
-void UMapCutoutManager::PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal) const
-{
-	const FVector DiagonalOffset = TableCenter - AnchorPositions.AAnchorPos;
-	const FVector VerticalOffset = -1 * TableNormal * (173806785 * InitialMoonScalingFactor); 
-	const FVector FinalOffset = AnchorPositions.AAnchorPos + DiagonalOffset + VerticalOffset;
-	const FVector FinalPos = GetOwner()->GetActorLocation() + FinalOffset;
-	GetOwner()->SetActorLocation(FinalPos);
-	UE_LOG(LogTemp, Log, TEXT("Moon set: %s"), *GetOwner()->GetActorLocation().ToString());
-	//GetOwner()->AddActorLocalOffset(FinalOffset);
 }
 
 bool UMapCutoutManager::IsAuthoritativeClient() const

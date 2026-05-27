@@ -9,6 +9,8 @@
 #include "Components/ActorComponent.h"
 #include "MapCutoutManager.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FCutoutSet); 
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ARTEMISOUTPOST_API UMapCutoutManager : public UActorComponent
 {
@@ -30,13 +32,13 @@ private:
 	void HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors);
 	
 	UFUNCTION()
-	void CalibrateAnchors(FOrderedAnchorsPositions& RawAnchorsPositions); 
+	void CalibrateAnchors(TArray<AActor*> Anchors); 
 	
 	UFUNCTION(BlueprintCallable)
 	void UpdateMaterialParamCollection() const;
 	
 	UFUNCTION()
-	void BindGeoRefToAnchor(AActor* SpawnedAnchor) const; 
+	void BindGeoRefToAnchor() const; 
 	
 	UFUNCTION()
 	void PutGeoRefIntoTablePlane(const FVector& TableCenter, const FVector& TableNormal) const; 
@@ -45,7 +47,10 @@ private:
 	bool IsAuthoritativeClient() const; 
 	
 	UFUNCTION()
-	void HandleAnchorsSpawned(TArray<AActor*>& SpawnedOrderedAnchors);
+	void HandleAnchorsSpawned();
+	
+public: 
+	FCutoutSet OnCutoutSet; 
 	
 private:	
 	UPROPERTY()
@@ -62,4 +67,9 @@ private:
 	
 	UPROPERTY()
 	float InitialMoonScalingFactor; 
+	
+	bool bAnchorsSpawned = false; 
+	
+	UPROPERTY()
+	AActor* MoonGeoRef; 
 };
