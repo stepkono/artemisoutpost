@@ -23,6 +23,24 @@ struct FOrderedAnchorsPositions
 	FVector DAnchorPos;
 };
 
+USTRUCT()
+struct FAnchorsActors
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	AActor* AAnchor;
+	
+	UPROPERTY()
+	AActor* BAnchor;
+	
+	UPROPERTY()
+	AActor* CAnchor;
+	
+	UPROPERTY()
+	AActor* DAnchor;
+};
+
 USTRUCT(BlueprintType)
 struct FCoordinates
 {

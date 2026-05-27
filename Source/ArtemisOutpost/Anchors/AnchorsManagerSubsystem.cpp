@@ -37,8 +37,8 @@ void UAnchorsManagerSubsystem::DiscoverAnchors(const FOrderedAnchors& RawAnchors
 {
 	if (PendingCallback)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiscoverAnchors: already in progress, ignoring."));
-		return;
+		UE_LOG(LogTemp, Warning, TEXT("DiscoverAnchors: already in progress, switching to new."));
+		//return;
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("AnchorsManagerSubsystem: Discovering anchors..."))
@@ -376,14 +376,18 @@ void UAnchorsManagerSubsystem::SpawnRawAnchors(const TArray<FOculusXRAnchorsDisc
 		if (SpawnedAnchor)
 		{
 			SpawnedAnchor->SetActorHiddenInGame(false);
+			SpawnedAnchors.Add(SpawnedAnchor);
 		}
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("SpawnRawAnchors: SpawnActorWithAnchorHandle returned null for UUID: %s"), *AnchorData.UUID.ToString());
+			if (PendingCallback)
+			{
+				PendingCallback({});
+				PendingCallback = nullptr;
+			}
+			return; 
 		}
-
-		// Always add — nullptr preserved so caller indices stay aligned with A/B/C/D
-		SpawnedAnchors.Add(SpawnedAnchor);
 	}
 
 	if (SpawnedAnchors.Num() > 0 && SpawnedAnchors[0])
@@ -536,6 +540,7 @@ void UAnchorsManagerSubsystem::RemoveOldAnchors()
 	}
 	SpawnedAnchors.Reset();  
 }
+
 // ────────────────────────────────────────────────────────────────────
 //  Getters
 // ────────────────────────────────────────────────────────────────────
@@ -543,4 +548,9 @@ void UAnchorsManagerSubsystem::RemoveOldAnchors()
 AActor* UAnchorsManagerSubsystem::GetBaseAnchor()
 {
 	return BaseAnchor;
+}
+
+TArray<AActor*> UAnchorsManagerSubsystem::GetAnchors()
+{
+	return SpawnedAnchors;
 }

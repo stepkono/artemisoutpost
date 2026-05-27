@@ -57,6 +57,9 @@ public:
 	/** Fired when ShareAnchorsWithGroup completes. */
 	UPROPERTY(BlueprintAssignable, Category="Spatial Anchors")
 	FOnAnchorsSharedResult OnAnchorsSharedResult;
+	
+	UFUNCTION()
+	TArray<AActor*> GetAnchors(); 
 
 private:
 	UFUNCTION()
@@ -69,13 +72,7 @@ private:
 	void OnAnchorsSaved(EOculusXRAnchorResult::Type Result, const TArray<UOculusXRAnchorComponent*>& SavedAnchor);
 
 	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawOrderedAnchorsToSpawn);
-
-	/**
-	 * Polls every LocatedPollIntervalSec until every valid entry in SpawnedAnchors
-	 * has been localized by the XR runtime (IsLocated() == true), then fires
-	 * PendingCallback with the actor array.
-	 * Gives up after LocatedPollMaxAttempts and fires with whatever is available.
-	 */
+	
 	void WaitForAnchorsLocated();
 
 	void RemoveOldAnchors();

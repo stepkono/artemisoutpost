@@ -47,7 +47,6 @@ private:
 	TSharedPtr<IWebSocket> Websocket; 
     
 	UPROPERTY()
-	// FString ServerURL = FString(TEXT("ws://localhost:8080/"));
 	FString ServerURL = FString(TEXT("ws://rover.idux.uni-luebeck.de:8081"));
 	
 	// Rate limiting
