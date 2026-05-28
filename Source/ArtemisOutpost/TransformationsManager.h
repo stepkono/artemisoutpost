@@ -55,6 +55,12 @@ public:
 	virtual void Deinitialize() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
+	
+	UFUNCTION(BlueprintCallable, Category="Transformations Manager")
+	void Activate(const FVector &InTableCenter, const FVector &InTableNormal); 
+	
+	UFUNCTION()
+	void InitConstants(const FVector &InTableCenter, const FVector &InTableNormal);
 #pragma endregion
 	
 #pragma region Getters
@@ -104,14 +110,6 @@ private:
 	
 	//UFUNCTION()
 	//void UpdateCutout() const; 
-#pragma endregion
-	
-#pragma region Helpers
-	UFUNCTION()
-	void InitConstants(const UGameInstance* GameInstance);
-	
-	UFUNCTION()
-	void HandleCutoutSet(); 
 #pragma endregion
 	
 #pragma region Rotation

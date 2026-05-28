@@ -27,7 +27,7 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-private: 
+private:
 	UFUNCTION()
 	void HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors);
 	

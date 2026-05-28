@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CesiumGeoreference.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "GeoUtils.generated.h"
 
 /**

@@ -18,7 +18,20 @@ void AWebsocketManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GS = Cast<AArtemisGameState>(GetWorld()->GetGameState()); 
+	if (const UWorld* World = GetWorld())
+	{
+		GS = Cast<AArtemisGameState>(World->GetGameState());
+		if (!GS)
+		{
+			UE_LOG(LogTemp, Error, TEXT("WebsocketManager: Failed to cast game state."));
+			return;
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("WebsocketManager: Failed to get world."));
+		return; 
+	}
 	
 	InitializeWebsocket();
 }
