@@ -3,6 +3,7 @@
 
 #include "MapCutoutManager.h"
 
+#include "ArtemisOutpost/TransformationsManager.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "Kismet/KismetMaterialLibrary.h"
 
@@ -22,47 +23,47 @@ UMapCutoutManager::UMapCutoutManager()
 void UMapCutoutManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if ((MoonGeoRef = GetOwner()))
 	{
-		InitialMoonScalingFactor = MoonGeoRef->GetActorScale3D().X; 
+		InitialMoonScalingFactor = MoonGeoRef->GetActorScale3D().X;
 	}
-	
+
 	if (AGameStateBase* DefaultGS = GetWorld()->GetGameState())
 	{
 		GS = Cast<AArtemisGameState>(DefaultGS);
-		
+
 		if (!GS)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to cast to ArtemisGameState."));
-			return; 
+			UE_LOG(LogTemp, Error, TEXT("MapCutoutManager: Failed to cast to ArtemisGameState."));
+			return;
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("Unable to get GameState.")); 
-		return; 
+		UE_LOG(LogTemp, Error, TEXT("MapCutout: Unable to get GameState."));
+		return;
 	}
-	
+
 	// Spatial anchors require the OculusXR runtime which is not available on dedicated servers
 	if (GetNetMode() == NM_DedicatedServer)
 	{
 		return;
 	}
-	
+
 	AnchorsManager = GetWorld()->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>();
-	
+
 	GS->OnRawAnchorsUpdated.AddDynamic(this, &UMapCutoutManager::HandleAnchorsUpdate);
-	
+
 	if (!IsAuthoritativeClient())
 	{
 		UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Not authoritative client."))
-		
-		FOrderedAnchors AnchorsFromServer; 
+
+		FOrderedAnchors AnchorsFromServer;
 		if (GS->GetAnchorsFromPreviousSessions(AnchorsFromServer))
 		{
-			HandleAnchorsUpdate(AnchorsFromServer); 	
-		}	
+			HandleAnchorsUpdate(AnchorsFromServer);
+		}
 	}
 }
 
@@ -146,8 +147,12 @@ void UMapCutoutManager::BindGeoRefToAnchor() const
 {
 	AActor* AAnchor = AnchorsManager->GetAnchors()[0];
 	
-	constexpr EAttachmentRule AttachmentRule = EAttachmentRule::SnapToTarget; 
-	const FAttachmentTransformRules AttachmentTransformRule = FAttachmentTransformRules(AttachmentRule, true);
+	const FAttachmentTransformRules AttachmentTransformRule(
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::KeepWorld,     
+		EAttachmentRule::KeepWorld,    
+		true
+	);
 
 	GetOwner()->AttachToActor(AAnchor, AttachmentTransformRule);
 	GetOwner()->SetActorRelativeLocation(FVector::Zero());
@@ -163,11 +168,11 @@ void UMapCutoutManager::PutGeoRefIntoTablePlane(const FVector& TableCenter, cons
 	const FVector VerticalOffset = -1 * TableNormal * (173806785 * InitialMoonScalingFactor); 
 	const FVector FinalOffset = DiagonalOffset + VerticalOffset;
 
-	MoonGeoRef->AddActorLocalOffset(FinalOffset);
+	MoonGeoRef->AddActorWorldOffset(FinalOffset);
 	
 	UE_LOG(LogTemp, Log, TEXT("Moon set to: %s"), *GetOwner()->GetActorLocation().ToString());
 	
-	OnCutoutSet.Broadcast();
+	GetWorld()->GetSubsystem<UTransformationsManager>()->Activate(TableCenter, TableNormal);
 }
 
 void UMapCutoutManager::UpdateMaterialParamCollection() const

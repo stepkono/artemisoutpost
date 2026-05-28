@@ -8,7 +8,6 @@
 #include "CesiumGeoreference.h"
 #include "CesiumEllipsoid.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
-#include "Kismet/KismetMaterialLibrary.h"
 #include "ChaosVehicleMovementComponent.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "GameData/ArtemisGameState.h"
@@ -20,27 +19,11 @@ void UTransformationsManager::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
 	
-	const UGameInstance* GameInstance = GetWorld()->GetGameInstance();
-	
-	if (AGameStateBase* DefaultGS = GetWorld()->GetGameState())
-	{
-		GS = Cast<AArtemisGameState>(DefaultGS);
-		
-		if (!GS)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to cast to ArtemisGameState."));
-			return; 
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Unable to get GameState.")); 
-		return; 
-	}
-	
-	GS->OnMapCoordinatesReceived.AddDynamic(this, &UTransformationsManager::OnNewBaseCoordinates);
-	
-	InitConstants(GameInstance);
+}
+
+void UTransformationsManager::Activate(const FVector &InTableCenter, const FVector &InTableNormal)
+{
+	InitConstants(InTableCenter, InTableNormal);		
 }
 
 void UTransformationsManager::Initialize(FSubsystemCollectionBase& Collection)
@@ -50,18 +33,6 @@ void UTransformationsManager::Initialize(FSubsystemCollectionBase& Collection)
 
 void UTransformationsManager::Deinitialize()
 {
-	if (AGameStateBase* DefaultGS = GetWorld()->GetGameState())
-	{
-		GS = Cast<AArtemisGameState>(DefaultGS);
-		if (!GS)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to cast to ArtemisGameState."));
-			return; 
-		}
-		
-		GS->OnMapCoordinatesReceived.RemoveDynamic(this, &UTransformationsManager::OnNewBaseCoordinates);
-	}
-	
 	Super::Deinitialize();
 }
 
@@ -190,12 +161,25 @@ void UTransformationsManager::Tick(float DeltaTime)
 #pragma endregion 
 
 #pragma region Initialization 
-void UTransformationsManager::InitConstants(const UGameInstance* GameInstance)
+void UTransformationsManager::InitConstants(const FVector &InTableCenter, const FVector &InTableNormal)
 {
+	UE_LOG(LogTemp, Log, TEXT("TransformationsManager: Initializing..."));
+	
 	const UWorld* World = GetWorld();
 	if (!World)
 	{
 		return;
+	}
+	
+	if (AArtemisGameState* GameState = Cast<AArtemisGameState>(World->GetGameState()))
+	{
+		GS = GameState; 
+		GS->OnMapCoordinatesReceived.AddDynamic(this, &UTransformationsManager::OnNewBaseCoordinates);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TransformationsManager: Failed to cast to ArtemisGamestate"));
+		return; 
 	}
 	
 	for (TActorIterator<ACesiumGeoreference> const It(World); It;)
@@ -211,12 +195,19 @@ void UTransformationsManager::InitConstants(const UGameInstance* GameInstance)
 		CurrentMoonPosition = InitialMoonPosition; 
 		MoonRadiusUEUnits = (GeoRef->GetEllipsoid()->GetMaximumRadius() / InitialMoonScalingFactor) * 100.0f;
 		InitialMoonRotation = GeoRef->GetActorRotation().Quaternion();
-
-		GeoRef->GetComponentByClass<UMapCutoutManager>()->OnCutoutSet.AddDynamic(this, &UTransformationsManager::HandleCutoutSet); 
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: GeoRef not found."))
+	}
+	
+	if (UAnchorsManagerSubsystem* AMS = World->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>())
+	{
+		AnchorsManager = AMS; 
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: Unable to find AnchorsManagerSubsystem."))
 	}
 	
 	BaseWorldScale = UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()); 
@@ -226,11 +217,11 @@ void UTransformationsManager::InitConstants(const UGameInstance* GameInstance)
 	CurrentMoonVisualScale = 1.0; 
 	CurrentTerrainElevationUEUnits = 0.0f;
 	PreviousMoonRotation = FRotator(0.0f, 0.0f, 0.0f);
-}
-
-void UTransformationsManager::HandleCutoutSet()
-{
-	bCutoutSet = true;
+	
+	TableCenter = InTableCenter;
+	TableZ      = InTableNormal; 
+	
+	bCutoutSet = true; 
 }
 
 void UTransformationsManager::SetSpatialAnchors(const FVector AnchorA, const FVector AnchorB, const FVector AnchorC, const FVector AnchorD)
@@ -333,6 +324,7 @@ void UTransformationsManager::OnNewBaseCoordinates(FMapBaseCoordinates& MapBaseC
 {
 	if (!bCutoutSet /*|| !bRoverLocalInitialized*/)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("TransformationsManager: Map cutout not set. Ignoring new coords."))
 		return; 
 	}
 	
@@ -558,8 +550,8 @@ bool UTransformationsManager::IsNewScaleAvailable() const
 	// TODO: Might be a little more precise
 	return !FMath::IsNearlyEqual(CurrentMoonVisualScale, TargetAbsoluteMoonScale, 0.01f); 
 }
-#pragma endregion
 */
+#pragma endregion
 
 #pragma region Position
 /*---------------MOON POSITION---------------*/
