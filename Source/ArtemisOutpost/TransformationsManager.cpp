@@ -97,7 +97,6 @@ void UTransformationsManager::Tick(float DeltaTime)
 		bHasValidGroundedPos = true;
 	}
 	*/
-
 	if (!bNewTransformAvailable) return;
 
 	// ---- Log A: rover geodetic before moon transform ----
@@ -107,10 +106,13 @@ void UTransformationsManager::Tick(float DeltaTime)
 	if (IsNewRotationAvailable())
 	{
 		const FRotator CurrentMoonRotation = CalcInterpolatedRotation(DeltaTime);
+		UE_LOG(LogTemp, Warning, TEXT("Current Moon Rotation: %s"), *GeoRef->GetActorRotation().ToString());
+		UE_LOG(LogTemp, Warning, TEXT("New Moon Rotation: %s"), *CurrentMoonRotation.ToString());
+		
 		GeoRef->SetActorRotation(CurrentMoonRotation);
+		//GeoRef->GetRootComponent()->SetWorldRotation(CurrentMoonRotation);
 		PreviousMoonRotation = CurrentMoonRotation;
 	}
-
 	// ---- Apply scale (WorldToMeters) ----
 	/*
 	if (IsNewScaleAvailable())
@@ -178,7 +180,7 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TransformationsManager: Failed to cast to ArtemisGamestate"));
+		UE_LOG(LogTemp, Warning, TEXT("TransformationsManager: Failed to cast to ArtemisGameState"));
 		return; 
 	}
 	
@@ -199,6 +201,7 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: GeoRef not found."))
+		return; 
 	}
 	
 	if (UAnchorsManagerSubsystem* AMS = World->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>())
@@ -208,6 +211,7 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: Unable to find AnchorsManagerSubsystem."))
+		return; 
 	}
 	
 	BaseWorldScale = UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()); 
@@ -347,7 +351,7 @@ void UTransformationsManager::OnNewBaseCoordinates(FMapBaseCoordinates& MapBaseC
 void UTransformationsManager::ProcessBaseCoordinates_GameThread()
 {
 	if (PendingMapPositions.IsEmpty()) return; 
-	
+
 	while (PendingMapPositions.Num() > 0)
 	{
 		FMapBaseCoordinates LatestBaseCoordinates;   
@@ -414,19 +418,23 @@ void UTransformationsManager::UpdateTargetFrame()
 {
 	if (!AnchorsManager)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("TransformationsManager: UpdateTargetFrame: Anchors Manager not initialized."))
 		return; 
 	}
 	
 	TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
 	
-	const FVector AAnchorPos = Anchors[0]->GetActorLocation();
-	const FVector BAnchorPos = Anchors[1]->GetActorLocation();
-	const FVector DAnchorPos = Anchors[3]->GetActorLocation();
+	const FCalibratedData CalibratedAnchors = UGeoUtils::CalibrateAnchors(
+		Anchors[0]->GetActorLocation(), 
+		Anchors[1]->GetActorLocation(), 
+		Anchors[3]->GetActorLocation()
+		);
 	
-	const FVector XAxis = BAnchorPos - AAnchorPos;
-	const FVector YAxis = DAnchorPos - AAnchorPos;
+	const FVector XAxis = CalibratedAnchors.BAnchorPos - CalibratedAnchors.AAnchorPos;
+	const FVector YAxis = CalibratedAnchors.DAnchorPos - CalibratedAnchors.AAnchorPos;
 	
 	const FMatrix UpdatedTargetFrame = UGeoUtils::BuildMatrixFromVectors(XAxis, YAxis);
+	UE_LOG(LogTemp, Warning, TEXT("Determinant Frame: %f"), UpdatedTargetFrame.Determinant());
 	
 	TableZ = UpdatedTargetFrame.GetUnitAxis(EAxis::Z);
 	TargetFrame = UpdatedTargetFrame;
@@ -461,7 +469,7 @@ void UTransformationsManager::FocusOnRover()
 #pragma region SCALE
 FVector UTransformationsManager::CalcOffsetMoonOnElevation() const
 {
-	// TODO: has to be interpolated elevation 
+	// TODO: has to be scaled based on the moon scale
 	const float TotalOffset = TargetTerrainElevationUEUnits + MoonRadiusUEUnits; 
 	const FVector Direction = TableZ * -1; 
 	

@@ -75,3 +75,39 @@ FMatrix UGeoUtils::CalculateRotationMatrix(FMatrix SourceMatrix, FMatrix TargetM
 {
 	return  SourceMatrix.Inverse() * TargetMatrix;
 }
+
+
+FCalibratedData UGeoUtils::CalibrateAnchors(const FVector& AAnchorPos, const FVector& BAnchorPos, const FVector& DAnchorPos)
+{
+	FCalibratedData CalibratedData = {};
+	
+	// Flatten edge vectors onto the horizontal plane
+	const FVector AB = FVector(BAnchorPos.X - AAnchorPos.X, BAnchorPos.Y - AAnchorPos.Y, 0.f);
+	FVector AD = FVector(DAnchorPos.X - AAnchorPos.X, DAnchorPos.Y - AAnchorPos.Y, 0.f);
+
+	// Gram-Schmidt: force AD perpendicular to AB
+	// Projects out the AB component from AD, leaving only the orthogonal part
+	const FVector ABNorm = AB.GetSafeNormal();
+	AD = AD - FVector::DotProduct(AD, ABNorm) * ABNorm;
+
+	// Reconstruct clean corners: A stays fixed, B/D/C derived from orthogonal edges
+	const FVector A = AAnchorPos;
+	const FVector B = AAnchorPos + AB;
+	const FVector C = AAnchorPos + AD;
+	const FVector D = AAnchorPos + AB + AD;
+	
+	const FVector TableCenter = (A + B + C + D) * 0.25;
+	const FVector TableNormal = FVector::CrossProduct(B - A, D - A).GetSafeNormal(); 
+	
+	CalibratedData.AAnchorPos = A; 
+	CalibratedData.BAnchorPos = B;
+	CalibratedData.CAnchorPos = C;
+	CalibratedData.DAnchorPos = D;
+	CalibratedData.PlaneCenter = TableCenter;
+	CalibratedData.PlaneNormal = TableNormal;
+	
+	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table center: %s"), *TableCenter.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table normal: %s"), *TableNormal.ToString());
+	
+	return CalibratedData;
+}

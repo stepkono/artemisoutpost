@@ -29,7 +29,7 @@ public:
 	 * Discovers local anchors by UUID, spawns a hidden actor for each.
 	 * Results arrive in A(0) B(1) C(2) D(3) order via OnComplete.
 	 */
-	void DiscoverAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
+	void DiscoverAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>&)> OnComplete);
 
 	/**
 	 * Saves the given anchor actors and shares them with the hardcoded group.
@@ -49,7 +49,7 @@ public:
 	 * @param RawAnchors  The expected anchor UUIDs (for A/B/C/D ordering).
 	 * @param OnComplete  Callback with spawned actors in A(0) B(1) C(2) D(3) order.
 	 */
-	void RequestSharedAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>)> OnComplete);
+	void RequestSharedAnchors(const FOrderedAnchors& RawAnchors, TFunction<void(TArray<AActor*>&)> OnComplete);
 
 	UFUNCTION(BlueprintCallable, Category="Spatial Anchors")
 	AActor* GetBaseAnchor();
@@ -66,14 +66,14 @@ private:
 	void OnAnchorDiscovered(const TArray<FOculusXRAnchorsDiscoverResult>& DiscoveredAnchors);
 
 	UFUNCTION()
-	void OnDiscoveryComplete(EOculusXRAnchorResult::Type Result);
+	void OnDiscoveryComplete(EOculusXRAnchorResult::Type Result); 
 	
 	UFUNCTION()
 	void OnAnchorsSaved(EOculusXRAnchorResult::Type Result, const TArray<UOculusXRAnchorComponent*>& SavedAnchor);
 
 	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawOrderedAnchorsToSpawn);
 	
-	void WaitForAnchorsLocated();
+	void WaitForAnchorsLocated(const int32 CallCount);
 
 	void RemoveOldAnchors();
 
@@ -92,7 +92,7 @@ private:
 	TArray<FOculusXRAnchorsDiscoverResult> UnorderedDiscoveredAnchors;
 
 	/** Fired in OnDiscoveryComplete / SpawnRawAnchors with spawned actors in A/B/C/D order. */
-	TFunction<void(TArray<AActor*>)> PendingCallback;
+	TFunction<void(TArray<AActor*>&)> PendingCallback;
 
 	/** Timer handle for the IsLocated() polling loop. */
 	FTimerHandle LocatedPollTimer;
@@ -117,7 +117,13 @@ private:
 
 	UPROPERTY()
 	TArray<AActor*> SpawnedAnchors;
-
+	
+	UPROPERTY()
+	int32 CallsCountToDiscover = 0; 
+	
+	UPROPERTY()
+	int32 CallsCountToSpawn = 0; 
+	
 	/** Fixed group UUID for anchor sharing — all devices use the same group. */
 	FOculusXRUUID SharingGroupUUID;
 };

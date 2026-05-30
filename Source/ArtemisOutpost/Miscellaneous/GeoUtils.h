@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CesiumGeoreference.h"
+#include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GeoUtils.generated.h"
 
@@ -31,5 +32,8 @@ public:
 	static FMatrix BuildMatrixFromVectors(FVector AxisX, FVector AxisY); 
 	
 	UFUNCTION(BlueprintCallable, Category = "Matrix Helper Tools")
-	static FMatrix CalculateRotationMatrix(FMatrix SourceMatrix, FMatrix TargetMatrix); 
+	static FMatrix CalculateRotationMatrix(FMatrix SourceMatrix, FMatrix TargetMatrix);
+	
+	UFUNCTION()
+	static FCalibratedData CalibrateAnchors(const FVector& AAnchorPos, const FVector& BAnchorPos, const FVector& DAnchorPos); 
 };

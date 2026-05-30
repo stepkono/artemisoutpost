@@ -89,6 +89,30 @@ struct FControlCommand
 	float Steering = 0.0f;
 };
 
+USTRUCT()
+struct FCalibratedData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	FVector AAnchorPos;
+	
+	UPROPERTY()
+	FVector BAnchorPos;
+	
+	UPROPERTY()
+	FVector CAnchorPos;
+	
+	UPROPERTY()
+	FVector DAnchorPos;
+	
+	UPROPERTY()
+	FVector PlaneCenter; 
+	
+	UPROPERTY()
+	FVector PlaneNormal;
+};
+
 /**
  * 
  */

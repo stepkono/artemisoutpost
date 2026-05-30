@@ -5,6 +5,7 @@
 
 #include "ArtemisOutpost/TransformationsManager.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"
+#include "ArtemisOutpost/Miscellaneous/GeoUtils.h"
 #include "Kismet/KismetMaterialLibrary.h"
 
 
@@ -87,15 +88,25 @@ void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
 	
 	if (IsAuthoritativeClient())
 	{
-		AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> SpawnedOrderedAnchors)
+		AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> &SpawnedOrderedAnchors)
 		{
-			HandleAnchorsSpawned();
+			if (SpawnedOrderedAnchors.Num() < 4)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: Aborting anchors handling, because %d anchors were spawned, instead of 4."), SpawnedOrderedAnchors.Num())	
+				return; 
+			}
+			HandleAnchorsSpawned(); 
 		}); 
 	}
 	else
 	{
-		AnchorsManager->RequestSharedAnchors(RawAnchors, [this](TArray<AActor*> SpawnedOrderedAnchors)
+		AnchorsManager->RequestSharedAnchors(RawAnchors, [this](TArray<AActor*> &SpawnedOrderedAnchors)
 		{
+			if (SpawnedOrderedAnchors.Num() < 4)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: Aborting anchors handling, because %d anchors were spawned, instead of 4."), SpawnedOrderedAnchors.Num());
+				return; 
+			}
 			HandleAnchorsSpawned(); 
 		}); 
 	}
@@ -103,17 +114,37 @@ void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
 
 void UMapCutoutManager::HandleAnchorsSpawned()
 {
+	if (AnchorsManager->GetAnchors().Num() < 4)
+	{
+		return; 
+	}
+	
 	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Handling physical anchor positions...")); 
 	
 	BindGeoRefToAnchor();
 	
-	CalibrateAnchors(AnchorsManager->GetAnchors());
+	TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
+	FCalibratedData CalibratedData = UGeoUtils::CalibrateAnchors(
+		Anchors[0]->GetActorLocation(), 
+		Anchors[1]->GetActorLocation(), 
+		Anchors[3]->GetActorLocation()
+		);
+	
+	PutGeoRefIntoTablePlane(CalibratedData.PlaneCenter, CalibratedData.PlaneNormal);
 	
 	bAnchorsSpawned = true; 
 }
 
-void UMapCutoutManager::CalibrateAnchors(TArray<AActor*> Anchors)
+void UMapCutoutManager::CalibrateAnchors()
 {
+	if (AnchorsManager->GetAnchors().Num() < 4)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: CalibrateAnchors: Anchors array in AnchorsManager has length: %d. Aborting."), AnchorsManager->GetAnchors().Num());
+		return; 
+	}
+	
+	TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
+	
 	const FVector A = Anchors[0]->GetActorLocation();
 	const FVector B = Anchors[1]->GetActorLocation();
 	const FVector C = Anchors[2]->GetActorLocation();
@@ -145,6 +176,12 @@ void UMapCutoutManager::CalibrateAnchors(TArray<AActor*> Anchors)
 
 void UMapCutoutManager::BindGeoRefToAnchor() const
 {
+	if (AnchorsManager->GetAnchors().Num() < 4)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: BindGeoRefToAnchor: Anchors array in AnchorsManager has length: %d. Aborting."), AnchorsManager->GetAnchors().Num());
+		return; 
+	}
+	
 	AActor* AAnchor = AnchorsManager->GetAnchors()[0];
 	
 	const FAttachmentTransformRules AttachmentTransformRule(
@@ -153,9 +190,12 @@ void UMapCutoutManager::BindGeoRefToAnchor() const
 		EAttachmentRule::KeepWorld,    
 		true
 	);
-
-	GetOwner()->AttachToActor(AAnchor, AttachmentTransformRule);
+	
+	GetOwner()->GetRootComponent()->SetAbsolute(false,true, false);
+	GetOwner()->GetRootComponent()->AttachToComponent(AAnchor->GetRootComponent(), AttachmentTransformRule);
 	GetOwner()->SetActorRelativeLocation(FVector::Zero());
+	
+	//GetOwner()->SetActorLocation(AAnchor->GetActorLocation());
 	
 	UE_LOG(LogTemp, Log, TEXT("Owner Location AFTER transform: %s"), *GetOwner()->GetActorLocation().ToString());
 }
