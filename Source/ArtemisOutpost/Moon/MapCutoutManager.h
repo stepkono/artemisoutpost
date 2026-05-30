@@ -32,7 +32,7 @@ private:
 	void HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors);
 	
 	UFUNCTION()
-	void CalibrateAnchors(TArray<AActor*> Anchors); 
+	void CalibrateAnchors(); 
 	
 	UFUNCTION(BlueprintCallable)
 	void UpdateMaterialParamCollection() const;
