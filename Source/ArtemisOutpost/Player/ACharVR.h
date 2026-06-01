@@ -3,37 +3,33 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArtemisOutpost/GameData/ArtemisGameState.h"
-#include "GameFramework/Pawn.h"
-#include "GameLevelXRPawn.generated.h"
+#include "Cesium3DTileset.h"
+#include "CesiumGeoreference.h"
+#include "GameFramework/Character.h"
+#include "ACharVR.generated.h"
 
 UCLASS()
-class ARTEMISOUTPOST_API AGameLevelXRPawn : public APawn
+class ARTEMISOUTPOST_API ACharVR : public ACharacter
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this pawn's properties
-	AGameLevelXRPawn();
-
+	// Sets default values for this character's properties
+	ACharVR();
+	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-private: 
-	UFUNCTION(BlueprintCallable)
-	bool IsAuthoritativeClient() const; 
 	
-	UFUNCTION(Server, Reliable)
-	void ShareAnchorsWithServer(FOrderedAnchors RawAnchors); 
+	virtual void NotifyControllerChanged() override;
 	
 private: 
 	UPROPERTY()
-	UArtemisGameInstance* GI; 
+	ACesium3DTileset* VRTileSet;
 };

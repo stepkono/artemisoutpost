@@ -113,6 +113,13 @@ struct FCalibratedData
 	FVector PlaneNormal;
 };
 
+UENUM(BlueprintType)
+enum EXRMode
+{
+	VR UMETA(DisplayName = "VR"),
+	AR UMETA(DisplayName = "AR"),
+};
+
 /**
  * 
  */

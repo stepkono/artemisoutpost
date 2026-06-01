@@ -76,24 +76,11 @@ public:
 
 #pragma region Setters
 	UFUNCTION(BlueprintCallable)
-	void SetTargetTableFrame(const FMatrix TableFrame);
-
-	UFUNCTION(BlueprintCallable)
-	void SetSpatialAnchors(const FVector AnchorA, const FVector AnchorB, const FVector AnchorC, const FVector AnchorD);
-	
-	UFUNCTION(BlueprintCallable)
 	void SetRoverPawn(AWheeledVehiclePawn* RoverPawn);
-	
-	UFUNCTION(BlueprintCallable)
-	void SetAnchorsCollection(UMaterialParameterCollection* MaterialParameterCollection);
 	
 	UFUNCTION()
 	void ResetRoverSettleState(); 
 #pragma endregion
-	
-	UFUNCTION(BlueprintCallable)
-	void FocusOnRover();
-	
 	UPROPERTY()
 	AActor* Plane; 
 	
@@ -117,7 +104,7 @@ private:
 	FMatrix BuildRotationMatrix(const FVector &UpLeft, const FVector &BottomLeft, const FVector &BottomRight);
 	
 	UFUNCTION()
-	void UpdateTargetFrame(); 
+	bool UpdateTargetFrame(FCalibratedData& CalibratedAnchors); 
 	
 	UFUNCTION()
 	FRotator CalcInterpolatedRotation(const float &DeltaTime) const; 
@@ -130,18 +117,18 @@ private:
 #pragma endregion
 	
 #pragma region Scale
+	UFUNCTION()
+	bool IsNewScaleAvailable() const; 
+	
+	UFUNCTION()
+	float CalcInterpolatedScale(const float &DeltaTime); 
+	
 	/*
 	UFUNCTION()
 	float CalcTargetAbsoluteMoonScale(); 
 	
 	UFUNCTION()
 	float CalcTargetRelativeMoonScale(const FVector &UpLeftPoint, const FVector &BottomLeftPoint);
-	
-	UFUNCTION()
-	bool IsNewScaleAvailable() const; 
-	
-	UFUNCTION()
-	float CalcInterpolatedScale(const float &DeltaTime); 
 	
 	UFUNCTION()
 	FVector CalcNewTableCenter(); 
@@ -153,13 +140,10 @@ private:
 	
 #pragma region Elevation 
 	UFUNCTION()
-	FVector CalcOffsetMoonOnElevation() const; 
+	FVector CalcOffsetMoonOnElevation() const;
 #pragma endregion
 	
 #pragma region Position
-	UFUNCTION()
-	void OffsetMoonOnInitialSet();
-
 	UFUNCTION()
 	void SetRoverOnInitialSet();
 	
@@ -192,10 +176,7 @@ public:
 private: 
 #pragma region Objects
 	UPROPERTY()
-	ACesiumGeoreference* GeoRef;
-	
-	//UPROPERTY()
-	//UXRUtilsSubsystem* XRUtils;
+	ACesiumGeoreference* ARGeoRef;
 	
 	UPROPERTY()
 	AWheeledVehiclePawn* Rover; 
@@ -223,6 +204,12 @@ private:
 	UPROPERTY()
 	FVector LastRoverWorldPosition = FVector::ZeroVector;
 #pragma region Scales
+	UPROPERTY()
+	float TargetMoonScale = 1; 
+	
+	UPROPERTY()
+	float CurrentScalingFactor = 1; 
+	
 	UPROPERTY()
 	float CurrentMoonVisualScale = 1; 
 	
