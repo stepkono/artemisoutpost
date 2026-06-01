@@ -90,7 +90,10 @@ FCalibratedData UGeoUtils::CalibrateAnchors(const FVector& AAnchorPos, const FVe
 	const FVector ABNorm = AB.GetSafeNormal();
 	AD = AD - FVector::DotProduct(AD, ABNorm) * ABNorm;
 
-	// Reconstruct clean corners: A stays fixed, B/D/C derived from orthogonal edges
+	// Reconstruct clean corners from orthogonal edges.
+	// AAnchorPos is the origin; BAnchorPos is along the AB direction;
+	// CAnchorPos is along the AD (orthogonalized) direction; DAnchorPos is the opposite corner.
+	// Callers determine which physical anchor maps to each parameter.
 	const FVector A = AAnchorPos;
 	const FVector B = AAnchorPos + AB;
 	const FVector C = AAnchorPos + AD;

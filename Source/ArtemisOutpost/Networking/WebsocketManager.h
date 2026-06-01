@@ -34,7 +34,7 @@ private:
 	
 	UFUNCTION()
 	void ProcessBufferedMessage();
-	
+	 
 	UFUNCTION()
 	void HandleMessage(const FString& Message); 
 	

@@ -44,10 +44,10 @@ TStatId UTransformationsManager::GetStatId() const
 void UTransformationsManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (!bCutoutSet /*|| !Rover*/ || !GeoRef) return;
+	if (!bCutoutSet /*|| !Rover*/ || !ARGeoRef) return;
 	
 	// Sample params before any transform
-	const FTransform MoonNow = GeoRef->GetActorTransform();
+	const FTransform MoonNow = ARGeoRef->GetActorTransform();
 	
 	//GeoRoverPos = GetGeodeticPosition(Rover->GetActorLocation());
 	
@@ -106,29 +106,24 @@ void UTransformationsManager::Tick(float DeltaTime)
 	if (IsNewRotationAvailable())
 	{
 		const FRotator CurrentMoonRotation = CalcInterpolatedRotation(DeltaTime);
-		UE_LOG(LogTemp, Warning, TEXT("Current Moon Rotation: %s"), *GeoRef->GetActorRotation().ToString());
+		UE_LOG(LogTemp, Warning, TEXT("Current Moon Rotation: %s"), *ARGeoRef->GetActorRotation().ToString());
 		UE_LOG(LogTemp, Warning, TEXT("New Moon Rotation: %s"), *CurrentMoonRotation.ToString());
 		
-		GeoRef->SetActorRotation(CurrentMoonRotation);
-		//GeoRef->GetRootComponent()->SetWorldRotation(CurrentMoonRotation);
+		ARGeoRef->SetActorRotation(CurrentMoonRotation);
 		PreviousMoonRotation = CurrentMoonRotation;
 	}
-	// ---- Apply scale (WorldToMeters) ----
-	/*
+	
 	if (IsNewScaleAvailable())
 	{
 		CurrentMoonVisualScale = CalcInterpolatedScale(DeltaTime);
-		TableCenter = CalcNewTableCenter();
-		MoveAndExpandCutout();
-		UpdateCutout();
-		UHeadMountedDisplayFunctionLibrary::SetWorldToMetersScale(GetWorld(), BaseWorldScale * CurrentMoonVisualScale);
-	} 
-	*/
+		ARGeoRef->SetActorScale3D(FVector(CurrentMoonVisualScale));
+	}
 
 	// Update moon position 
-	GeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
-	CurrentMoonPosition = GeoRef->GetActorLocation();
-	const FTransform MoonAfter = GeoRef->GetActorTransform();
+	//TODO: not sure if the location will be set correctly since the actor is a child 
+	ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
+	CurrentMoonPosition = ARGeoRef->GetActorLocation();
+	const FTransform MoonAfter = ARGeoRef->GetActorTransform();
 
 	// Update rover transform 
 	/*
@@ -155,7 +150,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 	GeoRoverPos = GetGeodeticPosition(Rover->GetActorLocation());
 	*/
 	
-	if (!IsNewRotationAvailable() /*&& !IsNewScaleAvailable()*/)
+	if (!IsNewRotationAvailable() && !IsNewScaleAvailable())
 	{
 		bNewTransformAvailable = false;
 	}
@@ -184,19 +179,22 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 		return; 
 	}
 	
-	for (TActorIterator<ACesiumGeoreference> const It(World); It;)
+	for (auto GeoRef : TActorRange<ACesiumGeoreference>(World))
 	{
-		GeoRef = *It;
-		break;
+		if (GeoRef->ActorHasTag(FName("AR_GEOREF")))
+		{
+			ARGeoRef = GeoRef;
+			break; 
+		}
 	}
 	
-	if (GeoRef)
+	if (ARGeoRef)
 	{
-		InitialMoonScalingFactor = 1 / GeoRef->GetActorScale3D().X;
-		InitialMoonPosition = GeoRef->GetActorLocation();
+		InitialMoonScalingFactor = 1 / ARGeoRef->GetActorScale3D().X;
+		InitialMoonPosition = ARGeoRef->GetActorLocation();
 		CurrentMoonPosition = InitialMoonPosition; 
-		MoonRadiusUEUnits = (GeoRef->GetEllipsoid()->GetMaximumRadius() / InitialMoonScalingFactor) * 100.0f;
-		InitialMoonRotation = GeoRef->GetActorRotation().Quaternion();
+		MoonRadiusUEUnits = (ARGeoRef->GetEllipsoid()->GetMaximumRadius() / InitialMoonScalingFactor) * 100.0f;
+		InitialMoonRotation = ARGeoRef->GetActorRotation().Quaternion();
 	}
 	else
 	{
@@ -228,56 +226,12 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	bCutoutSet = true; 
 }
 
-void UTransformationsManager::SetSpatialAnchors(const FVector AnchorA, const FVector AnchorB, const FVector AnchorC, const FVector AnchorD)
-{
-	SpatialAnchors.InitialAnchorA = AnchorA; 
-	SpatialAnchors.InitialAnchorB = AnchorB;
-	SpatialAnchors.InitialAnchorC = AnchorC;
-	SpatialAnchors.InitialAnchorD = AnchorD;
-	
-	VisualAnchorA = AnchorA;
-	VisualAnchorB = AnchorB;
-	VisualAnchorC = AnchorC;
-	VisualAnchorD = AnchorD;
-	
-	TableCenter = (AnchorA + AnchorB + AnchorC + AnchorD) / 4.0f;
-	
-	// Moves the moon to the table center
-	OffsetMoonOnInitialSet();
-	// Sets rover position based on table center
-	SetRoverOnInitialSet();
-	
-	// Update config
-	/*
-	UApplicationConfig::ClearAllAnchors();
-	UApplicationConfig::SaveAnchor(VisualAnchorA); 
-	UApplicationConfig::SaveAnchor(VisualAnchorB); 
-	UApplicationConfig::SaveAnchor(VisualAnchorC); 
-	UApplicationConfig::SaveAnchor(VisualAnchorD); 
-	*/
-	
-	bCutoutSet = true; 
-}
-
-void UTransformationsManager::OffsetMoonOnInitialSet()
-{
-	const FVector MoonOffset = (TableZ * -1) * (173806785 / InitialMoonScalingFactor);
-	const FVector SpawnMoonPosition = TableCenter + MoonOffset;
-	const FRotator SpawnMoonRotation = FRotator(56, 7, 0);
-	
-	// Set new moon position and rotation
-	CurrentMoonPosition = SpawnMoonPosition;
-	GeoRef->SetActorLocation(SpawnMoonPosition);
-	GeoRef->SetActorRotation(SpawnMoonRotation);
-	PreviousMoonRotation = SpawnMoonRotation;
-}
-
 void UTransformationsManager::SetRoverOnInitialSet()
 {
 	const FVector InitialRoverPos = TableCenter + FVector(0, 0, 700);
 	Rover->SetActorLocation(InitialRoverPos, false, nullptr, ETeleportType::ResetPhysics);
 	
-	const FTransform MoonTransform = GeoRef->GetActorTransform();
+	const FTransform MoonTransform = ARGeoRef->GetActorTransform();
 	// InitialRoverLocalPos = MoonTransform.InverseTransformPosition(InitialRoverPos);
 	RoverInitialLocalPositionFallback = MoonTransform.InverseTransformPosition(InitialRoverPos);
 	RoverInitialLocalRotationFallback = MoonTransform.GetRotation().Inverse() * Rover->GetActorQuat();
@@ -288,12 +242,6 @@ void UTransformationsManager::SetRoverOnInitialSet()
 	{
 		Plane->SetActorLocation(TableCenter);
 	}
-}
-
-void UTransformationsManager::SetTargetTableFrame(const FMatrix TableFrame)
-{
-	TargetFrame = TableFrame;
-	TableZ = TableFrame.GetUnitAxis(EAxis::Z); 
 }
 
 void UTransformationsManager::SetRoverPawn(AWheeledVehiclePawn* RoverPawn)
@@ -315,11 +263,6 @@ void UTransformationsManager::SetRoverPawn(AWheeledVehiclePawn* RoverPawn)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: Rover not set."))
 	}
-}
-
-void UTransformationsManager::SetAnchorsCollection(UMaterialParameterCollection* MaterialParameterCollection)
-{
-	AnchorsCollection = MaterialParameterCollection;
 }
 #pragma endregion
 
@@ -370,17 +313,19 @@ void UTransformationsManager::ProcessBaseCoordinates_GameThread()
 		// Elevation 
 		TargetTerrainElevationUEUnits = (LatestBaseCoordinates.TerrainElevation / InitialMoonScalingFactor) * 100;
 		
+		FCalibratedData CalibratedData;
+		UpdateTargetFrame(CalibratedData); 
+		
 		// Rotation 
 		const FMatrix RotationMatrix = BuildRotationMatrix(UpLeftPoint, BottomLeftPoint, BottomRightPoint);
 		const FQuat AlignmentQuat = UGeoUtils::BuildQuatFromMatrix(RotationMatrix);
-		TargetMoonRotation = (AlignmentQuat * GeoRef->GetActorRotation().Quaternion()).Rotator();
+		TargetMoonRotation = (AlignmentQuat * ARGeoRef->GetActorRotation().Quaternion()).Rotator();
 		
 		// Scale
-		/*
-		TargetRelativeMoonScale = CalcTargetRelativeMoonScale(UpLeftPoint, BottomLeftPoint); 
-		TargetAbsoluteMoonScale = CalcTargetAbsoluteMoonScale(); 
-		*/
-		/*----------------------------------------------------*/
+		const FVector AR_XAxis  = CalibratedData.BAnchorPos - CalibratedData.AAnchorPos;
+		const FVector Src_XAxis = UpLeftPoint - BottomLeftPoint;
+		CurrentScalingFactor = AR_XAxis.Length() / Src_XAxis.Length();
+		TargetMoonScale = CurrentScalingFactor * ARGeoRef->GetActorScale().X;
 		
 		bNewTransformAvailable = true;
 	}
@@ -394,12 +339,12 @@ void UTransformationsManager::ProcessBaseCoordinates_GameThread()
 /*---------------MOON ROTATION---------------*/
 FRotator UTransformationsManager::CalcInterpolatedRotation(const float &DeltaTime) const
 {
-	return FMath::RInterpTo(GeoRef->GetActorRotation(), TargetMoonRotation, DeltaTime, 5); 
+	return FMath::RInterpTo(ARGeoRef->GetActorRotation(), TargetMoonRotation, DeltaTime, 5); 
 }
 
 bool UTransformationsManager::IsNewRotationAvailable() const 
 {
-	return !GeoRef->GetActorRotation().Equals(TargetMoonRotation, 0.01f); 
+	return !ARGeoRef->GetActorRotation().Equals(TargetMoonRotation, 0.01f); 
 }
 
 FMatrix UTransformationsManager::BuildRotationMatrix(const FVector &UpLeft, const FVector &BottomLeft, const FVector &BottomRight) 
@@ -408,36 +353,40 @@ FMatrix UTransformationsManager::BuildRotationMatrix(const FVector &UpLeft, cons
 	const FVector AxisY = BottomRight - BottomLeft;
 	
 	const FMatrix SourceFrame = UGeoUtils::BuildMatrixFromVectors(AxisX, AxisY);
-	UpdateTargetFrame(); 
 	const FMatrix RotationMatrix = UGeoUtils::CalculateRotationMatrix(SourceFrame, TargetFrame);
 	
 	return RotationMatrix;
 }
 
-void UTransformationsManager::UpdateTargetFrame() 
+bool UTransformationsManager::UpdateTargetFrame(FCalibratedData& CalibratedAnchors) 
 {
 	if (!AnchorsManager)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("TransformationsManager: UpdateTargetFrame: Anchors Manager not initialized."))
-		return; 
+		return false; 
 	}
 	
 	TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
 	
-	const FCalibratedData CalibratedAnchors = UGeoUtils::CalibrateAnchors(
-		Anchors[0]->GetActorLocation(), 
-		Anchors[1]->GetActorLocation(), 
-		Anchors[3]->GetActorLocation()
+	// B(top-left)     C(top-right)
+	// A(bottom-left)  D(bottom-right)
+	CalibratedAnchors = UGeoUtils::CalibrateAnchors(
+		Anchors[0]->GetActorLocation(),   // A (bottom-left)  
+		Anchors[1]->GetActorLocation(),   // B (top-left)    
+		Anchors[3]->GetActorLocation()    // D (bottom-right) 
 		);
 	
-	const FVector XAxis = CalibratedAnchors.BAnchorPos - CalibratedAnchors.AAnchorPos;
-	const FVector YAxis = CalibratedAnchors.DAnchorPos - CalibratedAnchors.AAnchorPos;
+	const FVector XAxis = Anchors[1]->GetActorLocation() - Anchors[0]->GetActorLocation(); 
+	const FVector YAxis = Anchors[3]->GetActorLocation() - Anchors[0]->GetActorLocation(); 
 	
 	const FMatrix UpdatedTargetFrame = UGeoUtils::BuildMatrixFromVectors(XAxis, YAxis);
 	UE_LOG(LogTemp, Warning, TEXT("Determinant Frame: %f"), UpdatedTargetFrame.Determinant());
 	
-	TableZ = UpdatedTargetFrame.GetUnitAxis(EAxis::Z);
+	TableCenter = CalibratedAnchors.PlaneCenter;
+	TableZ      = UpdatedTargetFrame.GetUnitAxis(EAxis::Z);
 	TargetFrame = UpdatedTargetFrame;
+	
+	return true; 
 }
 
 FQuat UTransformationsManager::GetLocalRoverRotation(const FTransform& MoonTransform) const
@@ -447,143 +396,55 @@ FQuat UTransformationsManager::GetLocalRoverRotation(const FTransform& MoonTrans
 	return LocalRotation;
 }
 
-void UTransformationsManager::FocusOnRover()
-{
-	/*
-	// Use the authoritative stored moon-local position (not a fresh world->local conversion
-	// which could include physics drift)
-	const FVector RoverLocalDir = bRoverLocalInitialized
-		? InitalRoverLocalPos.GetSafeNormal()
-		: GeoRef->GetActorTransform().InverseTransformPosition(Rover->GetActorLocation()).GetSafeNormal();
-
-	// Rotation that maps the rover's local direction to TableZ in world space
-	TargetMoonRotation = FQuat::FindBetweenNormals(RoverLocalDir, TableZ).Rotator();
-	UE_LOG(LogTemp, Log, TEXT("[FocusOnRover] RoverLocalDir: %s"), *RoverLocalDir.ToString());
-	bNewTransformAvailable = true;
-	*/
-}
-
 /*--------------------------------------------*/
 #pragma endregion 
 
 #pragma region SCALE
 FVector UTransformationsManager::CalcOffsetMoonOnElevation() const
 {
-	// TODO: has to be scaled based on the moon scale
-	const float TotalOffset = TargetTerrainElevationUEUnits + MoonRadiusUEUnits; 
-	const FVector Direction = TableZ * -1; 
-	
+	const float ScaleRatio = ARGeoRef->GetActorScale().X * InitialMoonScalingFactor;
+	const float TotalOffset = (MoonRadiusUEUnits + TargetTerrainElevationUEUnits) * ScaleRatio;
+	const FVector Direction = TableZ * -1;
+
 	return TableCenter + Direction * TotalOffset;
 }
 
-/*
 float UTransformationsManager::CalcInterpolatedScale(const float &DeltaTime)
 {
-	const float InterpolatedVisualScale = FMath::FInterpTo(CurrentMoonVisualScale, TargetAbsoluteMoonScale, DeltaTime, 5);
-	// How much the world must be scaled this tick
-	RelativeWorldScaleFactor = InterpolatedVisualScale / CurrentMoonVisualScale;
-	// XR-positions have to offset by the world-scale factor 
-	XRUtils->SetScaleFactor(RelativeWorldScaleFactor);
-	
+	const float InterpolatedVisualScale = FMath::FInterpTo(CurrentMoonVisualScale, TargetMoonScale, DeltaTime, 5);
 	return InterpolatedVisualScale;
-}
-
-float UTransformationsManager::CalcTargetRelativeMoonScale(const FVector &UpLeftPoint, const FVector &BottomLeftPoint) 
-{
-	const float ScaleOnPhysicalMoon = (UpLeftPoint - BottomLeftPoint).Length(); 
-	const float ScaleOnVirtualMoon = ScaleOnPhysicalMoon / CurrentMoonVisualScale;
-	
-	//UE_LOG(LogTemp, Log, TEXT("ScaleOnPhysicalMoon: %f"), ScaleOnPhysicalMoon);
-	//UE_LOG(LogTemp, Log, TEXT("ScaleOnVirtualMoon: %f"), ScaleOnVirtualMoon);
-	
-	// Relative scale factor is a mapping of moon vector to the table edge length
-	// TODO: make sure this vector is correct for correct proportional scale and should the acnhors be scaling? 
-	return ScaleOnVirtualMoon / (SpatialAnchors.InitialAnchorA - SpatialAnchors.InitialAnchorD).Length();
-}
-
-float UTransformationsManager::CalcTargetAbsoluteMoonScale() 
-{
-	if (bFirstScalingIsSet)
-	{
-		return TargetRelativeMoonScale * CurrentMoonVisualScale;
-	}
-	
-	bFirstScalingIsSet = true; 
-	return TargetRelativeMoonScale; 
-}
-
-FVector UTransformationsManager::CalcNewTableCenter()
-{
-	PreviousTableCenter = TableCenter;
-	return XRUtils->GetXRInvariantPosition(TableCenter);
-}
-
-void UTransformationsManager::MoveAndExpandCutout()
-{
-	// Move cutout 
-	const FVector CutoutOffset = TableCenter - PreviousTableCenter;
-	VisualAnchorA += CutoutOffset;
-	VisualAnchorB += CutoutOffset;
-	VisualAnchorC += CutoutOffset;
-	VisualAnchorD += CutoutOffset;
-	
-	// Expand cutout
-	VisualAnchorA = TableCenter + (VisualAnchorA - TableCenter) * RelativeWorldScaleFactor; 
-	VisualAnchorB = TableCenter + (VisualAnchorB - TableCenter) * RelativeWorldScaleFactor;
-	VisualAnchorC = TableCenter + (VisualAnchorC - TableCenter) * RelativeWorldScaleFactor;
-	VisualAnchorD = TableCenter + (VisualAnchorD - TableCenter) * RelativeWorldScaleFactor;
-}
-
-void UTransformationsManager::UpdateCutout() const
-{
-	const FLinearColor NewAnchorA(VisualAnchorA); 
-	const FLinearColor NewAnchorB(VisualAnchorB);
-	const FLinearColor NewAnchorC(VisualAnchorC);
-	const FLinearColor NewAnchorD(VisualAnchorD);
-	
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V1"), NewAnchorA); 
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V2"), NewAnchorB); 
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V3"), NewAnchorC); 
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("V4"), NewAnchorD); 
-	
-	UApplicationConfig::ClearAllAnchors();
-	UApplicationConfig::SaveAnchor(VisualAnchorA); 
-	UApplicationConfig::SaveAnchor(VisualAnchorB); 
-	UApplicationConfig::SaveAnchor(VisualAnchorC); 
-	UApplicationConfig::SaveAnchor(VisualAnchorD); 
 }
 
 bool UTransformationsManager::IsNewScaleAvailable() const
 {
 	// TODO: Might be a little more precise
-	return !FMath::IsNearlyEqual(CurrentMoonVisualScale, TargetAbsoluteMoonScale, 0.01f); 
+	return !FMath::IsNearlyEqual(ARGeoRef->GetActorScale().X, TargetMoonScale, 0.01f); 
 }
-*/
 #pragma endregion
 
 #pragma region Position
 /*---------------MOON POSITION---------------*/
 FVector UTransformationsManager::GetGeodeticPosition(const FVector& WorldPosition) const
 {
-	const FVector AbsolutMoonDelta = InitialMoonPosition - GeoRef->GetActorLocation(); 
+	const FVector AbsolutMoonDelta = InitialMoonPosition - ARGeoRef->GetActorLocation(); 
 	const FVector OffsetWorldPos = WorldPosition + AbsolutMoonDelta;
 	const FVector LocalToPivot = OffsetWorldPos - InitialMoonPosition;
-	const FQuat DeltaRotation = (GeoRef->GetActorRotation().Quaternion().Inverse() * InitialMoonRotation).GetNormalized();
+	const FQuat DeltaRotation = (ARGeoRef->GetActorRotation().Quaternion().Inverse() * InitialMoonRotation).GetNormalized();
 	const FVector RotatedLocal = DeltaRotation.RotateVector(LocalToPivot);
 	const FVector FinalPosition = RotatedLocal + InitialMoonPosition;
-	const FVector ManualCalResult = GeoRef->TransformUnrealPositionToLongitudeLatitudeHeight(FinalPosition);
+	const FVector ManualCalResult = ARGeoRef->TransformUnrealPositionToLongitudeLatitudeHeight(FinalPosition);
 	// UE_LOG(LogTemp, Warning, TEXT("Man Rover pos in geodetic: %s"), *ManualCalResult.ToString()); 
 	
-	const FVector LocalPos = GeoRef->GetActorTransform().InverseTransformPosition(WorldPosition);
+	const FVector LocalPos = ARGeoRef->GetActorTransform().InverseTransformPosition(WorldPosition);
 	
-	return GeoRef->TransformUnrealPositionToLongitudeLatitudeHeight(LocalPos);
+	return ARGeoRef->TransformUnrealPositionToLongitudeLatitudeHeight(LocalPos);
 }
 
 FVector UTransformationsManager::GeoToUnreal(const FVector& GeoCoordinates) const
 {
-	const FVector LocalPos = GeoRef->TransformLongitudeLatitudeHeightPositionToUnreal(GeoCoordinates);
+	const FVector LocalPos = ARGeoRef->TransformLongitudeLatitudeHeightPositionToUnreal(GeoCoordinates);
 	
-	return GeoRef->GetActorTransform().TransformPosition(LocalPos);
+	return ARGeoRef->GetActorTransform().TransformPosition(LocalPos);
 }
 /*--------------------------------------------*/
 
@@ -615,15 +476,15 @@ bool UTransformationsManager::IsRoverGrounded() const
 
 FVector UTransformationsManager::GetLastValidGroundedWorldPos() const
 {
-	if (!bHasValidGroundedPos || !GeoRef) return FVector::ZeroVector;
-	return GeoRef->GetActorTransform().TransformPosition(LastValidGroundedLocalPos);
+	if (!bHasValidGroundedPos || !ARGeoRef) return FVector::ZeroVector;
+	return ARGeoRef->GetActorTransform().TransformPosition(LastValidGroundedLocalPos);
 }
 
 void UTransformationsManager::ResetRoverSettleState()
 {
-	if (!Rover || !GeoRef) return;
+	if (!Rover || !ARGeoRef) return;
 
-	const FTransform MoonNow = GeoRef->GetActorTransform();
+	const FTransform MoonNow = ARGeoRef->GetActorTransform();
 
 	// Update fallback to last valid grounded position (or current pos)
 	if (bHasValidGroundedPos)
@@ -674,10 +535,10 @@ FMatrix UTransformationsManager::GetWorldSpaceLocalBasis(const FVector& WorldPos
 	const FVector GeoPos = GetGeodeticPosition(WorldPosition);
 
 	// 2. Compute basis in GeoRef-local space (static Cesium methods are valid here)
-	const FMatrix StaticBasis = UGeoUtils::GetLocalSpatialReferenceFrame(GeoPos, GeoRef);
+	const FMatrix StaticBasis = UGeoUtils::GetLocalSpatialReferenceFrame(GeoPos, ARGeoRef);
 
 	// 3. Rotate basis vectors from GeoRef-local to world space
-	const FQuat MoonRot = GeoRef->GetActorQuat();
+	const FQuat MoonRot = ARGeoRef->GetActorQuat();
 	const FVector N = MoonRot.RotateVector(StaticBasis.GetUnitAxis(EAxis::X));
 	const FVector E = MoonRot.RotateVector(StaticBasis.GetUnitAxis(EAxis::Y));
 	const FVector U = MoonRot.RotateVector(StaticBasis.GetUnitAxis(EAxis::Z));
