@@ -134,46 +134,9 @@ void UMapCutoutManager::HandleAnchorsSpawned()
 
 	PutGeoRefIntoTablePlane(CalibratedData.PlaneCenter, CalibratedData.PlaneNormal);
 	
+	GetWorld()->GetGameInstance()->GetSubsystem<UXRUtilsSubsystem>()->InitXRTRansform();
+	
 	bAnchorsSpawned = true; 
-}
-
-void UMapCutoutManager::CalibrateAnchors()
-{
-	if (AnchorsManager->GetAnchors().Num() < 4)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: CalibrateAnchors: Anchors array in AnchorsManager has length: %d. Aborting."), AnchorsManager->GetAnchors().Num());
-		return; 
-	}
-	
-	// B(top-left)     C(top-right)
-	// A(bottom-left)  D(bottom-right)
-	TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
-
-	const FVector A = Anchors[0]->GetActorLocation();  // origin — bottom-left
-	const FVector B = Anchors[1]->GetActorLocation();  // top-left
-	const FVector D = Anchors[3]->GetActorLocation();  // bottom-right
-
-	// Flatten edge vectors onto the horizontal plane
-	const FVector AB = FVector(B.X - A.X, B.Y - A.Y, 0.f); 
-	FVector AD       = FVector(D.X - A.X, D.Y - A.Y, 0.f);  
-
-	// Gram-Schmidt: force AD perpendicular to AB
-	const FVector ABNorm = AB.GetSafeNormal();
-	AD = AD - FVector::DotProduct(AD, ABNorm) * ABNorm;
-
-	// Reconstruct clean corners with A as origin
-	AnchorPositions.AAnchorPos = A;           // bottom-left
-	AnchorPositions.BAnchorPos = A + AB;      // top-left
-	AnchorPositions.CAnchorPos = A + AD;      // bottom-right
-	AnchorPositions.DAnchorPos = A + AB + AD; // top-right
-
-	const FVector TableCenter = (AnchorPositions.AAnchorPos + AnchorPositions.BAnchorPos + AnchorPositions.CAnchorPos + AnchorPositions.DAnchorPos) * 0.25;
-	const FVector TableNormal = FVector::CrossProduct(AB, AD).GetSafeNormal();
-	
-	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table center: %s"), *TableCenter.ToString());
-	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table normal: %s"), *TableNormal.ToString());
-	
-	PutGeoRefIntoTablePlane(TableCenter, TableNormal);
 }
 
 void UMapCutoutManager::BindGeoRefToAnchor() const
@@ -193,11 +156,11 @@ void UMapCutoutManager::BindGeoRefToAnchor() const
 		true
 	);
 	
-	GetOwner()->GetRootComponent()->SetAbsolute(false,true, true);
-	GetOwner()->GetRootComponent()->AttachToComponent(AAnchor->GetRootComponent(), AttachmentTransformRule);
-	GetOwner()->SetActorRelativeLocation(FVector::Zero());
+	//GetOwner()->GetRootComponent()->SetAbsolute(false,true, true);
+	//GetOwner()->GetRootComponent()->AttachToComponent(AAnchor->GetRootComponent(), AttachmentTransformRule);
+	//GetOwner()->SetActorRelativeLocation(FVector::Zero());
 	
-	//GetOwner()->SetActorLocation(AAnchor->GetActorLocation());
+	GetOwner()->SetActorLocation(AAnchor->GetActorLocation());
 	
 	UE_LOG(LogTemp, Log, TEXT("Moon Location AFTER assigned to Anchor: %s"), *GetOwner()->GetActorLocation().ToString());
 }
