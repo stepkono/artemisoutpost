@@ -99,6 +99,23 @@ void UTransformationsManager::Tick(float DeltaTime)
 		bHasValidGroundedPos = true;
 	}
 	*/
+
+	// ---- Commit the WTM-dependent reposition queued on the PREVIOUS frame ----
+	// SetWorldToMetersScale only reframes the camera on the NEXT tracking update, so the moon/table
+	// reposition that matches a WTM change is deliberately applied one frame later — in lockstep with
+	// the camera actually adopting the new scale. Applying both on the same frame is what made the
+	// moon lead the camera by one frame (smooth during the zoom, then a visible "settle" jump when
+	// the interpolation stopped and the camera caught up). This block runs ABOVE the early-return
+	// gate so a pending commit is never skipped on the frame scaling converges.
+	if (bScaleApplyPending)
+	{
+		TableCenter = PendingTableCenter;
+		MoveAndExpandCutout();
+		ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
+		CurrentMoonPosition = ARGeoRef->GetActorLocation();
+		bScaleApplyPending = false;
+	}
+
 	if (!bNewTransformAvailable) return;
 
 	// ---- Log A: rover geodetic before moon transform ----
@@ -118,25 +135,26 @@ void UTransformationsManager::Tick(float DeltaTime)
 	// ---- Apply scale (WorldToMeters) ----
 	// The moon (GeoRef) actor is NOT scaled — rigged pawns live on its surface and cannot be scaled with it.
 	// Zoom is done via WorldToMeters scaling: a uniform world scale that keeps the surface in the table plane.
+	// We queue the WTM change for end-of-frame and stash the matching reposition (PendingTableCenter);
+	// it is committed next frame, when the camera actually adopts the new scale (see commit block above).
 	if (IsNewScaleAvailable())
 	{
 		CurrentMoonVisualScale = CalcInterpolatedScale(DeltaTime);
-		TableCenter            = CalcNewTableCenter();
-		MoveAndExpandCutout();
+		// CalcNewTableCenter() records PreviousTableCenter = TableCenter and returns the precompensated
+		// center. We do NOT assign TableCenter here — the live TableCenter (and moon position) must keep
+		// matching the WTM that is active THIS frame, which was set last frame.
+		PendingTableCenter = CalcNewTableCenter();
 		UHeadMountedDisplayFunctionLibrary::SetWorldToMetersScale(GetWorld(), BaseWorldScale * CurrentMoonVisualScale);
+		bScaleApplyPending = true;
+	}
+	else
+	{
+		// No scale change this frame (rotation-only, or after a fresh anchor recalibration):
+		// keep the moon glued to the current table center. No WTM change → no latency to pipeline.
+		ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
+		CurrentMoonPosition = ARGeoRef->GetActorLocation();
 	}
 
-	// Update moon position 
-	//TODO: not sure if the location will be set correctly since the actor is a child 
-	const FVector TargetPos = CalcOffsetMoonOnElevation();
-	ARGeoRef->SetActorLocation(TargetPos);
-	/*
-	UE_LOG(LogTemp, Warning, TEXT("Target: %s | Actual: %s | Delta: %s"),
-		*TargetPos.ToString(),
-		*ARGeoRef->GetActorLocation().ToString(),
-		*(ARGeoRef->GetActorLocation() - TargetPos).ToString());
-		**/
-	CurrentMoonPosition = ARGeoRef->GetActorLocation();
 	const FTransform MoonAfter = ARGeoRef->GetActorTransform();
 
 	// Update rover transform 
@@ -164,7 +182,9 @@ void UTransformationsManager::Tick(float DeltaTime)
 	GeoRoverPos = GetGeodeticPosition(Rover->GetActorLocation());
 	*/
 	
-	if (!IsNewRotationAvailable() && !IsNewScaleAvailable())
+	// Keep ticking until the final queued reposition has been committed (bScaleApplyPending),
+	// otherwise the last WTM change would land with no matching moon move and re-introduce the jump.
+	if (!IsNewRotationAvailable() && !IsNewScaleAvailable() && !bScaleApplyPending)
 	{
 		bNewTransformAvailable = false;
 	}
