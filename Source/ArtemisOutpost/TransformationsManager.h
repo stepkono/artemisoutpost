@@ -10,6 +10,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Containers/Queue.h"
 #include "GameData/ArtemisGameState.h"
+#include "Miscellaneous/XRUtilsSubsystem.h"
 #include "TransformationsManager.generated.h"
 
 USTRUCT(BlueprintType)
@@ -72,6 +73,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	FVector GetLastValidGroundedWorldPos() const;
+
+	// Exposes the moved/expanded cutout corners so MapCutoutManager can read them.
+	UFUNCTION(BlueprintCallable)
+	void GetVisualAnchors(FVector& OutAnchorA, FVector& OutAnchorB, FVector& OutAnchorC, FVector& OutAnchorD) const;
 #pragma endregion
 
 #pragma region Setters
@@ -121,21 +126,19 @@ private:
 	bool IsNewScaleAvailable() const; 
 	
 	UFUNCTION()
-	float CalcInterpolatedScale(const float &DeltaTime); 
-	
-	/*
+	float CalcInterpolatedScale(const float &DeltaTime);
+
 	UFUNCTION()
-	float CalcTargetAbsoluteMoonScale(); 
-	
+	float CalcTargetAbsoluteMoonScale();
+
 	UFUNCTION()
 	float CalcTargetRelativeMoonScale(const FVector &UpLeftPoint, const FVector &BottomLeftPoint);
-	
+
 	UFUNCTION()
-	FVector CalcNewTableCenter(); 
-	
+	FVector CalcNewTableCenter();
+
 	UFUNCTION()
-	void MoveAndExpandCutout(); 
-	*/
+	void MoveAndExpandCutout();
 #pragma endregion
 	
 #pragma region Elevation 
@@ -177,9 +180,12 @@ private:
 #pragma region Objects
 	UPROPERTY()
 	ACesiumGeoreference* ARGeoRef;
-	
+
 	UPROPERTY()
-	AWheeledVehiclePawn* Rover; 
+	UXRUtilsSubsystem* XRUtils;
+
+	UPROPERTY()
+	AWheeledVehiclePawn* Rover;
 	
 	UPROPERTY()
 	UMaterialParameterCollection* AnchorsCollection; 
@@ -223,10 +229,20 @@ private:
 	float RelativeWorldScaleFactor = 1; 
 	
 	UPROPERTY()
-	float BaseWorldScale = 0; 
-	
+	float BaseWorldScale = 0;
+
 	UPROPERTY()
-	float InitialMoonScalingFactor = 1; 
+	float InitialMoonScalingFactor = 1;
+
+	// Physical length of the table X-axis edge in UE units (from live anchors, updated per packet).
+	UPROPERTY()
+	float CachedTableXAxisLength = 1.0f;
+
+	// Lunar region X-axis length in UE units per unit of GeoRef actor scale
+	// (= Src_XAxis.Length() / ActorScale at processing time). Used to reconstruct
+	// the current world-space region size at any scale without re-running GeoToUnreal.
+	UPROPERTY()
+	float BaseGeographicSpan = 1.0f;
 #pragma endregion
 	
 #pragma region Rotation 

@@ -12,6 +12,7 @@
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "GameData/ArtemisGameState.h"
 #include "Miscellaneous/GeoUtils.h"
+#include "Miscellaneous/XRUtilsSubsystem.h"
 #include "Moon/MapCutoutManager.h"
 
 #pragma region Constructors
@@ -52,6 +53,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 	//GeoRoverPos = GetGeodeticPosition(Rover->GetActorLocation());
 	
 	// Detect controlled rover movement via control inputs
+	/*
 	bool bRoverIsControlled = false;
 	if (WheeledVehComp)
 	{
@@ -59,7 +61,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 		const float Brake = FMath::Abs(WheeledVehComp->GetBrakeInput());
 		bRoverIsControlled = (Throttle > KINDA_SMALL_NUMBER) || (Brake > KINDA_SMALL_NUMBER);
 	}
-	
+	*/
 	// Initialize rover tracking when wheels are on the ground and not being controlled
 	/*
 	if (!bRoverLocalInitialized)
@@ -106,22 +108,34 @@ void UTransformationsManager::Tick(float DeltaTime)
 	if (IsNewRotationAvailable())
 	{
 		const FRotator CurrentMoonRotation = CalcInterpolatedRotation(DeltaTime);
-		UE_LOG(LogTemp, Warning, TEXT("Current Moon Rotation: %s"), *ARGeoRef->GetActorRotation().ToString());
-		UE_LOG(LogTemp, Warning, TEXT("New Moon Rotation: %s"), *CurrentMoonRotation.ToString());
-		
+		//UE_LOG(LogTemp, Warning, TEXT("Current Moon Rotation: %s"), *ARGeoRef->GetActorRotation().ToString());
+		//UE_LOG(LogTemp, Warning, TEXT("New Moon Rotation: %s"), *CurrentMoonRotation.ToString());
+
 		ARGeoRef->SetActorRotation(CurrentMoonRotation);
 		PreviousMoonRotation = CurrentMoonRotation;
 	}
-	
+
+	// ---- Apply scale (WorldToMeters) ----
+	// The moon (GeoRef) actor is NOT scaled — rigged pawns live on its surface and cannot be scaled with it.
+	// Zoom is done via WorldToMeters scaling: a uniform world scale that keeps the surface in the table plane.
 	if (IsNewScaleAvailable())
 	{
 		CurrentMoonVisualScale = CalcInterpolatedScale(DeltaTime);
-		ARGeoRef->SetActorScale3D(FVector(CurrentMoonVisualScale));
+		TableCenter            = CalcNewTableCenter();
+		MoveAndExpandCutout();
+		UHeadMountedDisplayFunctionLibrary::SetWorldToMetersScale(GetWorld(), BaseWorldScale * CurrentMoonVisualScale);
 	}
 
 	// Update moon position 
 	//TODO: not sure if the location will be set correctly since the actor is a child 
-	ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
+	const FVector TargetPos = CalcOffsetMoonOnElevation();
+	ARGeoRef->SetActorLocation(TargetPos);
+	/*
+	UE_LOG(LogTemp, Warning, TEXT("Target: %s | Actual: %s | Delta: %s"),
+		*TargetPos.ToString(),
+		*ARGeoRef->GetActorLocation().ToString(),
+		*(ARGeoRef->GetActorLocation() - TargetPos).ToString());
+		**/
 	CurrentMoonPosition = ARGeoRef->GetActorLocation();
 	const FTransform MoonAfter = ARGeoRef->GetActorTransform();
 
@@ -190,40 +204,68 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	
 	if (ARGeoRef)
 	{
+		// WorldToMeters scaling: the GeoRef actor scale stays fixed; CurrentMoonVisualScale is the
+		// world-scale multiplier that drives the zoom and starts neutral at 1.
+		CurrentMoonVisualScale   = 1.0;
 		InitialMoonScalingFactor = 1 / ARGeoRef->GetActorScale3D().X;
-		InitialMoonPosition = ARGeoRef->GetActorLocation();
-		CurrentMoonPosition = InitialMoonPosition; 
-		MoonRadiusUEUnits = (ARGeoRef->GetEllipsoid()->GetMaximumRadius() / InitialMoonScalingFactor) * 100.0f;
-		InitialMoonRotation = ARGeoRef->GetActorRotation().Quaternion();
+		InitialMoonPosition      = ARGeoRef->GetActorLocation();
+		CurrentMoonPosition      = InitialMoonPosition;
+		MoonRadiusUEUnits        = (ARGeoRef->GetEllipsoid()->GetMaximumRadius() / InitialMoonScalingFactor) * 100.0f;
+		UE_LOG(LogTemp, Log, TEXT("[TransformationManager]: Ellipsoid radius:        %f"), MoonRadiusUEUnits);
+		UE_LOG(LogTemp, Log, TEXT("[TransformationManager]: Ellipsoid radius scaled: %f"), MoonRadiusUEUnits * InitialMoonScalingFactor);
+		InitialMoonRotation      = ARGeoRef->GetActorRotation().Quaternion();
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: GeoRef not found."))
-		return; 
+		return;
 	}
-	
+
 	if (UAnchorsManagerSubsystem* AMS = World->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>())
 	{
-		AnchorsManager = AMS; 
+		AnchorsManager = AMS;
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: Unable to find AnchorsManagerSubsystem."))
-		return; 
+		return;
 	}
-	
-	BaseWorldScale = UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()); 
-	UE_LOG(LogTemp, Warning, TEXT("Base World scale HMD Lib: %f"), BaseWorldScale);
-	
-	//XRUtils = GameInstance->GetSubsystem<UXRUtilsSubsystem>();
-	CurrentMoonVisualScale = 1.0; 
+
+	// GameInstanceSubsystem — always instantiated, used to precompensate positions/scale for the WTM change.
+	XRUtils = World->GetGameInstance()->GetSubsystem<UXRUtilsSubsystem>();
+
+	// Base WorldToMeters scale that CurrentMoonVisualScale multiplies each tick.
+	BaseWorldScale = UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld());
+	UE_LOG(LogTemp, Log, TEXT("[TransformationManager]: Base World scale: %f"), BaseWorldScale);
+
+	// Seed the initial/visual anchors from the live spatial anchors (A=0 BL, B=1 TL, C=2 TR, D=3 BR).
+	// InitialAnchor* is the fixed physical table reference used by CalcTargetRelativeMoonScale;
+	// VisualAnchor* are the cutout corners that get moved/expanded as the moon zooms.
+	TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
+	if (Anchors.Num() >= 4)
+	{
+		SpatialAnchors.InitialAnchorA = Anchors[0]->GetActorLocation();
+		SpatialAnchors.InitialAnchorB = Anchors[1]->GetActorLocation();
+		SpatialAnchors.InitialAnchorC = Anchors[2]->GetActorLocation();
+		SpatialAnchors.InitialAnchorD = Anchors[3]->GetActorLocation();
+
+		VisualAnchorA = SpatialAnchors.InitialAnchorA;
+		VisualAnchorB = SpatialAnchors.InitialAnchorB;
+		VisualAnchorC = SpatialAnchors.InitialAnchorC;
+		VisualAnchorD = SpatialAnchors.InitialAnchorD;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: Expected 4 anchors to seed spatial anchors, found %d."), Anchors.Num())
+	}
+
 	CurrentTerrainElevationUEUnits = 0.0f;
 	PreviousMoonRotation = FRotator(0.0f, 0.0f, 0.0f);
-	
+
 	TableCenter = InTableCenter;
-	TableZ      = InTableNormal; 
-	
-	bCutoutSet = true; 
+	TableZ      = InTableNormal;
+
+	bCutoutSet = true;
 }
 
 void UTransformationsManager::SetRoverOnInitialSet()
@@ -310,23 +352,21 @@ void UTransformationsManager::ProcessBaseCoordinates_GameThread()
 		FVector BottomRightPoint = GeoToUnreal(CoordinatesToVector(LatestBaseCoordinates.BottomRight));
 		
 		/*-----------Prepare data for interpolation-----------*/
-		// Elevation 
-		TargetTerrainElevationUEUnits = (LatestBaseCoordinates.TerrainElevation / InitialMoonScalingFactor) * 100;
-		
+		// Elevation
+		TargetTerrainElevationUEUnits = (LatestBaseCoordinates.TerrainElevation / InitialMoonScalingFactor) * 100.0f;
+
 		FCalibratedData CalibratedData;
-		UpdateTargetFrame(CalibratedData); 
-		
-		// Rotation 
+		UpdateTargetFrame(CalibratedData);
+
+		// Rotation
 		const FMatrix RotationMatrix = BuildRotationMatrix(UpLeftPoint, BottomLeftPoint, BottomRightPoint);
 		const FQuat AlignmentQuat = UGeoUtils::BuildQuatFromMatrix(RotationMatrix);
 		TargetMoonRotation = (AlignmentQuat * ARGeoRef->GetActorRotation().Quaternion()).Rotator();
-		
-		// Scale
-		const FVector AR_XAxis  = CalibratedData.BAnchorPos - CalibratedData.AAnchorPos;
-		const FVector Src_XAxis = UpLeftPoint - BottomLeftPoint;
-		CurrentScalingFactor = AR_XAxis.Length() / Src_XAxis.Length();
-		TargetMoonScale = CurrentScalingFactor * ARGeoRef->GetActorScale().X;
-		
+
+		// Scale (WorldToMeters): map the lunar region edge onto the physical table edge.
+		TargetRelativeMoonScale = CalcTargetRelativeMoonScale(UpLeftPoint, BottomLeftPoint);
+		TargetAbsoluteMoonScale = CalcTargetAbsoluteMoonScale();
+
 		bNewTransformAvailable = true;
 	}
 	
@@ -381,11 +421,16 @@ bool UTransformationsManager::UpdateTargetFrame(FCalibratedData& CalibratedAncho
 	
 	const FMatrix UpdatedTargetFrame = UGeoUtils::BuildMatrixFromVectors(XAxis, YAxis);
 	UE_LOG(LogTemp, Warning, TEXT("Determinant Frame: %f"), UpdatedTargetFrame.Determinant());
-	
+
 	TableCenter = CalibratedAnchors.PlaneCenter;
-	TableZ      = UpdatedTargetFrame.GetUnitAxis(EAxis::Z);
 	TargetFrame = UpdatedTargetFrame;
-	
+	// TODO: TableZ can actually be updated 
+	// NOTE: TableZ is intentionally NOT updated here.
+	// TableZ is the physical table normal used to compute the moon's world-space depth offset
+	// (173M+ UE units). Even sub-millimeter anchor jitter amplifies into hundreds-of-meters
+	// of position jump at that distance. TableZ is set once in InitConstants from the
+	// calibrated plane normal and must stay stable.
+
 	return true; 
 }
 
@@ -400,25 +445,80 @@ FQuat UTransformationsManager::GetLocalRoverRotation(const FTransform& MoonTrans
 #pragma endregion 
 
 #pragma region SCALE
-FVector UTransformationsManager::CalcOffsetMoonOnElevation() const
-{
-	const float ScaleRatio = ARGeoRef->GetActorScale().X * InitialMoonScalingFactor;
-	const float TotalOffset = (MoonRadiusUEUnits + TargetTerrainElevationUEUnits) * ScaleRatio;
-	const FVector Direction = TableZ * -1;
-
-	return TableCenter + Direction * TotalOffset;
-}
-
 float UTransformationsManager::CalcInterpolatedScale(const float &DeltaTime)
 {
-	const float InterpolatedVisualScale = FMath::FInterpTo(CurrentMoonVisualScale, TargetMoonScale, DeltaTime, 5);
+	const float InterpolatedVisualScale = FMath::FInterpTo(CurrentMoonVisualScale, TargetAbsoluteMoonScale, DeltaTime, 5);
+	// How much the world must be scaled this tick
+	RelativeWorldScaleFactor = InterpolatedVisualScale / CurrentMoonVisualScale;
+	// XR-positions have to offset by the world-scale factor
+	XRUtils->SetScaleFactor(RelativeWorldScaleFactor);
+
 	return InterpolatedVisualScale;
+}
+
+float UTransformationsManager::CalcTargetRelativeMoonScale(const FVector &UpLeftPoint, const FVector &BottomLeftPoint)
+{
+	const float ScaleOnPhysicalMoon = (UpLeftPoint - BottomLeftPoint).Length();
+	const float ScaleOnVirtualMoon = ScaleOnPhysicalMoon / CurrentMoonVisualScale;
+
+	//UE_LOG(LogTemp, Log, TEXT("ScaleOnPhysicalMoon: %f"), ScaleOnPhysicalMoon);
+	//UE_LOG(LogTemp, Log, TEXT("ScaleOnVirtualMoon: %f"), ScaleOnVirtualMoon);
+
+	// Relative scale factor is a mapping of moon vector to the table edge length
+	// TODO: make sure this vector is correct for correct proportional scale and should the acnhors be scaling?
+	return ScaleOnVirtualMoon / (SpatialAnchors.InitialAnchorA - SpatialAnchors.InitialAnchorD).Length();
+}
+
+float UTransformationsManager::CalcTargetAbsoluteMoonScale()
+{
+	if (bFirstScalingIsSet)
+	{
+		return TargetRelativeMoonScale * CurrentMoonVisualScale;
+	}
+
+	bFirstScalingIsSet = true;
+	return TargetRelativeMoonScale;
+}
+
+FVector UTransformationsManager::CalcNewTableCenter()
+{
+	PreviousTableCenter = TableCenter;
+	return XRUtils->GetXRInvariantPosition(TableCenter);
+}
+
+void UTransformationsManager::MoveAndExpandCutout()
+{
+	// Move cutout
+	const FVector CutoutOffset = TableCenter - PreviousTableCenter;
+	VisualAnchorA += CutoutOffset;
+	VisualAnchorB += CutoutOffset;
+	VisualAnchorC += CutoutOffset;
+	VisualAnchorD += CutoutOffset;
+
+	// Expand cutout
+	VisualAnchorA = TableCenter + (VisualAnchorA - TableCenter) * RelativeWorldScaleFactor;
+	VisualAnchorB = TableCenter + (VisualAnchorB - TableCenter) * RelativeWorldScaleFactor;
+	VisualAnchorC = TableCenter + (VisualAnchorC - TableCenter) * RelativeWorldScaleFactor;
+	VisualAnchorD = TableCenter + (VisualAnchorD - TableCenter) * RelativeWorldScaleFactor;
 }
 
 bool UTransformationsManager::IsNewScaleAvailable() const
 {
 	// TODO: Might be a little more precise
-	return !FMath::IsNearlyEqual(ARGeoRef->GetActorScale().X, TargetMoonScale, 0.01f); 
+	return !FMath::IsNearlyEqual(CurrentMoonVisualScale, TargetAbsoluteMoonScale, 0.01f);
+}
+#pragma endregion
+
+#pragma region Elevation
+FVector UTransformationsManager::CalcOffsetMoonOnElevation() const
+{
+	// TableCenter is already precompensated by CalcNewTableCenter for the WTM change.
+	// The moon actor is not scaled, so the offset uses MoonRadiusUEUnits directly (no actor scale).
+	// TODO: has to be interpolated elevation
+	const float TotalOffset = TargetTerrainElevationUEUnits + MoonRadiusUEUnits;
+	const FVector Direction = TableZ * -1;
+
+	return TableCenter + Direction * TotalOffset;
 }
 #pragma endregion
 
@@ -527,6 +627,14 @@ FVector UTransformationsManager::CoordinatesToVector(const FCoordinates Coordina
 FVector UTransformationsManager::GetGeoRoverPos()
 {
 	return GeoRoverPos;
+}
+
+void UTransformationsManager::GetVisualAnchors(FVector& OutAnchorA, FVector& OutAnchorB, FVector& OutAnchorC, FVector& OutAnchorD) const
+{
+	OutAnchorA = VisualAnchorA;
+	OutAnchorB = VisualAnchorB;
+	OutAnchorC = VisualAnchorC;
+	OutAnchorD = VisualAnchorD;
 }
 
 FMatrix UTransformationsManager::GetWorldSpaceLocalBasis(const FVector& WorldPosition) const

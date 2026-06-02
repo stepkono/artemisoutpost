@@ -31,9 +31,6 @@ private:
 	UFUNCTION()
 	void HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors);
 	
-	UFUNCTION()
-	void CalibrateAnchors(); 
-	
 	UFUNCTION(BlueprintCallable)
 	void UpdateMaterialParamCollection() const;
 	
