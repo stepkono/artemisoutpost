@@ -198,6 +198,11 @@ private:
 	UPROPERTY()
 	FVector PreviousTableCenter;
 
+	// WTM pipeline: the precompensated table center computed on the frame a WTM change is queued.
+	// Committed to TableCenter on the NEXT frame, in lockstep with the camera adopting the new scale.
+	UPROPERTY()
+	FVector PendingTableCenter = FVector::ZeroVector;
+
 	UPROPERTY()
 	FVector CurrentMoonPosition;
 
@@ -310,10 +315,15 @@ private:
 	TAtomic<bool> bProcessingTask { false };
 	
 	UPROPERTY()
-	bool bNewTransformAvailable = false; 
-	
+	bool bNewTransformAvailable = false;
+
 	UPROPERTY()
 	bool bCutoutSet = false;
+
+	// WTM pipeline: true when a WorldToMeters change was queued this frame and its matching
+	// moon/table reposition still needs to be committed on the next frame.
+	UPROPERTY()
+	bool bScaleApplyPending = false;
 #pragma endregion
 	
 	UPROPERTY()
