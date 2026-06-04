@@ -40,24 +40,29 @@ void APawnController::OnPossess(APawn* InPawn)
 	UE_LOG(LogTemp, Warning, TEXT("ViewTarget after set: %s"), GetViewTarget() ? *GetViewTarget()->GetName() : TEXT("NULL"));
 }
 
-void APawnController::InitializePawns()
+void APawnController::InitializePawns(ACharVR* VRPlayer, AMasterRover* RoverPuppet)
 {
-	SpawnVRCharacter(); 
-	SpawnARCharacter(); 
+	VRPawn = VRPlayer;
+	MasterRover = RoverPuppet;
 }
 
-void APawnController::SpawnARCharacter()
+void APawnController::SpawnARPlayer()
 {
-	// 
+	
 }
 
-void APawnController::SpawnVRCharacter()
+void APawnController::SpawnPuppetPawns(APawn* InPuppetPawn)
+{
+
+}
+
+void APawnController::SpawnVRPlayer()
 {
 	if (UWorld* World = GetWorld())
 	{
 		const FActorSpawnParameters SpawnParams;
 		VRPawn = World->SpawnActor<ACharVR>(SpawnParams);
-		VRPawn->GetRootComponent()->SetVisibility(false); // TODO: not sure if this will work as expected
+		VRPawn->SetActorHiddenInGame(true);
 	}
 	else
 	{

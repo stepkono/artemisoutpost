@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "PawnAR.h"
 #include "ACharVR.h"
+#include "ArtemisOutpost/AMasterRover.h"
 #include "GameFramework/PlayerController.h"
 #include "PawnController.generated.h"
 
@@ -18,9 +19,9 @@ class ARTEMISOUTPOST_API APawnController : public APlayerController
 	
 public: 
 	UFUNCTION(BlueprintCallable, Category = "AR/VR Pawns")
-	void InitializePawns(); 
+	void InitializePawns(ACharVR* VRPlayer,  AMasterRover* RoverPuppet); 
 	
-	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 protected: 
 	virtual void BeginPlay() override;
@@ -28,10 +29,13 @@ protected:
 	
 private: 
 	UFUNCTION()
-	void SpawnARCharacter(); 
+	void SpawnARPlayer(); 
 	
 	UFUNCTION()
-	void SpawnVRCharacter(); 
+	void SpawnVRPlayer(); 
+	
+	UFUNCTION()
+	void SpawnPuppetPawns(APawn* InPuppetPawn);
 	
 protected: 
 	UPROPERTY(Replicated, BlueprintReadOnly)
@@ -39,6 +43,9 @@ protected:
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	ACharVR* VRPawn; 
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	AMasterRover* MasterRover;
 	
 	UPROPERTY(BlueprintReadWrite, Category = "VR Position")
 	FVector GeodeticPos = FVector(90.0f, 0.0f, 10.0f);
