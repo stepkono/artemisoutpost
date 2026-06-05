@@ -100,7 +100,6 @@ bool AArtemisGameState::GetAnchorsFromPreviousSessions(FOrderedAnchors& OutAncho
 
 void AArtemisGameState::WriteMapCoordinates(const FMapBaseCoordinates& MapCoordinates)
 {
-	UE_LOG(LogTemp, Display, TEXT("ArtemisGameState: Writing new map coords..."));
 	MapBaseCoordinates = MapCoordinates;
 }
 

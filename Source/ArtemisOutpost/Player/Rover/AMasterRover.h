@@ -3,10 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PuppetRover.h"
 #include "WheeledVehiclePawn.h"
 #include "ArtemisOutpost/Cesium/GeoRefsManager.h"
 #include "AMasterRover.generated.h"
+
+class APuppetRover;
 
 /**
  * 
@@ -17,18 +18,25 @@ class ARTEMISOUTPOST_API AMasterRover : public AWheeledVehiclePawn
 	GENERATED_BODY()
 	
 public:
+	AMasterRover();
+	
 	virtual void BeginPlay() override;
 	
-private: 
 	UFUNCTION()
-	void SpawnAndAssignPuppet(FVector& GeoSpawnCoords); 
+	FVector GetLocalPos_UE() const; 
 	
-	void OnRep_SetPuppetRoverLocalLocation(); 
+	UFUNCTION()
+	FQuat GetAbsoluteOrientation(); 
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
-	UPROPERTY(ReplicatedUsing=OnPuppetRoverCreated)
+	UPROPERTY(Replicated)
 	APuppetRover* PuppetRover;
 	
 	UPROPERTY()
 	AGeoRefsManager* GeoRefsManager;
+	
+	UPROPERTY()
+	FVector StartLocalPosition_UE; 
 };

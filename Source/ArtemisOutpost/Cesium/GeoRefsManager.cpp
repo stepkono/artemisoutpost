@@ -18,37 +18,6 @@ AGeoRefsManager::AGeoRefsManager()
 void AGeoRefsManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		UE_LOG(LogTemp, Error, TEXT("GeoRefManager: Failed to get World. Aborting..."));
-		return; 
-	}
-	
-	for (auto GeoRef : TActorRange<ACesiumGeoreference>(World))
-	{
-		if (GeoRef->ActorHasTag(FName("AR_GEOREF")))
-		{
-			ARMoon = GeoRef;
-			break; 
-		}
-	}
-	
-	for (auto GeoRef : TActorRange<ACesiumGeoreference>(World))
-	{
-		if (GeoRef->ActorHasTag(FName("DEFAULT_GEOREFERENCE")))
-		{
-			VRMoon = GeoRef;
-			break; 
-		}
-	}
-	
-	if (!(VRMoon && ARMoon))
-	{
-		UE_LOG(LogTemp, Error, TEXT("GeoRefsManager: Failed to initialize moon."));
-		return; 
-	}
 }
 
 // Called every frame
@@ -69,20 +38,24 @@ ACesiumGeoreference* AGeoRefsManager::GetARMoon()
 
 FVector AGeoRefsManager::UECoordsToVRMoonCoords(FVector& WorldCoords)
 {
-	return FVector(0);
+	return VRMoon->TransformUnrealPositionToLongitudeLatitudeHeight(WorldCoords);
 }
 
-FVector AGeoRefsManager::VRMoonCoordsToUECoords(FVector& LatLonHeightCoords)
+FVector AGeoRefsManager::VRMoonCoordsToUECoords(FVector& LonLatHeightCoords)
 {
-	return FVector(0);
+	return VRMoon->TransformLongitudeLatitudeHeightPositionToUnreal(LonLatHeightCoords);
 }
 
-FVector AGeoRefsManager::ARMoonCoordsToUECoords(FVector& LatLonHeightCoords)
+FVector AGeoRefsManager::ARMoonCoordsToUECoords(FVector& LonLatHeightCoords)
 {
-	return FVector(0);
+	const FVector LocalPos = ARMoon->TransformLongitudeLatitudeHeightPositionToUnreal(LonLatHeightCoords);
+	
+	return ARMoon->GetActorTransform().TransformPosition(LocalPos);
 }
 
-FVector AGeoRefsManager::UECoordsToARMoonCoords(FVector WorldCoords)
+FVector AGeoRefsManager::UECoordsToARMoonCoords(FVector& WorldCoords)
 {
-	return FVector(0);
+	const FVector LocalPos = ARMoon->GetActorTransform().InverseTransformPosition(WorldCoords);
+	
+	return ARMoon->TransformUnrealPositionToLongitudeLatitudeHeight(LocalPos);;
 }

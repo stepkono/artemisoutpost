@@ -28,22 +28,22 @@ public:
 	FVector UECoordsToVRMoonCoords(FVector& WorldCoords);
 	
 	UFUNCTION(BlueprintCallable, Category="VR Moon")
-	FVector VRMoonCoordsToUECoords(FVector& LatLonHeightCoords); 
+	FVector VRMoonCoordsToUECoords(FVector& LonLatHeightCoords); 
 	
 	UFUNCTION(BlueprintCallable, Category="AR Moon")
-	FVector UECoordsToARMoonCoords(FVector WorldCoords); 
+	FVector UECoordsToARMoonCoords(FVector& WorldCoords); 
 	
-	UFUNCTION(BlueprintCallable, Category="AR Moon");
-	FVector ARMoonCoordsToUECoords(FVector& LatLonHeightCoords); 
+	UFUNCTION(BlueprintCallable, Category="AR Moon")
+	FVector ARMoonCoordsToUECoords(FVector& LonLatHeightCoords); 
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 private: 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "VR Moon")
 	ACesiumGeoreference* VRMoon; 
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "AR Mooon")
 	ACesiumGeoreference* ARMoon;
 };

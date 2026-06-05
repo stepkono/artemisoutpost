@@ -47,7 +47,7 @@ void APawnAR::BeginPlay()
 		{
 			ARTileSet = TileSet;
 			ARTileSet->SetActorHiddenInGame(false);
-			UE_LOG(LogTemp, Error, TEXT("[PawnAR]: TileSet is shown.")); 
+			UE_LOG(LogTemp, Log, TEXT("[PawnAR]: TileSet is shown.")); 
 		}
 		else
 		{

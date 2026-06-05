@@ -110,7 +110,7 @@ FCalibratedData UGeoUtils::CalibrateAnchors(const FVector& AAnchorPos, const FVe
 	CalibratedData.PlaneNormal = TableNormal;
 	
 	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table center: %s"), *TableCenter.ToString());
-	UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table normal: %s"), *TableNormal.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("CalibrateAnchors: Table normal: %s"), *TableNormal.ToString());
 	
 	return CalibratedData;
 }

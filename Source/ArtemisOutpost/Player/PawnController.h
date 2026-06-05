@@ -5,8 +5,8 @@
 #include "CoreMinimal.h"
 #include "PawnAR.h"
 #include "ACharVR.h"
-#include "ArtemisOutpost/AMasterRover.h"
 #include "GameFramework/PlayerController.h"
+#include "Rover/AMasterRover.h"
 #include "PawnController.generated.h"
 
 /**
@@ -29,13 +29,7 @@ protected:
 	
 private: 
 	UFUNCTION()
-	void SpawnARPlayer(); 
-	
-	UFUNCTION()
 	void SpawnVRPlayer(); 
-	
-	UFUNCTION()
-	void SpawnPuppetPawns(APawn* InPuppetPawn);
 	
 protected: 
 	UPROPERTY(Replicated, BlueprintReadOnly)
