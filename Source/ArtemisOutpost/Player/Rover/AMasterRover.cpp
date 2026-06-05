@@ -3,58 +3,71 @@
 
 #include "AMasterRover.h"
 #include "EngineUtils.h"
+#include "PuppetRover.h"
 #include "ArtemisOutpost/Cesium/GeoRefsManager.h"
+#include "Net/UnrealNetwork.h"
+
+AMasterRover::AMasterRover()
+{
+	bReplicates = true;
+}
+
+void AMasterRover::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	// Call the Super
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+ 
+	// Add properties to replicated for the derived class
+	DOREPLIFETIME(AMasterRover, PuppetRover);
+}
 
 void AMasterRover::BeginPlay()
 {
+	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+	UE_LOG(LogTemp, Warning, TEXT("[Master][%s] BeginPlay: %s | World=%s"),
+		Net, *GetName(), *GetActorLocation().ToString());
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AMasterRover: Failed to get World. Aborting..."));
-		return; 
+		UE_LOG(LogTemp, Error, TEXT("[Master][%s] BeginPlay: Failed to get World. Aborting..."), Net);
+		return;
 	}
-	
+
 	for (TActorIterator<AGeoRefsManager> It(World); It; ++It)
 	{
 		if (AGeoRefsManager* Manager = *It)
 		{
 			GeoRefsManager = Manager;
-			break; 
+			break;
 		}
 	}
-	
+
 	if (!GeoRefsManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AMasterRover: Failed to get GeoRefsManager."));
-		return; 
+		UE_LOG(LogTemp, Error, TEXT("[Master][%s] BeginPlay: Failed to get GeoRefsManager."), Net);
+		return;
 	}
-	
-	// The server side should spawn the puppet
-	if (HasAuthority())
-	{
-		FVector MasterSpawnCoords_UE  = this->GetActorLocation();
-		FVector MasterSpawnCoords_Geo = GeoRefsManager->UECoordsToVRMoonCoords(MasterSpawnCoords_UE); 
-		
-		SpawnAndAssignPuppet(MasterSpawnCoords_Geo);
-	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Master][%s] BeginPlay: GeoRefsManager OK | VRMoon=%s | ARMoon=%s"),
+		Net, *GetNameSafe(GeoRefsManager->GetVRMoon()), *GetNameSafe(GeoRefsManager->GetARMoon()));
+
+	// Initialize the start position to calc the delta vector in next frames
+	const FVector WorldPos = this->GetActorLocation();
+	StartLocalPosition_UE  = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPositionNoScale(WorldPos);
+	UE_LOG(LogTemp, Warning, TEXT("[Master][%s] BeginPlay: WorldPos=%s | StartLocalPos_VR=%s"),
+		Net, *WorldPos.ToString(), *StartLocalPosition_UE.ToString());
 }
 
-void AMasterRover::SpawnAndAssignPuppet(FVector& GeoSpawnCoords)
+FVector AMasterRover::GetLocalPos_UE() const
 {
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn; 
+	const FVector WorldPos_UE = this->GetActorLocation();
+	const FVector LocalPos_UE = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPositionNoScale(WorldPos_UE);
 	
-	PuppetRover = GetWorld()->SpawnActor<APuppetRover>(SpawnParams);
+	return LocalPos_UE;
 }
 
-void AMasterRover::OnRep_SetPuppetRoverLocalLocation()
+FQuat AMasterRover::GetAbsoluteOrientation()
 {
-	FVector MasterSpawnCoords_UE  = this->GetActorLocation();
-	FVector MasterSpawnCoords_Geo = GeoRefsManager->UECoordsToVRMoonCoords(MasterSpawnCoords_UE); 
-	
-	const FVector PuppetSpawnCoords_UE  = GeoRefsManager->ARMoonCoordsToUECoords(MasterSpawnCoords_Geo); 
-	const FRotator PuppetRotation = this->GetActorRotation();
-	const FTransform PuppetTransform = FTransform(PuppetRotation, PuppetSpawnCoords_UE);
-	
-	PuppetRover->SetActorTransform(PuppetTransform);
+	return this->GetActorQuat(); 
 }

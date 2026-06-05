@@ -440,7 +440,7 @@ bool UTransformationsManager::UpdateTargetFrame(FCalibratedData& CalibratedAncho
 	const FVector YAxis = Anchors[3]->GetActorLocation() - Anchors[0]->GetActorLocation(); 
 	
 	const FMatrix UpdatedTargetFrame = UGeoUtils::BuildMatrixFromVectors(XAxis, YAxis);
-	UE_LOG(LogTemp, Warning, TEXT("Determinant Frame: %f"), UpdatedTargetFrame.Determinant());
+	//UE_LOG(LogTemp, Warning, TEXT("Determinant Frame: %f"), UpdatedTargetFrame.Determinant());
 
 	TableCenter = CalibratedAnchors.PlaneCenter;
 	TargetFrame = UpdatedTargetFrame;
