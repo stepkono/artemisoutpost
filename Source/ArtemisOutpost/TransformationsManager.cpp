@@ -116,7 +116,39 @@ void UTransformationsManager::Tick(float DeltaTime)
 		bScaleApplyPending = false;
 	}
 
-	if (!bNewTransformAvailable) return;
+	// ---- Detect whether the spatial anchors actually moved since last frame ----
+	// During a zoom the anchors shift every frame (WTM), but the predict+pipeline already keeps the
+	// moon locked to the camera, so we ignore this while transforming. When idle, a change here means
+	// a re-localization (headset off/sleep) shifted the anchors — the only time we need to re-seed.
+	FVector CurAnchorPos = LastAnchorPos;
+	bool bCanReadAnchor = false;
+	if (AnchorsManager)
+	{
+		const TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
+		if (Anchors.Num() >= 4)
+		{
+			CurAnchorPos = Anchors[0]->GetActorLocation();
+			bCanReadAnchor = true;
+		}
+	}
+	const bool bAnchorMoved = bCanReadAnchor && (!bHasLastAnchorPos || !CurAnchorPos.Equals(LastAnchorPos, AnchorMoveThreshold));
+	if (bCanReadAnchor)
+	{
+		LastAnchorPos = CurAnchorPos;
+		bHasLastAnchorPos = true;
+	}
+
+	if (!bNewTransformAvailable)
+	{
+		// Idle: re-seed only when the anchors actually shifted (re-localization). When they're stable,
+		// the moon is already correct (the pipeline left it on the table), so do nothing. Because we're
+		// idle, WTM is constant and the anchors carry no latency — reading them here is safe.
+		if (bAnchorMoved)
+		{
+			RecalibrateFromAnchors();
+		}
+		return;
+	}
 
 	// ---- Log A: rover geodetic before moon transform ----
 	// UE_LOG(LogTemp, Warning, TEXT("A: Rover pos in geodetic: %s"), *GetGeodeticPosition(Rover->GetActorLocation()).ToString());
@@ -278,6 +310,9 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: Expected 4 anchors to seed spatial anchors, found %d."), Anchors.Num())
 	}
+	
+	FCalibratedData CalibratedData;
+	UpdateTargetFrame(CalibratedData);
 
 	CurrentTerrainElevationUEUnits = 0.0f;
 	PreviousMoonRotation = FRotator(0.0f, 0.0f, 0.0f);
@@ -375,8 +410,8 @@ void UTransformationsManager::ProcessBaseCoordinates_GameThread()
 		// Elevation
 		TargetTerrainElevationUEUnits = (LatestBaseCoordinates.TerrainElevation / InitialMoonScalingFactor) * 100.0f;
 
-		FCalibratedData CalibratedData;
-		UpdateTargetFrame(CalibratedData);
+		//FCalibratedData CalibratedData;
+		//UpdateTargetFrame(CalibratedData);
 
 		// Rotation
 		const FMatrix RotationMatrix = BuildRotationMatrix(UpLeftPoint, BottomLeftPoint, BottomRightPoint);
@@ -436,11 +471,11 @@ bool UTransformationsManager::UpdateTargetFrame(FCalibratedData& CalibratedAncho
 		Anchors[3]->GetActorLocation()    // D (bottom-right) 
 		);
 	
-	const FVector XAxis = Anchors[1]->GetActorLocation() - Anchors[0]->GetActorLocation(); 
-	const FVector YAxis = Anchors[3]->GetActorLocation() - Anchors[0]->GetActorLocation(); 
+	const FVector XAxis = CalibratedAnchors.BAnchorPos - CalibratedAnchors.AAnchorPos;
+	const FVector YAxis = CalibratedAnchors.DAnchorPos - CalibratedAnchors.AAnchorPos;
 	
 	const FMatrix UpdatedTargetFrame = UGeoUtils::BuildMatrixFromVectors(XAxis, YAxis);
-	//UE_LOG(LogTemp, Warning, TEXT("Determinant Frame: %f"), UpdatedTargetFrame.Determinant());
+	UE_LOG(LogTemp, Warning, TEXT("Determinant Frame: %f"), UpdatedTargetFrame.Determinant());
 
 	TableCenter = CalibratedAnchors.PlaneCenter;
 	TargetFrame = UpdatedTargetFrame;
@@ -543,6 +578,42 @@ FVector UTransformationsManager::CalcOffsetMoonOnElevation() const
 #pragma endregion
 
 #pragma region Position
+void UTransformationsManager::RecalibrateFromAnchors()
+{
+	if (!AnchorsManager)
+	{
+		return;
+	}
+
+	const TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
+	if (Anchors.Num() < 4)
+	{
+		return;
+	}
+
+	const FVector A = Anchors[0]->GetActorLocation();
+	const FVector B = Anchors[1]->GetActorLocation();
+	const FVector C = Anchors[2]->GetActorLocation();
+	const FVector D = Anchors[3]->GetActorLocation();
+
+	// Idle ⇒ WTM is constant ⇒ the live anchors already reflect the current scale with no latency.
+	// Re-seed straight from them (no precompensation). This snaps the moon/cutout back onto the table
+	// after a Quest re-localization, and also absorbs any tiny prediction drift.
+	TableCenter = UGeoUtils::CalibrateAnchors(A, B, D).PlaneCenter;
+
+	// Cutout window = physical table corners at the current scale.
+	VisualAnchorA = A;
+	VisualAnchorB = B;
+	VisualAnchorC = C;
+	VisualAnchorD = D;
+
+	// Reposition the moon to match the re-seeded table center (rotation / TableZ are left untouched).
+	ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
+	CurrentMoonPosition = ARGeoRef->GetActorLocation();
+
+	UE_LOG(LogTemp, Warning, TEXT("[TM][Recalib] Re-seeded from anchors. TableCenter=%s"), *TableCenter.ToString());
+}
+
 /*---------------MOON POSITION---------------*/
 FVector UTransformationsManager::GetGeodeticPosition(const FVector& WorldPosition) const
 {

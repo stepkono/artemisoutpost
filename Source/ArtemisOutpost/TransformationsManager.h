@@ -149,9 +149,15 @@ private:
 #pragma region Position
 	UFUNCTION()
 	void SetRoverOnInitialSet();
-	
+
+	// Idle-only re-seed of TableCenter / cutout corners / moon position straight from the live anchors.
+	// Keeps the moon glued to the physical table across a Quest re-localization (headset off/sleep).
+	// NOT called during a zoom — see the idle gate in Tick.
 	UFUNCTION()
-	FVector GetGeodeticPosition(const FVector& WorldPosition) const; 
+	void RecalibrateFromAnchors();
+
+	UFUNCTION()
+	FVector GetGeodeticPosition(const FVector& WorldPosition) const;
 	
 	UFUNCTION()
 	FVector GeoToUnreal(const FVector& GeoCoordinates) const;
@@ -324,6 +330,18 @@ private:
 	// moon/table reposition still needs to be committed on the next frame.
 	UPROPERTY()
 	bool bScaleApplyPending = false;
+
+	// Idle re-seed: anchor[0]'s world position last frame, used to detect when the anchors have
+	// actually moved (re-localization) vs. sitting still. Recalibrate only when it changed.
+	UPROPERTY()
+	FVector LastAnchorPos = FVector::ZeroVector;
+
+	UPROPERTY()
+	bool bHasLastAnchorPos = false;
+
+	// Min per-frame anchor movement (UE units) to count as a real change vs float/tracking noise.
+	// Jitter is assumed invisible; raise this if idle shimmer appears at high zoom.
+	static constexpr float AnchorMoveThreshold = 1.0f;
 #pragma endregion
 	
 	UPROPERTY()

@@ -25,7 +25,7 @@ public:
 	
 	static FMatrix GetLocalSpatialReferenceFrame(const FVector &LonLatHeightPos, ACesiumGeoreference* CesiumGeoreference);
 	
-	UFUNCTION(BlueprintCallable, Category = "Quaterion Util")
+	UFUNCTION(BlueprintCallable, Category = "Quat erion Util")
 	static FQuat BuildQuatFromMatrix(FMatrix RotationMatrix);
 	
 	UFUNCTION(BlueprintCallable, Category = "Matrix Helper Tools")
