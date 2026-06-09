@@ -141,7 +141,8 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("AnchorsManagerSubsystem: Sharing %d anchor(s)."), AnchorActors.Num()); 
-
+	SuccessfullySavedAnchorsToCloud.Empty();
+	
 	// Extract anchor components from the spawned actors
 	TArray<UOculusXRAnchorComponent*> AnchorComponents;
 	for (AActor* Actor : AnchorActors)
@@ -172,7 +173,10 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Saving %d anchors before sharing..."), AnchorComponents.Num());
+	
+	SaveAnchorsToCloud(AnchorComponents);
 
+	/*
 	// Step 1 — Save anchors (persists them so the cloud share can reference them)
 	EOculusXRAnchorResult::Type SaveResult;
 	const bool bSaveStarted = OculusXRAnchors::FOculusXRAnchors::SaveAnchors(AnchorComponents, SavedAnchorsDelegate, SaveResult);
@@ -181,6 +185,64 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 	{
 		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: Failed to start anchor save. Result: %d"), (int32)SaveResult);
 		OnAnchorsSharedResult.Broadcast(false);
+	}
+	*/
+}
+
+void UAnchorsManagerSubsystem::SaveAnchorsToCloud(TArray<UOculusXRAnchorComponent*>& AnchorComponents)
+{
+	for (auto* AnchorComponent : AnchorComponents)
+	{
+		EOculusXRAnchorResult::Type SaveResult;
+		
+		const bool bSaveStarted = OculusXRAnchors::FOculusXRAnchors::SaveAnchor(
+			AnchorComponent, 
+			EOculusXRSpaceStorageLocation::Cloud, 
+			FOculusXRAnchorSaveDelegate::CreateLambda([this, AnchorComponents](EOculusXRAnchorResult::Type Result, UOculusXRAnchorComponent* AnchorComponent)  
+				{
+					if (Result != EOculusXRAnchorResult::Success)
+					{
+						UE_LOG(LogTemp, Error, TEXT("OnSavedAnchor: Failed to save anchor with UUID: %s to cloud. Result: %d"), *AnchorComponent->GetUUID().ToString(), (int32)Result);
+						
+						SuccessfullySavedAnchorsToCloud.Empty();
+						OnAnchorsSharedResult.Broadcast(false);
+						
+						return; 
+					}
+				
+					int FoundAnchorsCount = 0; 
+					
+					SuccessfullySavedAnchorsToCloud.AddUnique(AnchorComponent);
+					
+					for (const auto* SavedAnchor : SuccessfullySavedAnchorsToCloud)
+					{
+						for (const auto* AnchorToSave: AnchorComponents)
+						{
+							if (SavedAnchor->GetHandle() == AnchorToSave->GetHandle())
+							{
+								++FoundAnchorsCount; 
+							}
+						}
+					}
+				
+					if (FoundAnchorsCount == 4)
+					{
+						OnAnchorsSaved(Result, SuccessfullySavedAnchorsToCloud);
+					}
+				}
+			),		
+			SaveResult	
+		);
+		
+		if (!bSaveStarted)
+		{
+			UE_LOG(LogTemp, Error, TEXT("SaveAnchorsToCloud: Failed to start anchor save. Result: %d"), (int32)SaveResult);
+			
+			SuccessfullySavedAnchorsToCloud.Empty();
+			OnAnchorsSharedResult.Broadcast(false);
+			
+			return; 
+		}
 	}
 }
 

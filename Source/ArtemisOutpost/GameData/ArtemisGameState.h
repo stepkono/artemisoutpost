@@ -36,7 +36,7 @@ public:
 	 * Returns true and writes to OutAnchors on success.
 	 * Only meaningful on the server — clients receive anchors via replication.
 	 */
-	bool GetAnchorsFromPreviousSessions(FOrderedAnchors& OutAnchors) const;
+	bool GetAnchorsFromCurrentSession(FOrderedAnchors& OutAnchors) const;
 
 private:
 	void SaveAnchorsToDisk() const;

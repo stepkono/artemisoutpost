@@ -70,6 +70,9 @@ private:
 	
 	UFUNCTION()
 	void OnAnchorsSaved(EOculusXRAnchorResult::Type Result, const TArray<UOculusXRAnchorComponent*>& SavedAnchor);
+	
+	UFUNCTION()
+	void SaveAnchorsToCloud(TArray<UOculusXRAnchorComponent*>& AnchorComponents);
 
 	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawOrderedAnchorsToSpawn);
 	
@@ -84,9 +87,12 @@ private:
 	FOculusXRDiscoverAnchorsResultsDelegate DiscoveredAnchorDelegate;
 	FOculusXRDiscoverAnchorsCompleteDelegate DiscoveredAnchorsCompleteDelegate;
 	FOculusXRSaveAnchorsDelegate SavedAnchorsDelegate;
-
+	
 	/** Ordered list of UUIDs (A=0, B=1, C=2, D=3) — used to restore index after unordered results. */
 	TArray<FOculusXRUUID> OrderedUUIDs;
+	
+	UPROPERTY()
+	TArray<UOculusXRAnchorComponent*> SuccessfullySavedAnchorsToCloud;
 
 	/** Accumulates raw discovery results across multiple OnAnchorDiscovered callbacks. */
 	TArray<FOculusXRAnchorsDiscoverResult> UnorderedDiscoveredAnchors;

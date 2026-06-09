@@ -62,7 +62,7 @@ void UMapCutoutManager::BeginPlay()
 		UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Not authoritative client."))
 
 		FOrderedAnchors AnchorsFromServer;
-		if (GS->GetAnchorsFromPreviousSessions(AnchorsFromServer))
+		if (GS->GetAnchorsFromCurrentSession(AnchorsFromServer))
 		{
 			HandleAnchorsUpdate(AnchorsFromServer);
 		}
