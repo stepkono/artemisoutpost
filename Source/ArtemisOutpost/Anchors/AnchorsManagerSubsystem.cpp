@@ -14,7 +14,6 @@ void UAnchorsManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	DiscoveredAnchorDelegate.BindUObject(this, &UAnchorsManagerSubsystem::OnAnchorDiscovered);
 	DiscoveredAnchorsCompleteDelegate.BindUObject(this, &UAnchorsManagerSubsystem::OnDiscoveryComplete);
-	SavedAnchorsDelegate.BindUObject(this, &UAnchorsManagerSubsystem::OnAnchorsSaved);
 
 	const UArtemisAnchorSettings* Settings = GetDefault<UArtemisAnchorSettings>();
 	AnchorClass = Settings->SpatialAnchorModelClass.LoadSynchronous();
@@ -133,16 +132,19 @@ void UAnchorsManagerSubsystem::OnDiscoveryComplete(EOculusXRAnchorResult::Type R
 
 void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& AnchorActors)
 {
+	// New share attempt — allow exactly one conclusion for this run.
+	bShareConcluded = false;
+
 	if (!SharingGroupUUID.IsValidUUID())
 	{
 		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: SharingGroupUUID is invalid. Check Initialize()."));
-		OnAnchorsSharedResult.Broadcast(false);
+		ConcludeShare(false);
 		return;
 	}
 
-	UE_LOG(LogTemp, Display, TEXT("AnchorsManagerSubsystem: Sharing %d anchor(s)."), AnchorActors.Num()); 
+	UE_LOG(LogTemp, Display, TEXT("AnchorsManagerSubsystem: Sharing %d anchor(s)."), AnchorActors.Num());
 	SuccessfullySavedAnchorsToCloud.Empty();
-	
+
 	// Extract anchor components from the spawned actors
 	TArray<UOculusXRAnchorComponent*> AnchorComponents;
 	for (AActor* Actor : AnchorActors)
@@ -168,80 +170,65 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 	if (AnchorComponents.Num() == 0)
 	{
 		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: No valid anchor components found. Nothing to share."));
-		OnAnchorsSharedResult.Broadcast(false);
+		ConcludeShare(false);
 		return;
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Saving %d anchors before sharing..."), AnchorComponents.Num());
-	
+
 	SaveAnchorsToCloud(AnchorComponents);
-
-	/*
-	// Step 1 — Save anchors (persists them so the cloud share can reference them)
-	EOculusXRAnchorResult::Type SaveResult;
-	const bool bSaveStarted = OculusXRAnchors::FOculusXRAnchors::SaveAnchors(AnchorComponents, SavedAnchorsDelegate, SaveResult);
-
-	if (!bSaveStarted)
-	{
-		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: Failed to start anchor save. Result: %d"), (int32)SaveResult);
-		OnAnchorsSharedResult.Broadcast(false);
-	}
-	*/
 }
 
 void UAnchorsManagerSubsystem::SaveAnchorsToCloud(TArray<UOculusXRAnchorComponent*>& AnchorComponents)
 {
+	// Arm a single timeout covering the whole save+share flow. If any SDK callback is never
+	// delivered (a dropped save, or a share-complete event that never arrives), this guarantees
+	// the flow still concludes instead of hanging forever.
+	PendingSaveCount = AnchorComponents.Num();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(
+			ShareTimeoutTimer, this, &UAnchorsManagerSubsystem::OnShareTimeout, ShareTimeoutSec, false);
+	}
+
 	for (auto* AnchorComponent : AnchorComponents)
 	{
 		EOculusXRAnchorResult::Type SaveResult;
-		
+
 		const bool bSaveStarted = OculusXRAnchors::FOculusXRAnchors::SaveAnchor(
-			AnchorComponent, 
-			EOculusXRSpaceStorageLocation::Cloud, 
-			FOculusXRAnchorSaveDelegate::CreateLambda([this, AnchorComponents](EOculusXRAnchorResult::Type Result, UOculusXRAnchorComponent* AnchorComponent)  
+			AnchorComponent,
+			EOculusXRSpaceStorageLocation::Cloud,
+			FOculusXRAnchorSaveDelegate::CreateLambda([this, AnchorComponents](EOculusXRAnchorResult::Type Result, UOculusXRAnchorComponent* SavedAnchor)
 				{
 					if (Result != EOculusXRAnchorResult::Success)
 					{
-						UE_LOG(LogTemp, Error, TEXT("OnSavedAnchor: Failed to save anchor with UUID: %s to cloud. Result: %d"), *AnchorComponent->GetUUID().ToString(), (int32)Result);
-						
+						UE_LOG(LogTemp, Error, TEXT("OnSavedAnchor: Failed to save anchor with UUID: %s to cloud. Result: %d"), *SavedAnchor->GetUUID().ToString(), (int32)Result);
+
 						SuccessfullySavedAnchorsToCloud.Empty();
-						OnAnchorsSharedResult.Broadcast(false);
-						
-						return; 
+						ConcludeShare(false);
+
+						return;
 					}
-				
-					int FoundAnchorsCount = 0; 
-					
-					SuccessfullySavedAnchorsToCloud.AddUnique(AnchorComponent);
-					
-					for (const auto* SavedAnchor : SuccessfullySavedAnchorsToCloud)
-					{
-						for (const auto* AnchorToSave: AnchorComponents)
-						{
-							if (SavedAnchor->GetHandle() == AnchorToSave->GetHandle())
-							{
-								++FoundAnchorsCount; 
-							}
-						}
-					}
-				
-					if (FoundAnchorsCount == 4)
+
+					SuccessfullySavedAnchorsToCloud.AddUnique(SavedAnchor);
+
+					if (SuccessfullySavedAnchorsToCloud.Num() == AnchorComponents.Num())
 					{
 						OnAnchorsSaved(Result, SuccessfullySavedAnchorsToCloud);
 					}
 				}
-			),		
-			SaveResult	
+			),
+			SaveResult
 		);
-		
+
 		if (!bSaveStarted)
 		{
 			UE_LOG(LogTemp, Error, TEXT("SaveAnchorsToCloud: Failed to start anchor save. Result: %d"), (int32)SaveResult);
-			
+
 			SuccessfullySavedAnchorsToCloud.Empty();
-			OnAnchorsSharedResult.Broadcast(false);
-			
-			return; 
+			ConcludeShare(false);
+
+			return;
 		}
 	}
 }
@@ -251,7 +238,7 @@ void UAnchorsManagerSubsystem::OnAnchorsSaved(EOculusXRAnchorResult::Type Result
 	if (Result != EOculusXRAnchorResult::Success)
 	{
 		LogAnchorError(TEXT("ShareAnchorsWithGroup [Save]"), Result);
-		OnAnchorsSharedResult.Broadcast(false);
+		ConcludeShare(false);
 		return;
 	}
 
@@ -274,7 +261,7 @@ void UAnchorsManagerSubsystem::OnAnchorsSaved(EOculusXRAnchorResult::Type Result
 	if (AnchorHandles.Num() == 0)
 	{
 		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: No valid handles after save. Cannot share."));
-		OnAnchorsSharedResult.Broadcast(false);
+		ConcludeShare(false);
 		return;
 	}
 	
@@ -293,12 +280,12 @@ void UAnchorsManagerSubsystem::OnAnchorsSaved(EOculusXRAnchorResult::Type Result
 					if (ShareResult.IsSuccess())
 					{
 						UE_LOG(LogTemp, Log, TEXT("ShareAnchorsWithGroup: Anchors shared successfully with group."));
-						OnAnchorsSharedResult.Broadcast(true);
+						ConcludeShare(true);
 					}
 					else
 					{
 						LogAnchorError(TEXT("ShareAnchorsWithGroup [Share]"), ShareResult.GetStatus());
-						OnAnchorsSharedResult.Broadcast(false);
+						ConcludeShare(false);
 					}
 				}
 			)
@@ -307,8 +294,36 @@ void UAnchorsManagerSubsystem::OnAnchorsSaved(EOculusXRAnchorResult::Type Result
 	if (!ShareRequest.IsValid())
 	{
 		UE_LOG(LogTemp, Error, TEXT("ShareAnchorsWithGroup: Failed to create share request."));
-		OnAnchorsSharedResult.Broadcast(false);
+		ConcludeShare(false);
 	}
+}
+
+void UAnchorsManagerSubsystem::ConcludeShare(bool bSuccess)
+{
+	// Fire-once guard: any of the save/share failure paths (or a timeout) may try to conclude;
+	// only the first one is allowed to broadcast a result for this share attempt.
+	if (bShareConcluded)
+	{
+		return;
+	}
+	bShareConcluded = true;
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ShareTimeoutTimer);
+	}
+
+	OnAnchorsSharedResult.Broadcast(bSuccess);
+}
+
+void UAnchorsManagerSubsystem::OnShareTimeout()
+{
+	UE_LOG(LogTemp, Warning,
+		TEXT("ShareAnchorsWithGroup: Timed out after %.0fs waiting for save/share completion (%d/%d anchors saved). Aborting."),
+		ShareTimeoutSec, SuccessfullySavedAnchorsToCloud.Num(), PendingSaveCount);
+
+	SuccessfullySavedAnchorsToCloud.Empty();
+	ConcludeShare(false);
 }
 
 // ────────────────────────────────────────────────────────────────────
