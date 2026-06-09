@@ -45,7 +45,7 @@ void UMapCutoutManager::BeginPlay()
 		UE_LOG(LogTemp, Error, TEXT("MapCutout: Unable to get GameState."));
 		return;
 	}
-
+	
 	// Spatial anchors require the OculusXR runtime which is not available on dedicated servers
 	if (GetNetMode() == NM_DedicatedServer)
 	{
@@ -56,6 +56,7 @@ void UMapCutoutManager::BeginPlay()
 
 	GS->OnRawAnchorsUpdated.AddDynamic(this, &UMapCutoutManager::HandleAnchorsUpdate);
 
+	// TODO: not sure if this is even necessary. Because every client gets the replicated vars from  GameState. Question is, if the HandleAnchorsUpdate will be triggered. 
 	if (!IsAuthoritativeClient())
 	{
 		UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Not authoritative client."))
@@ -67,7 +68,6 @@ void UMapCutoutManager::BeginPlay()
 		}
 	}
 }
-
 
 // Called every frame
 void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
