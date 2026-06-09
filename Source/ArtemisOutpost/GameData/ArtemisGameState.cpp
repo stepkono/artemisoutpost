@@ -15,7 +15,7 @@ void AArtemisGameState::BeginPlay()
 	if (!HasAuthority()) return; // server only — clients receive anchors via replication
 
 	FOrderedAnchors LoadedAnchors;
-	if (!GetAnchorsFromPreviousSessions(LoadedAnchors))
+	if (!GetAnchorsFromCurrentSession(LoadedAnchors))
 	{
 		UE_LOG(LogTemp, Log, TEXT("AArtemisGameState: No saved anchors found — waiting for host-quest to upload."));
 	}
@@ -68,7 +68,7 @@ void AArtemisGameState::SaveAnchorsToDisk() const
 	UE_LOG(LogTemp, Log, TEXT("AArtemisGameState: Anchor UUIDs saved to disk."));
 }
 
-bool AArtemisGameState::GetAnchorsFromPreviousSessions(FOrderedAnchors& OutAnchors) const
+bool AArtemisGameState::GetAnchorsFromCurrentSession(FOrderedAnchors& OutAnchors) const
 {
 	if (!UGameplayStatics::DoesSaveGameExist(AnchorSaveSlot, 0))
 	{
