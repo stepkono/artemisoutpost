@@ -25,16 +25,16 @@ public:
 	ACesiumGeoreference* GetVRMoon();
 	
 	UFUNCTION(BlueprintCallable, Category="VR Moon")
-	FVector UECoordsToVRMoonCoords(FVector& WorldCoords);
+	FVector UECoordsToVRMoonCoords(FVector WorldCoords);
 	
 	UFUNCTION(BlueprintCallable, Category="VR Moon")
-	FVector VRMoonCoordsToUECoords(FVector& LonLatHeightCoords); 
+	FVector VRMoonCoordsToUECoords(FVector LonLatHeightCoords); 
 	
 	UFUNCTION(BlueprintCallable, Category="AR Moon")
-	FVector UECoordsToARMoonCoords(FVector& WorldCoords); 
+	FVector UECoordsToARMoonCoords(FVector WorldCoords); 
 	
 	UFUNCTION(BlueprintCallable, Category="AR Moon")
-	FVector ARMoonCoordsToUECoords(FVector& LonLatHeightCoords); 
+	FVector ARMoonCoordsToUECoords(FVector LonLatHeightCoords); 
 
 protected:
 	// Called when the game starts or when spawned
