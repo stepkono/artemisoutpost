@@ -61,10 +61,12 @@ void APawnAR::BeginPlay()
 		if (IsAuthoritativeClient())
 		{
 			UE_LOG(LogTemp, Display, TEXT("PawnAR: Calling anchor sharing from authoritative client."))
-			
-			// TODO: here also share the GroupUUID
-			ShareAnchorsWithServer(GI->RawAnchors); 
-		}	
+
+			// Send the session group UUID first, then the anchors — so the group UUID is present
+			// on the GameState by the time OnRep_RawAnchors fires on the clients.
+			ShareGroupUUIDWithServer(GI->SharingGroupUUID);
+			ShareAnchorsWithServer(GI->RawAnchors);
+		}
 	}
 }
 
@@ -105,6 +107,28 @@ void APawnAR::ShareAnchorsWithServer_Implementation(FOrderedAnchors RawAnchors)
 	
 	UE_LOG(LogTemp, Display, TEXT("Server: PawnAR: Writing shared anchors to game state..."));
 	GS->WriteRawAnchors(RawAnchors);
+}
+
+void APawnAR::ShareGroupUUIDWithServer_Implementation(FOculusXRUUID GroupUUID)
+{
+	AArtemisGameState* GS;
+	if (AGameStateBase* DefaultGS = GetWorld()->GetGameState())
+	{
+		GS = Cast<AArtemisGameState>(DefaultGS);
+		if (!GS)
+		{
+			UE_LOG(LogTemp, Error, TEXT("PawnAR: Failed to cast GameState."))
+			return;
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("PawnAR: Failed to get GameState."))
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("Server: PawnAR: Writing session group UUID to game state..."));
+	GS->WriteGroupUUID(GroupUUID);
 }
 
 void APawnAR::NotifyControllerChanged()

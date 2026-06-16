@@ -26,6 +26,7 @@ void AArtemisGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(AArtemisGameState, RawAnchors);
+	DOREPLIFETIME(AArtemisGameState, SharingGroupUUID);
 	DOREPLIFETIME(AArtemisGameState, MapBaseCoordinates);
 	DOREPLIFETIME(AArtemisGameState, ControlCommand);
 }
@@ -54,6 +55,12 @@ void AArtemisGameState::WriteRawAnchors(const FOrderedAnchors& Anchors)
 	
 	RawAnchors = Anchors;
 	SaveAnchorsToDisk();
+}
+
+void AArtemisGameState::WriteGroupUUID(const FOculusXRUUID& GroupUUID)
+{
+	UE_LOG(LogTemp, Display, TEXT("AArtemisGameState: Writing session group UUID: %s"), *GroupUUID.ToString());
+	SharingGroupUUID = GroupUUID;
 }
 
 void AArtemisGameState::SaveAnchorsToDisk() const
