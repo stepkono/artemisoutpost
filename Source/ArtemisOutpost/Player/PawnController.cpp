@@ -73,3 +73,8 @@ void APawnController::SpawnVRPlayer()
 		UE_LOG(LogTemp, Error, TEXT("PawnController: World not found."));
 	}
 }
+
+void APawnController::SetGeoRefsManager(AGeoRefsManager* InGeoRefsManager)
+{
+	GeoRefsManager = InGeoRefsManager;
+}

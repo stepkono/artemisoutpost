@@ -36,24 +36,24 @@ ACesiumGeoreference* AGeoRefsManager::GetARMoon()
 	return ARMoon;
 }
 
-FVector AGeoRefsManager::UECoordsToVRMoonCoords(FVector& WorldCoords)
+FVector AGeoRefsManager::UECoordsToVRMoonCoords(FVector WorldCoords)
 {
 	return VRMoon->TransformUnrealPositionToLongitudeLatitudeHeight(WorldCoords);
 }
 
-FVector AGeoRefsManager::VRMoonCoordsToUECoords(FVector& LonLatHeightCoords)
+FVector AGeoRefsManager::VRMoonCoordsToUECoords(FVector LonLatHeightCoords)
 {
 	return VRMoon->TransformLongitudeLatitudeHeightPositionToUnreal(LonLatHeightCoords);
 }
 
-FVector AGeoRefsManager::ARMoonCoordsToUECoords(FVector& LonLatHeightCoords)
+FVector AGeoRefsManager::ARMoonCoordsToUECoords(FVector LonLatHeightCoords)
 {
 	const FVector LocalPos = ARMoon->TransformLongitudeLatitudeHeightPositionToUnreal(LonLatHeightCoords);
 	
 	return ARMoon->GetActorTransform().TransformPosition(LocalPos);
 }
 
-FVector AGeoRefsManager::UECoordsToARMoonCoords(FVector& WorldCoords)
+FVector AGeoRefsManager::UECoordsToARMoonCoords(FVector WorldCoords)
 {
 	const FVector LocalPos = ARMoon->GetActorTransform().InverseTransformPosition(WorldCoords);
 	

@@ -71,3 +71,8 @@ FQuat AMasterRover::GetAbsoluteOrientation()
 {
 	return this->GetActorQuat(); 
 }
+
+APuppetRover* AMasterRover::GetPuppetRover()
+{
+	return PuppetRover;
+}

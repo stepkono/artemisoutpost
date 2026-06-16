@@ -23,6 +23,9 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
+	UFUNCTION(BlueprintCallable, Category = "GeoReferences Manager")
+	void SetGeoRefsManager(AGeoRefsManager* InGeoRefsManager); 
+	
 protected: 
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
@@ -43,6 +46,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, Category = "VR Position")
 	FVector GeodeticPos = FVector(90.0f, 0.0f, 10.0f);
+	
+	UPROPERTY(BlueprintReadOnly, Category = "GeoRefs Manager")
+	AGeoRefsManager* GeoRefsManager;
 	
 private: 
 	UPROPERTY()

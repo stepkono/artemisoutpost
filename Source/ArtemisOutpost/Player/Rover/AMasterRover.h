@@ -29,7 +29,10 @@ public:
 	FQuat GetAbsoluteOrientation(); 
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	
+	UFUNCTION(BlueprintCallable, Category = "Puppet Rover")
+	APuppetRover* GetPuppetRover(); 
+	
 private:
 	UPROPERTY(Replicated)
 	APuppetRover* PuppetRover;
