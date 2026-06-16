@@ -25,6 +25,13 @@ public:
 	UFUNCTION()
 	void WriteRawAnchors(const FOrderedAnchors& Anchors);
 
+	/** Server: stores the session group UUID and replicates it to clients. */
+	UFUNCTION()
+	void WriteGroupUUID(const FOculusXRUUID& GroupUUID);
+
+	/** The replicated session group UUID (valid once the authoritative client has shared). */
+	FOculusXRUUID GetSharingGroupUUID() const { return SharingGroupUUID; }
+
 	UFUNCTION()
 	void WriteMapCoordinates(const FMapBaseCoordinates& MapCoordinates);
 
@@ -58,7 +65,12 @@ public:
 private: 
 	UPROPERTY(ReplicatedUsing=OnRep_RawAnchors)
 	FOrderedAnchors RawAnchors;
-	
+
+	/** Session group UUID. Replicated plainly (no OnRep) — clients read it on demand in
+	 *  RequestSharedAnchors. Written before RawAnchors so it is present when OnRep_RawAnchors fires. */
+	UPROPERTY(Replicated)
+	FOculusXRUUID SharingGroupUUID;
+
 	UPROPERTY(ReplicatedUsing=OnRep_MapBaseCoordinates)
 	FMapBaseCoordinates MapBaseCoordinates;
 	

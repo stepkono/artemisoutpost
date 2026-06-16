@@ -66,18 +66,12 @@ private:
 	void OnAnchorDiscovered(const TArray<FOculusXRAnchorsDiscoverResult>& DiscoveredAnchors);
 
 	UFUNCTION()
-	void OnDiscoveryComplete(EOculusXRAnchorResult::Type Result); 
-	
-	// Called directly (not a delegate target) once all anchors have saved to the cloud.
-	void OnAnchorsSaved(EOculusXRAnchorResult::Type Result, const TArray<UOculusXRAnchorComponent*>& SavedAnchor);
-
-	UFUNCTION()
-	void SaveAnchorsToCloud(TArray<UOculusXRAnchorComponent*>& AnchorComponents);
+	void OnDiscoveryComplete(EOculusXRAnchorResult::Type Result);
 
 	/** Broadcasts OnAnchorsSharedResult exactly once per share attempt and stops the timeout. */
 	void ConcludeShare(bool bSuccess);
 
-	/** Fires if the save/share flow never completes (e.g. a dropped SDK callback). */
+	/** Fires if the share flow never completes (e.g. a dropped SDK callback). */
 	void OnShareTimeout();
 
 	void SpawnRawAnchors(const TArray<FOculusXRAnchorsDiscoverResult>& RawOrderedAnchorsToSpawn);
@@ -96,19 +90,16 @@ private:
 	/** Ordered list of UUIDs (A=0, B=1, C=2, D=3) — used to restore index after unordered results. */
 	TArray<FOculusXRUUID> OrderedUUIDs;
 
-	UPROPERTY()
-	TArray<UOculusXRAnchorComponent*> SuccessfullySavedAnchorsToCloud;
-
 	/** Guards OnAnchorsSharedResult so it broadcasts at most once per share attempt. */
 	bool bShareConcluded = false;
 
 	/** Number of anchors the current share attempt is waiting on (for timeout diagnostics). */
-	int32 PendingSaveCount = 0;
+	int32 PendingShareCount = 0;
 
-	/** Timer that aborts the save/share flow if the SDK never reports completion. */
+	/** Timer that aborts the share flow if the SDK never reports completion. */
 	FTimerHandle ShareTimeoutTimer;
 
-	/** Seconds to wait for the full save+share flow before giving up. */
+	/** Seconds to wait for the share flow before giving up. */
 	static constexpr float ShareTimeoutSec = 30.0f;
 
 	/** Accumulates raw discovery results across multiple OnAnchorDiscovered callbacks. */

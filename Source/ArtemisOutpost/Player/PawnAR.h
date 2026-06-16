@@ -35,6 +35,11 @@ private:
 	
 	UFUNCTION(Server, Reliable)
 	void ShareAnchorsWithServer(FOrderedAnchors RawAnchors);
+
+	/** Sends the current session group UUID to the server for replication. Call BEFORE
+	 *  ShareAnchorsWithServer so the group UUID is set on the GameState before the anchors. */
+	UFUNCTION(Server, Reliable)
+	void ShareGroupUUIDWithServer(FOculusXRUUID GroupUUID);
 	
 private: 
 	UPROPERTY()

@@ -40,4 +40,9 @@ public:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spatial Anchors")
 	FOrderedAnchors RawAnchors;
+
+	/** Group UUID generated for the current share session. Set by the AnchorsManagerSubsystem
+	 *  when the authoritative client shares anchors, then replicated to clients via the GameState. */
+	UPROPERTY(BlueprintReadWrite, Category="Spatial Anchors")
+	FOculusXRUUID SharingGroupUUID;
 };

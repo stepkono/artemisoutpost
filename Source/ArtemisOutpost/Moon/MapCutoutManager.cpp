@@ -114,18 +114,22 @@ void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
 
 void UMapCutoutManager::HandleAnchorsSpawned()
 {
-	if (AnchorsManager->GetAnchors().Num() < 4)
-	{
-		return; 
-	}
-	
-	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Handling physical anchor positions...")); 
-	
-	BindGeoRefToAnchor();
-	
 	// B(top-left)     C(top-right)
 	// A(bottom-left)  D(bottom-right)
 	TArray<AActor*> Anchors = AnchorsManager->GetAnchors();
+
+	// Require all four slots to be valid — a failed/empty retrieval yields 4 null sentinels,
+	// which pass a plain Num() check but would crash on GetActorLocation() below.
+	if (Anchors.Num() < 4 || !IsValid(Anchors[0]) || !IsValid(Anchors[1])
+		|| !IsValid(Anchors[2]) || !IsValid(Anchors[3]))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: Anchor set is incomplete or invalid. Aborting handling."));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Handling physical anchor positions..."));
+
+	BindGeoRefToAnchor();
 	FCalibratedData CalibratedData = UGeoUtils::CalibrateAnchors(
 		Anchors[0]->GetActorLocation(),   // A — origin (bottom-left)
 		Anchors[1]->GetActorLocation(),   // B — upward edge (top-left)
