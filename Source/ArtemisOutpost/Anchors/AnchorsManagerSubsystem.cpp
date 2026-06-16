@@ -134,6 +134,9 @@ void UAnchorsManagerSubsystem::ShareAnchorsWithGroup(const TArray<AActor*>& Anch
 {
 	// New share attempt — allow exactly one conclusion for this run.
 	bShareConcluded = false;
+	
+	const FString GroupHex = FGuid::NewGuid().ToString(EGuidFormats::Digits); // 32 hex chars
+	SharingGroupUUID = UOculusXRAnchorBPFunctionLibrary::StringToAnchorUUID(GroupHex);
 
 	if (!SharingGroupUUID.IsValidUUID())
 	{
@@ -360,7 +363,61 @@ void UAnchorsManagerSubsystem::RequestSharedAnchors(const FOrderedAnchors& RawAn
 	};
 
 	UE_LOG(LogTemp, Log, TEXT("RequestSharedAnchors: Requesting anchors from group..."));
+	
+	EOculusXRAnchorResult::Type OutResult;
+	bool bResult = OculusXRAnchors::FOculusXRAnchors::GetSharedAnchors(
+		OrderedUUIDs,
+		FOculusXRGetSharedAnchorsDelegate::CreateLambda(
+			[this](EOculusXRAnchorResult::Type Result, const TArray<FOculusXRAnchorsDiscoverResult>& RetrievedAnchors)
+			{
+				if (Result != EOculusXRAnchorResult::Success)
+				{
+					LogAnchorError(TEXT("RequestSharedAnchors"), Result);
+					if (PendingCallback)
+					{
+						TArray<AActor*> Empty; 
+						PendingCallback(Empty); 
+						PendingCallback = nullptr;
+					}
+					return;
+				}
+				
+				// Rebuild in A/B/C/D order — convert FOculusXRAnchor to FOculusXRAnchorsDiscoverResult for SpawnRawAnchors
+					TArray<FOculusXRAnchorsDiscoverResult> OrderedAnchorsToSpawn;
+					for (const FOculusXRUUID& UUID : OrderedUUIDs)
+					{
+						const FOculusXRAnchorsDiscoverResult* Found = RetrievedAnchors.FindByPredicate([&UUID](const FOculusXRAnchorsDiscoverResult& A) { return A.UUID == UUID; });
+						
+						if (!Found)
+						{
+							UE_LOG(LogTemp, Warning, TEXT("RequestSharedAnchors: UUID not found in results. Inserting sentinel."));
+							OrderedAnchorsToSpawn.Add(FOculusXRAnchorsDiscoverResult{});
+							continue;
+						}
 
+						// FOculusXRAnchor::AnchorHandle maps to FOculusXRAnchorsDiscoverResult::Space
+						OrderedAnchorsToSpawn.Add(FOculusXRAnchorsDiscoverResult(Found->Space, Found->UUID));
+					}
+
+					SpawnRawAnchors(OrderedAnchorsToSpawn);
+				
+			}
+		),
+		OutResult
+	);  
+	
+	if (OutResult != EOculusXRAnchorResult::Success)
+	{
+		UE_LOG(LogTemp, Error, TEXT("RequestSharedAnchors: Failed to create async request."));
+		if (PendingCallback) 
+		{ 
+			TArray<AActor*> Empty; 
+			PendingCallback(Empty); 
+			PendingCallback = nullptr; 
+		}
+	}
+	
+	/*
 	const TSharedPtr<OculusXRAnchors::FGetAnchorsSharedWithGroup> Request =
 		OculusXRAnchors::FOculusXRAnchors::GetSharedAnchorsAsync(
 			SharingGroupUUID,
@@ -416,6 +473,7 @@ void UAnchorsManagerSubsystem::RequestSharedAnchors(const FOrderedAnchors& RawAn
 			PendingCallback = nullptr; 
 		}
 	}
+	*/
 }
 
 // ────────────────────────────────────────────────────────────────────

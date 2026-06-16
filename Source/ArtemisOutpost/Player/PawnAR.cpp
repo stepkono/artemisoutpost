@@ -61,6 +61,8 @@ void APawnAR::BeginPlay()
 		if (IsAuthoritativeClient())
 		{
 			UE_LOG(LogTemp, Display, TEXT("PawnAR: Calling anchor sharing from authoritative client."))
+			
+			// TODO: here also share the GroupUUID
 			ShareAnchorsWithServer(GI->RawAnchors); 
 		}	
 	}
