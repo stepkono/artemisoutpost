@@ -10,6 +10,7 @@
 AMasterRover::AMasterRover()
 {
 	bReplicates = true;
+	bAlwaysRelevant = true;
 }
 
 void AMasterRover::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

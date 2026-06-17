@@ -24,7 +24,7 @@ void ACharVR::BeginPlay()
 		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to cast to custom game instance.")); 
 		return; 
 	}
-	for (auto TileSet : TActorRange<ACesium3DTileset>(World))
+	for (const auto TileSet : TActorRange<ACesium3DTileset>(World))
 	{
 		if (TileSet->ActorHasTag(FName("DEFAULT_TILESET")))
 		{
@@ -50,10 +50,13 @@ void ACharVR::NotifyControllerChanged()
 {
 	Super::NotifyControllerChanged();
 	
+	UE_LOG(LogTemp, Log, TEXT("ACharVR: NotifyControllerChanged"));
+	
+	
 	// Check locally 
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
-		AController* CurrentController = GetController();
+		const AController* CurrentController = GetController();
 		
 		if (!VRTileSet)
 		{
@@ -64,12 +67,19 @@ void ACharVR::NotifyControllerChanged()
 		// UNPOSSESSED
 		if (CurrentController == nullptr)
 		{
-			VRTileSet->GetRootComponent()->SetVisibility(false);
+			UE_LOG(LogTemp, Log, TEXT("ACharVR: UNPOSSESSED"));
+			//VRTileSet->SetActorHiddenInGame(true);
 		}
 		//POSSESSED
 		else
 		{
-			VRTileSet->GetRootComponent()->SetVisibility(true);
+			UE_LOG(LogTemp, Log, TEXT("ACharVR: POSSESSED"));
+			//VRTileSet->SetActorHiddenInGame(false);
 		}		
 	}
+}
+
+ACesium3DTileset* ACharVR::GetVRTileset()
+{
+	return VRTileSet;
 }

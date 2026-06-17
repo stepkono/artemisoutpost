@@ -25,6 +25,10 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	virtual void NotifyControllerChanged() override;
+	
+	UFUNCTION(BlueprintCallable, Category = "AR Moon")
+	ACesium3DTileset* GetARTileset(); 
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
