@@ -114,6 +114,12 @@ void UTransformationsManager::Tick(float DeltaTime)
 		ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
 		CurrentMoonPosition = ARGeoRef->GetActorLocation();
 		bScaleApplyPending = false;
+
+		// The WTM change has now taken effect, so the anchors' world positions reflect the new scale.
+		// Notify listeners (cutout material) to re-push them.
+		UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Scale committed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"),
+			OnCutoutNeedsUpdate.IsBound() ? 1 : 0);
+		OnCutoutNeedsUpdate.Broadcast();
 	}
 
 	// ---- Detect whether the spatial anchors actually moved since last frame ----
@@ -610,6 +616,11 @@ void UTransformationsManager::RecalibrateFromAnchors()
 	// Reposition the moon to match the re-seeded table center (rotation / TableZ are left untouched).
 	ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
 	CurrentMoonPosition = ARGeoRef->GetActorLocation();
+
+	// Anchor world positions just shifted (re-localization), so the cutout must follow.
+	UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Re-seed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"),
+		OnCutoutNeedsUpdate.IsBound() ? 1 : 0);
+	OnCutoutNeedsUpdate.Broadcast();
 
 	UE_LOG(LogTemp, Warning, TEXT("[TM][Recalib] Re-seeded from anchors. TableCenter=%s"), *TableCenter.ToString());
 }
