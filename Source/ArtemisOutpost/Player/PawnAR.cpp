@@ -35,28 +35,28 @@ void APawnAR::BeginPlay()
 		return; 
 	}
 	
-	const UWorld* World = GetWorld();
-	if (!World)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[PawnAR]: Failed to cast to custom game instance.")); 
-		return; 
-	}
-	for (auto TileSet : TActorRange<ACesium3DTileset>(World))
-	{
-		if (TileSet->ActorHasTag(FName("AR_TILESET")))
-		{
-			ARTileSet = TileSet;
-			ARTileSet->SetActorHiddenInGame(false);
-			UE_LOG(LogTemp, Log, TEXT("[PawnAR]: TileSet is shown.")); 
-		}
-		else
-		{
-			TileSet->SetActorHiddenInGame(true);
-		}
-	}
-	
 	if (IsLocallyControlled())
 	{
+		const UWorld* World = GetWorld();
+		if (!World)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[PawnAR]: Failed to cast to custom game instance.")); 
+			return; 
+		}
+		for (auto TileSet : TActorRange<ACesium3DTileset>(World))
+		{
+			if (TileSet->ActorHasTag(FName("AR_TILESET")))
+			{
+				ARTileSet = TileSet;
+				ARTileSet->SetActorHiddenInGame(false);
+				UE_LOG(LogTemp, Log, TEXT("[PawnAR]: TileSet is shown.")); 
+			}
+			else
+			{
+				TileSet->SetActorHiddenInGame(false); // TODO: reset to true, after debugging complete
+			}
+		}
+		
 		// If this client has saved anchors in the current session -> share these anchors
 		if (IsAuthoritativeClient())
 		{
@@ -157,4 +157,9 @@ void APawnAR::NotifyControllerChanged()
 			ARTileSet->SetActorHiddenInGame(false);
 		}		
 	}
+}
+
+ACesium3DTileset* APawnAR::GetARTileset()
+{
+	return ARTileSet;
 }
