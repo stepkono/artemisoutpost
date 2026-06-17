@@ -13,6 +13,11 @@
 #include "Miscellaneous/XRUtilsSubsystem.h"
 #include "TransformationsManager.generated.h"
 
+// Broadcast on the frame the spatial anchors have adopted a new WorldToMeters scale (zoom) or were
+// re-seeded from a re-localization — i.e. whenever their world positions changed and any cutout
+// material driven by those positions must be re-pushed.
+DECLARE_MULTICAST_DELEGATE(FOnCutoutNeedsUpdate);
+
 USTRUCT(BlueprintType)
 struct FSpatialAnchors
 {
@@ -62,6 +67,10 @@ public:
 	
 	UFUNCTION()
 	void InitConstants(const FVector &InTableCenter, const FVector &InTableNormal);
+
+	// Fired when the anchors' world positions have changed (zoom-scale commit or re-localization
+	// re-seed). MapCutoutManager binds this to re-push anchor positions to its MaterialParameterCollection.
+	FOnCutoutNeedsUpdate OnCutoutNeedsUpdate;
 #pragma endregion
 	
 #pragma region Getters

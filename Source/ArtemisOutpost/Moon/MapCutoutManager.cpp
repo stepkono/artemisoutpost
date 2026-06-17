@@ -12,9 +12,9 @@
 // Sets default values for this component's properties
 UMapCutoutManager::UMapCutoutManager()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	// The cutout material is refreshed event-driven (via TransformationsManager::OnCutoutNeedsUpdate),
+	// not every frame, so this component does not need to tick.
+	PrimaryComponentTick.bCanEverTick = false;
 
 	// ...
 }
@@ -54,6 +54,18 @@ void UMapCutoutManager::BeginPlay()
 
 	AnchorsManager = GetWorld()->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>();
 
+	// The cutout material is driven by the anchors' world positions, which change whenever the GeoRef
+	// zooms (WorldToMeters) or the anchors are re-seeded. Re-push them only on those events — the
+	// TransformationsManager fires OnCutoutNeedsUpdate on exactly the frame they change.
+	if (UTransformationsManager* TM = GetWorld()->GetSubsystem<UTransformationsManager>())
+	{
+		TM->OnCutoutNeedsUpdate.AddUObject(this, &UMapCutoutManager::UpdateMaterialParamCollection);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Cutout][Bind] FAILED to get UTransformationsManager subsystem — cutout will never update."));
+	}
+
 	GS->OnRawAnchorsUpdated.AddDynamic(this, &UMapCutoutManager::HandleAnchorsUpdate);
 
 	// TODO: not sure if this is even necessary. Because every client gets the replicated vars from  GameState. Question is, if the HandleAnchorsUpdate will be triggered. 
@@ -73,13 +85,6 @@ void UMapCutoutManager::BeginPlay()
 void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (!bAnchorsSpawned)
-	{
-		return; 
-	}
-	
-	UpdateMaterialParamCollection();
 }
 
 void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
@@ -140,7 +145,11 @@ void UMapCutoutManager::HandleAnchorsSpawned()
 	
 	GetWorld()->GetGameInstance()->GetSubsystem<UXRUtilsSubsystem>()->InitXRTRansform();
 	
-	bAnchorsSpawned = true; 
+	bAnchorsSpawned = true;
+
+	// Seed the cutout once now; subsequent refreshes arrive via OnCutoutNeedsUpdate (zoom / re-seed).
+	UE_LOG(LogTemp, Log, TEXT("[Cutout][Seed] Anchors spawned — performing initial cutout push."));
+	UpdateMaterialParamCollection();
 }
 
 void UMapCutoutManager::BindGeoRefToAnchor() const
@@ -186,20 +195,39 @@ void UMapCutoutManager::PutGeoRefIntoTablePlane(const FVector& TableCenter, cons
 
 void UMapCutoutManager::UpdateMaterialParamCollection() const
 {
-	const AActor* AAnchor = AnchorsManager->GetAnchors()[0];
-	const AActor* BAnchor = AnchorsManager->GetAnchors()[1];
-	const AActor* CAnchor = AnchorsManager->GetAnchors()[2];
-	const AActor* DAnchor = AnchorsManager->GetAnchors()[3];
-	
-	const FLinearColor NewAnchorA(AAnchor->GetActorLocation()); 
-	const FLinearColor NewAnchorB(BAnchor->GetActorLocation());
-	const FLinearColor NewAnchorC(CAnchor->GetActorLocation());
-	const FLinearColor NewAnchorD(DAnchor->GetActorLocation());
-	
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorA"), NewAnchorA); 
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorB"), NewAnchorB); 
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorC"), NewAnchorC); 
-	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorD"), NewAnchorD); 
+	if (!AnchorsManager || !AnchorsCollection)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cutout][MPC] Aborting push: AnchorsManager=%s AnchorsCollection=%s"),
+			AnchorsManager ? TEXT("valid") : TEXT("NULL"),
+			AnchorsCollection ? TEXT("valid") : TEXT("NULL (assign it on the MapCutoutManager component!)"));
+		return;
+	}
+
+	// Drive the cutout from the WTM-precompensated cutout corners, NOT the raw live
+	// anchor positions. The raw tracked anchors lag the WorldToMeters rescale by one+
+	// frame, while the moon is positioned from the predicted post-rescale TableCenter.
+	// Reading live anchors here makes the cutout shift relative to the moon during zoom.
+	// VisualAnchor* are built from the same precompensated TableCenter the moon uses,
+	// so the two move in lockstep and converge to the physical table once tracking catches up.
+	UTransformationsManager* TM = GetWorld()->GetSubsystem<UTransformationsManager>();
+	if (!TM)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cutout][MPC] Aborting push: UTransformationsManager subsystem not found."));
+		return;
+	}
+
+	FVector VisualA, VisualB, VisualC, VisualD;
+	TM->GetVisualAnchors(VisualA, VisualB, VisualC, VisualD);
+
+	const FLinearColor NewAnchorA(VisualA);
+	const FLinearColor NewAnchorB(VisualB);
+	const FLinearColor NewAnchorC(VisualC);
+	const FLinearColor NewAnchorD(VisualD);
+
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorA"), NewAnchorA);
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorB"), NewAnchorB);
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorC"), NewAnchorC);
+	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), AnchorsCollection, FName("AnchorD"), NewAnchorD);
 }
 
 bool UMapCutoutManager::IsAuthoritativeClient() const
