@@ -53,7 +53,7 @@ void APawnAR::BeginPlay()
 			}
 			else
 			{
-				TileSet->SetActorHiddenInGame(false); // TODO: reset to true, after debugging complete
+				TileSet->SetActorHiddenInGame(true); 
 			}
 		}
 		
