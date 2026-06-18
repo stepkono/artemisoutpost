@@ -49,8 +49,4 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "GeoRefs Manager")
 	AGeoRefsManager* GeoRefsManager;
-	
-private: 
-	UPROPERTY()
-	bool bInitialPosses = true; 
 };

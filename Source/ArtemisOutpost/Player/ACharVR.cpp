@@ -11,6 +11,7 @@ ACharVR::ACharVR()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bAlwaysRelevant = true;
 }
 
 // Called when the game starts or when spawned
@@ -21,7 +22,7 @@ void ACharVR::BeginPlay()
 	const UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to cast to custom game instance.")); 
+		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to get world.")); 
 		return; 
 	}
 	for (const auto TileSet : TActorRange<ACesium3DTileset>(World))
@@ -31,6 +32,14 @@ void ACharVR::BeginPlay()
 			VRTileSet = TileSet;
 			break; 
 		}
+	}
+	if (!VRTileSet)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to initialize VR Moon tileset.")); 
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("ACharVR: Successfully initialized VR Moon tileset.")); 
 	}
 }
 

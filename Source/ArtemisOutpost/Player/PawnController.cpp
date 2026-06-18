@@ -23,22 +23,13 @@ void APawnController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 	SetViewTarget(InPawn);
 	
-	if (bInitialPosses)
+	if (!ARPawn)
 	{
-		bInitialPosses = false;
-		
-		APawnAR* PlayerPawn = Cast<APawnAR>(InPawn);
-		if (!PlayerPawn)
+		if (APawnAR* AR = Cast<APawnAR>(InPawn))
 		{
-			UE_LOG(LogTemp, Error, TEXT("PlayerController: Failed to cast player pawn to AR Pawn."));
-			return; 
+			ARPawn = AR;
 		}
-		ARPawn = PlayerPawn; 	
 	}
-
-	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
-	UE_LOG(LogTemp, Warning, TEXT("[Ctrl][%s] === OnPossess === InPawn=%s | bInitialPosses(after)=%d | ViewTarget=%s"),
-		Net, *GetNameSafe(InPawn), bInitialPosses ? 1 : 0, *GetNameSafe(GetViewTarget()));
 }
 
 void APawnController::InitializePawns(ACharVR* VRPlayer, AMasterRover* RoverPuppet)
