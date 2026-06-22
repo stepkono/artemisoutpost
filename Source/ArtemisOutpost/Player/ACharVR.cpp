@@ -25,6 +25,7 @@ void ACharVR::BeginPlay()
 		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to get world.")); 
 		return; 
 	}
+	
 	for (const auto TileSet : TActorRange<ACesium3DTileset>(World))
 	{
 		if (TileSet->ActorHasTag(FName("DEFAULT_TILESET")))
@@ -36,10 +37,6 @@ void ACharVR::BeginPlay()
 	if (!VRTileSet)
 	{
 		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to initialize VR Moon tileset.")); 
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("ACharVR: Successfully initialized VR Moon tileset.")); 
 	}
 }
 

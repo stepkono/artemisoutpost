@@ -36,9 +36,6 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	UPROPERTY(EditAnywhere, Category="Master Rover")
-	AMasterRover* MasterRover;
-
 	UPROPERTY(EditAnywhere, Category="VR GeoReference")
 	ACesiumGeoreference* VRGeoRef = nullptr;
 

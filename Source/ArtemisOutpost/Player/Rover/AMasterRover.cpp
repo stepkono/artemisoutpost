@@ -2,10 +2,10 @@
 
 
 #include "AMasterRover.h"
+#include "Cesium3DTileset.h"
 #include "EngineUtils.h"
 #include "PuppetRover.h"
 #include "ArtemisOutpost/Cesium/GeoRefsManager.h"
-#include "Net/UnrealNetwork.h"
 
 AMasterRover::AMasterRover()
 {
@@ -17,9 +17,7 @@ void AMasterRover::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	// Call the Super
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
- 
-	// Add properties to replicated for the derived class
-	DOREPLIFETIME(AMasterRover, PuppetRover);
+	
 }
 
 void AMasterRover::BeginPlay()
@@ -58,6 +56,48 @@ void AMasterRover::BeginPlay()
 	StartLocalPosition_UE  = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPositionNoScale(WorldPos);
 	UE_LOG(LogTemp, Warning, TEXT("[Master][%s] BeginPlay: WorldPos=%s | StartLocalPos_VR=%s"),
 		Net, *WorldPos.ToString(), *StartLocalPosition_UE.ToString());
+		
+	Super::BeginPlay();
+}
+
+void AMasterRover::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	// Throttle the per-frame logs to roughly once every LogIntervalSeconds.
+	LogTimeAccumulator += DeltaTime;
+	bool bLogThisFrame = false;
+	if (LogTimeAccumulator >= LogIntervalSeconds)
+	{
+		LogTimeAccumulator -= LogIntervalSeconds;
+		bLogThisFrame = true;
+	}
+	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+
+	if (!PuppetRover || !GeoRefsManager)
+	{
+		return;
+	}
+
+	// Run transform of puppet on server
+	if (!HasAuthority())
+	{
+		// Position
+		const FVector MasterWorldPos = GetActorLocation();
+		const FVector MasterLocalPos_VRMoon_UE = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPosition(MasterWorldPos);
+		PuppetRover->SetActorRelativeLocation(MasterLocalPos_VRMoon_UE);
+
+		// Orientation
+		const FQuat MasterOrientation_World = GetActorQuat();
+		const FQuat MasterOrientation_Local = GeoRefsManager->GetVRMoon()->GetActorQuat().Inverse() * MasterOrientation_World;
+		PuppetRover->SetActorRelativeRotation(MasterOrientation_Local);	
+	}
+
+	if (bLogThisFrame)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Puppet][%s] Tick: MasterWorld=%s | RelLoc(VRlocal)=%s | PuppetWorld=%s"),
+			Net, *GetActorLocation().ToString(), *GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPosition(GetActorLocation()).ToString(), *PuppetRover->GetActorLocation().ToString());
+	}
 }
 
 FVector AMasterRover::GetLocalPos_UE() const
@@ -66,11 +106,6 @@ FVector AMasterRover::GetLocalPos_UE() const
 	const FVector LocalPos_UE = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPositionNoScale(WorldPos_UE);
 	
 	return LocalPos_UE;
-}
-
-FQuat AMasterRover::GetAbsoluteOrientation()
-{
-	return this->GetActorQuat(); 
 }
 
 APuppetRover* AMasterRover::GetPuppetRover()
