@@ -29,7 +29,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 protected:
-	UPROPERTY(BlueprintReadOnly, Replicated)
+	UPROPERTY(BlueprintReadOnly)
 	AMasterRover* Master; 
 
 private: 

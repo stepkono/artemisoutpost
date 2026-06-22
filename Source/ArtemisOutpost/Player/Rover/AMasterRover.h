@@ -22,24 +22,29 @@ public:
 	
 	virtual void BeginPlay() override;
 	
-	UFUNCTION()
-	FVector GetLocalPos_UE() const; 
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
 	
 	UFUNCTION()
-	FQuat GetAbsoluteOrientation(); 
+	FVector GetLocalPos_UE() const; 
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(BlueprintCallable, Category = "Puppet Rover")
 	APuppetRover* GetPuppetRover(); 
 	
-private:
-	UPROPERTY(Replicated)
-	APuppetRover* PuppetRover;
-	
-	UPROPERTY()
+protected:
+	UPROPERTY(BlueprintReadWrite, Category="GeoRef")
 	AGeoRefsManager* GeoRefsManager;
 	
+	UPROPERTY(BlueprintReadWrite, Category="Puppet Rover")
+	APuppetRover* PuppetRover;
+	
+private:
 	UPROPERTY()
-	FVector StartLocalPosition_UE; 
+	FVector StartLocalPosition_UE;
+
+	// Accumulates DeltaTime so Tick can log roughly every LogIntervalSeconds.
+	float LogTimeAccumulator = 0.0f;
+	static constexpr float LogIntervalSeconds = 5.0f;
 };

@@ -40,8 +40,8 @@ void APawnAR::BeginPlay()
 		const UWorld* World = GetWorld();
 		if (!World)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[PawnAR]: Failed to cast to custom game instance.")); 
-			return; 
+			UE_LOG(LogTemp, Error, TEXT("[PawnAR]: Failed to cast to custom game instance."));
+			return;
 		}
 		for (auto TileSet : TActorRange<ACesium3DTileset>(World))
 		{
@@ -49,14 +49,14 @@ void APawnAR::BeginPlay()
 			{
 				ARTileSet = TileSet;
 				ARTileSet->SetActorHiddenInGame(false);
-				UE_LOG(LogTemp, Log, TEXT("[PawnAR]: TileSet is shown.")); 
+				UE_LOG(LogTemp, Log, TEXT("[PawnAR]: TileSet is shown."));
 			}
 			else
 			{
-				TileSet->SetActorHiddenInGame(true); 
+				TileSet->SetActorHiddenInGame(true);
 			}
 		}
-		
+
 		// If this client has saved anchors in the current session -> share these anchors
 		if (IsAuthoritativeClient())
 		{
