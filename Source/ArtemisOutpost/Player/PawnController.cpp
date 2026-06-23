@@ -16,6 +16,7 @@ void APawnController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(APawnController, ARPawn);
 	DOREPLIFETIME(APawnController, VRPawn);
 	DOREPLIFETIME(APawnController, MasterRover);
+	DOREPLIFETIME(APawnController, GeoRefsManager); 
 }
 
 void APawnController::OnPossess(APawn* InPawn)
@@ -38,17 +39,28 @@ void APawnController::InitializePawns(ACharVR* VRPlayer, AMasterRover* RoverPupp
 	UE_LOG(LogTemp, Warning, TEXT("[Ctrl][%s] InitializePawns: VRPlayer=%s | RoverPuppet(Master)=%s"),
 		Net, *GetNameSafe(VRPlayer), *GetNameSafe(RoverPuppet));
 
-	VRPawn = VRPlayer;
-	MasterRover = RoverPuppet;
-
 	if (!VRPlayer)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Ctrl][%s] InitializePawns: VRPlayer is NULL."), Net);
+		UE_LOG(LogTemp, Error, TEXT("[Ctrl][%s] InitializePawns: VRPlayer is NULL. Aborting."), Net);
+		return; 
 	}
 	if (!RoverPuppet)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Ctrl][%s] InitializePawns: RoverPuppet (Master) is NULL."), Net);
+		UE_LOG(LogTemp, Error, TEXT("[Ctrl][%s] InitializePawns: RoverPuppet (Master) is NULL. Aborting."), Net);
+		return; 
 	}
+	
+	VRPawn = VRPlayer;
+	MasterRover = RoverPuppet;
+	
+	if (!GeoRefsManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PawnController: GeoRefsManager is NULL. Aborting."))
+		return;
+	}
+	
+	VRPawn->SetGeoRefsManager(GeoRefsManager);
+	MasterRover->SetGeoRefsManager(GeoRefsManager);
 }
 
 void APawnController::SpawnVRPlayer()
