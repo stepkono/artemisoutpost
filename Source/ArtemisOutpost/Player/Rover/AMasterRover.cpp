@@ -74,6 +74,35 @@ void AMasterRover::Tick(float DeltaTime)
 	}
 	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 
+	// ---- Server-side collision probe ----
+	// Physics for the master rover is authoritative on the server, so the only collision
+	// that matters for "falling through" is the server's. Trace straight down (toward the
+	// VR moon centre) and report whether a Cesium physics mesh is actually present beneath
+	// the rover. A MISS means tiles aren't streamed on the server, the tileset has no
+	// physics meshes, or collision is disabled — any of which causes the fall-through.
+	if (HasAuthority() && bLogThisFrame && GeoRefsManager && GeoRefsManager->GetVRMoon())
+	{
+		const FVector RoverPos   = GetActorLocation();
+		const FVector MoonCenter = GeoRefsManager->GetVRMoon()->GetActorLocation();
+		const FVector DownDir    = (MoonCenter - RoverPos).GetSafeNormal();
+		const FVector TraceEnd   = RoverPos + DownDir * 5000000.0f;
+
+		FHitResult Hit;
+		// bTraceComplex = true: Cesium tiles only have per-triangle (complex) collision.
+		FCollisionQueryParams Params(FName(TEXT("RoverGroundProbe")), /*bTraceComplex=*/true, this);
+		const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, RoverPos, TraceEnd, ECC_WorldStatic, Params);
+
+		if (bHit)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Master][SERVER] GroundProbe HIT: Actor=%s Comp=%s Dist=%.1f"),
+				*GetNameSafe(Hit.GetActor()), *GetNameSafe(Hit.GetComponent()), Hit.Distance);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Master][SERVER] GroundProbe MISS: no collision under rover (tiles not streamed / no physics mesh / collision channel mismatch)."));
+		}
+	}
+
 	if (!PuppetRover || !GeoRefsManager)
 	{
 		return;

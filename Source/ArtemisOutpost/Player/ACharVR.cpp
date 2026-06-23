@@ -44,6 +44,66 @@ void ACharVR::BeginPlay()
 void ACharVR::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// ---- Client-side VR-moon collision probe ----
+	// The VR character stands on the VR moon and the client has a real player camera
+	// driving Cesium streaming, so this tells us whether the VR moon has collision on
+	// the client. Compared with the server-side rover GroundProbe (same VR moon):
+	//   client HIT + server MISS  -> server-only issue (no camera/streaming on the server)
+	//   client MISS + server MISS -> general problem (Create Physics Meshes / channel / LOD)
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
+	DebugProbeAccumulator += DeltaTime;
+	if (DebugProbeAccumulator < 5.0f)
+	{
+		return;
+	}
+	DebugProbeAccumulator = 0.0f;
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// VR moon georeference = the Cesium georeference that is NOT the AR moon.
+	ACesiumGeoreference* VRGeo = nullptr;
+	for (TActorIterator<ACesiumGeoreference> It(World); It; ++It)
+	{
+		if (*It && !(*It)->ActorHasTag(FName("AR_GEOREF")))
+		{
+			VRGeo = *It;
+			break;
+		}
+	}
+	if (!VRGeo)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[VRChar][CLIENT] VRMoonProbe: no non-AR georeference found."));
+		return;
+	}
+
+	const FVector CharPos = GetActorLocation();
+	const FVector Center  = VRGeo->GetActorLocation();          // VR moon centre (planet centre)
+	const FVector Down    = (Center - CharPos).GetSafeNormal(); // toward moon centre = "down" on a globe
+	const FVector End     = CharPos + Down * 500000000.0f;      // 5e8 UE units, long enough to cross the moon
+
+	FHitResult Hit;
+	FCollisionQueryParams Params(FName(TEXT("VRCharVRMoonProbe")), /*bTraceComplex=*/true, this);
+	const bool bHit = World->LineTraceSingleByChannel(Hit, CharPos, End, ECC_WorldStatic, Params);
+
+	if (bHit)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[VRChar][CLIENT] VRMoonProbe HIT: Actor=%s Comp=%s Dist=%.1f | CharPos=%s"),
+			*GetNameSafe(Hit.GetActor()), *GetNameSafe(Hit.GetComponent()), Hit.Distance, *CharPos.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[VRChar][CLIENT] VRMoonProbe MISS | CharPos=%s | VRGeo=%s"),
+			*CharPos.ToString(), *VRGeo->GetName());
+	}
 }
 
 // Called to bind functionality to input

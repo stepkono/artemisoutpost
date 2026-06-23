@@ -40,5 +40,8 @@ private:
 	ACesiumGeoreference* VRGeoRef = nullptr;
 
 	UPROPERTY()
-	TArray<FVirtualCamera> MasterRoversVirtualCams; 
+	TArray<FVirtualCamera> MasterRoversVirtualCams;
+
+	// Accumulates DeltaTime for the throttled diagnostic log in Tick.
+	float DebugLogAccumulator = 0.0f;
 };
