@@ -47,6 +47,6 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "VR Position")
 	FVector GeodeticPos = FVector(90.0f, 0.0f, 10.0f);
 	
-	UPROPERTY(BlueprintReadOnly, Category = "GeoRefs Manager")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "GeoRefs Manager")
 	AGeoRefsManager* GeoRefsManager;
 };

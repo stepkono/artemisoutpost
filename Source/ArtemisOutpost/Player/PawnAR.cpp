@@ -4,6 +4,7 @@
 #include "PawnAR.h"
 #include "Cesium3DTileset.h"
 #include "EngineUtils.h"
+#include "ArtemisOutpost/Miscellaneous/NetUtils.h"
 
 
 // Sets default values
@@ -16,6 +17,8 @@ APawnAR::APawnAR()
 // Called when the game starts or when spawned
 void APawnAR::BeginPlay()
 {
+	
+	
 	Super::BeginPlay();
 	
 	UE_LOG(LogTemp, Display, TEXT("PawnAR: BeginPlay()"));
@@ -35,7 +38,9 @@ void APawnAR::BeginPlay()
 		return; 
 	}
 	
-	if (IsLocallyControlled())
+	// Client-only: AR tileset show/hide + OculusXR anchor sharing. Must NOT run on the
+	// listen-server host (its pawn is also locally controlled, but it has no headset).
+	if (IsLocallyControlled() && ArtemisNet::IsClientContext(GetNetMode()))
 	{
 		const UWorld* World = GetWorld();
 		if (!World)

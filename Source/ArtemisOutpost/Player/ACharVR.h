@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Cesium3DTileset.h"
 #include "CesiumGeoreference.h"
+#include "ArtemisOutpost/Cesium/GeoRefsManager.h"
 #include "GameFramework/Character.h"
 #include "ACharVR.generated.h"
 
@@ -25,6 +26,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "VR Moon")
 	ACesium3DTileset* GetVRTileset(); 
+	
+	UFUNCTION(BlueprintCallable, Category = "GeoRefsManager")
+	void SetGeoRefsManager(AGeoRefsManager* InManager);
 
 protected:
 	// Called when the game starts or when spawned
@@ -32,6 +36,9 @@ protected:
 	
 	virtual void NotifyControllerChanged() override;
 	
+	UPROPERTY(BlueprintReadOnly, Category = "GeoRefsManager")
+	AGeoRefsManager* GeoRefsManager;
+
 private:
 	UPROPERTY()
 	ACesium3DTileset* VRTileSet;

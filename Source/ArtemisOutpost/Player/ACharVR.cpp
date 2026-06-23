@@ -4,6 +4,7 @@
 #include "ACharVR.h"
 #include "Cesium3DTileset.h"
 #include "EngineUtils.h"
+#include "ArtemisOutpost/Miscellaneous/NetUtils.h"
 
 
 // Sets default values
@@ -18,14 +19,21 @@ ACharVR::ACharVR()
 void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	// VR-moon tileset caching is client-only (used to show/hide the player's view).
+	// The server host doesn't render and must not depend on it.
+	if (ArtemisNet::IsServerHost(GetNetMode()))
+	{
+		return;
+	}
+
 	const UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to get world.")); 
-		return; 
+		UE_LOG(LogTemp, Error, TEXT("ACharVR: Failed to get world."));
+		return;
 	}
-	
+
 	for (const auto TileSet : TActorRange<ACesium3DTileset>(World))
 	{
 		if (TileSet->ActorHasTag(FName("DEFAULT_TILESET")))
@@ -51,7 +59,8 @@ void ACharVR::Tick(float DeltaTime)
 	// the client. Compared with the server-side rover GroundProbe (same VR moon):
 	//   client HIT + server MISS  -> server-only issue (no camera/streaming on the server)
 	//   client MISS + server MISS -> general problem (Create Physics Meshes / channel / LOD)
-	if (!IsLocallyControlled())
+	// Client-only: must not run on the listen-server host (its char is locally controlled too).
+	if (!(IsLocallyControlled() && ArtemisNet::IsClientContext(GetNetMode())))
 	{
 		return;
 	}
@@ -148,4 +157,9 @@ void ACharVR::NotifyControllerChanged()
 ACesium3DTileset* ACharVR::GetVRTileset()
 {
 	return VRTileSet;
+}
+
+void ACharVR::SetGeoRefsManager(AGeoRefsManager* InManager)
+{
+	GeoRefsManager = InManager;
 }

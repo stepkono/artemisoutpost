@@ -6,6 +6,7 @@
 #include "ArtemisOutpost/TransformationsManager.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "ArtemisOutpost/Miscellaneous/GeoUtils.h"
+#include "ArtemisOutpost/Miscellaneous/NetUtils.h"
 #include "Kismet/KismetMaterialLibrary.h"
 
 
@@ -46,8 +47,10 @@ void UMapCutoutManager::BeginPlay()
 		return;
 	}
 	
-	// Spatial anchors require the OculusXR runtime which is not available on dedicated servers
-	if (GetNetMode() == NM_DedicatedServer)
+	// Spatial anchors + the AR cutout are client-only (need the OculusXR runtime and a
+	// viewport). Skip on ANY server host — dedicated OR listen. On a listen server the
+	// host would otherwise try to run anchor handling on a machine with no headset.
+	if (ArtemisNet::IsServerHost(GetNetMode()))
 	{
 		return;
 	}

@@ -33,8 +33,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Puppet Rover")
 	APuppetRover* GetPuppetRover(); 
 	
+	UFUNCTION(BlueprintCallable, Category = "GeoRefsManager")
+	void SetGeoRefsManager(AGeoRefsManager* InManager); 
+	
 protected:
-	UPROPERTY(BlueprintReadWrite, Category="GeoRef")
+	UPROPERTY(BlueprintReadOnly, Category="GeoRefsManager")
 	AGeoRefsManager* GeoRefsManager;
 	
 	UPROPERTY(BlueprintReadWrite, Category="Puppet Rover")

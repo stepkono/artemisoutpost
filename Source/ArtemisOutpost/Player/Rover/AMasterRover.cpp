@@ -141,3 +141,8 @@ APuppetRover* AMasterRover::GetPuppetRover()
 {
 	return PuppetRover;
 }
+
+void AMasterRover::SetGeoRefsManager(AGeoRefsManager* InManager)
+{
+	GeoRefsManager = InManager;
+}
