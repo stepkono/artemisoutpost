@@ -32,7 +32,10 @@ protected:
 	
 	virtual void NotifyControllerChanged() override;
 	
-private: 
+private:
 	UPROPERTY()
 	ACesium3DTileset* VRTileSet;
+
+	// Accumulates DeltaTime for the throttled client-side VR-moon collision probe in Tick.
+	float DebugProbeAccumulator = 0.0f;
 };

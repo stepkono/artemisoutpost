@@ -50,5 +50,5 @@ private:
 	UArtemisGameInstance* GI; 
 	
 	UPROPERTY()
-	ACesium3DTileset* ARTileSet; 
+	ACesium3DTileset* ARTileSet;
 };
