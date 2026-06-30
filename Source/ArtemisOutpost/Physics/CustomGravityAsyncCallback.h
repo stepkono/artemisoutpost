@@ -35,5 +35,12 @@ public:
 	virtual void OnPreIntegrate_Internal() override;
 
 protected:
-	static double GravitationalConstant; 
+	static double GravitationalConstant;
+
+private:
+	// Throttles the dynamic-particle roster log in OnPreIntegrate_Internal (physics thread,
+	// runs every substep). Used to verify which actors are actually simulated dynamic bodies
+	// — e.g. whether BP_VRChar (a CMC character with a kinematic capsule) shows up at all.
+	int32 DebugLogCounter = 0;
+	static constexpr int32 DebugLogInterval = 120;
 };

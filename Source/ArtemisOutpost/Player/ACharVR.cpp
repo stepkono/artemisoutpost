@@ -4,6 +4,9 @@
 #include "ACharVR.h"
 #include "Cesium3DTileset.h"
 #include "EngineUtils.h"
+#include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "HeadMountedDisplayFunctionLibrary.h"
 #include "ArtemisOutpost/Miscellaneous/NetUtils.h"
 
 
@@ -13,12 +16,23 @@ ACharVR::ACharVR()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	bAlwaysRelevant = true;
+
+	// In VR the head orientation comes from the HMD (via the camera), NOT from the controller.
+	// The capsule must never inherit controller pitch/roll/yaw or it would tilt the whole rig.
+	// Yaw turning (thumbstick snap/smooth turn) should rotate the capsule explicitly, not via this.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw   = false;
+	bUseControllerRotationRoll  = false;
 }
 
 // Called when the game starts or when spawned
 void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Resolve the VR rig and apply the standing/floor-level setup. Safe to call on every
+	// instance: it no-ops unless this is the locally controlled pawn with an active HMD.
+	InitVRComponents();
 
 	// VR-moon tileset caching is client-only (used to show/hide the player's view).
 	// The server host doesn't render and must not depend on it.
@@ -53,6 +67,14 @@ void ACharVR::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// ---- VR head/roof collision ----
+	// Runs for the local player's own HMD only (each client owns its head pose). Must run
+	// regardless of net role, so it sits before the client-only probe's early return below.
+	if (IsLocallyControlled() && UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
+	{
+		UpdateHeadCollision(DeltaTime);
+	}
+
 	// ---- Client-side VR-moon collision probe ----
 	// The VR character stands on the VR moon and the client has a real player camera
 	// driving Cesium streaming, so this tells us whether the VR moon has collision on
@@ -77,25 +99,14 @@ void ACharVR::Tick(float DeltaTime)
 	{
 		return;
 	}
-
-	// VR moon georeference = the Cesium georeference that is NOT the AR moon.
-	ACesiumGeoreference* VRGeo = nullptr;
-	for (TActorIterator<ACesiumGeoreference> It(World); It; ++It)
+	
+	if (!GeoRefsManager)
 	{
-		if (*It && !(*It)->ActorHasTag(FName("AR_GEOREF")))
-		{
-			VRGeo = *It;
-			break;
-		}
-	}
-	if (!VRGeo)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[VRChar][CLIENT] VRMoonProbe: no non-AR georeference found."));
-		return;
+		return; 
 	}
 
 	const FVector CharPos = GetActorLocation();
-	const FVector Center  = VRGeo->GetActorLocation();          // VR moon centre (planet centre)
+	const FVector Center  = GeoRefsManager->GetVRMoon()->GetActorLocation();          // VR moon centre (planet centre)
 	const FVector Down    = (Center - CharPos).GetSafeNormal(); // toward moon centre = "down" on a globe
 	const FVector End     = CharPos + Down * 500000000.0f;      // 5e8 UE units, long enough to cross the moon
 
@@ -111,7 +122,7 @@ void ACharVR::Tick(float DeltaTime)
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[VRChar][CLIENT] VRMoonProbe MISS | CharPos=%s | VRGeo=%s"),
-			*CharPos.ToString(), *VRGeo->GetName());
+			*CharPos.ToString(), *GeoRefsManager->GetVRMoon()->GetName());
 	}
 }
 
@@ -154,6 +165,23 @@ void ACharVR::NotifyControllerChanged()
 	}
 }
 
+void ACharVR::SetBase(UPrimitiveComponent* NewBase, FName BoneName, bool bNotifyActor)
+{
+	// Cesium tiles are streamed at runtime and are not network-addressable, so they cannot be
+	// replicated as a movement base. Refuse them so the character replicates absolute position
+	// instead of base-relative — see header comment for the full rationale.
+	//
+	// We can't reference the tile component type directly: UCesiumGltfPrimitiveComponent lives in
+	// CesiumRuntime's Private folder and isn't exported. Instead we identify it by its OWNER — the
+	// tile meshes are always owned by the ACesium3DTileset actor, which is a public type.
+	if (NewBase && NewBase->GetOwner() && NewBase->GetOwner()->IsA<ACesium3DTileset>())
+	{
+		NewBase = nullptr;
+	}
+
+	Super::SetBase(NewBase, BoneName, bNotifyActor);
+}
+
 ACesium3DTileset* ACharVR::GetVRTileset()
 {
 	return VRTileSet;
@@ -162,4 +190,115 @@ ACesium3DTileset* ACharVR::GetVRTileset()
 void ACharVR::SetGeoRefsManager(AGeoRefsManager* InManager)
 {
 	GeoRefsManager = InManager;
+}
+
+void ACharVR::InitVRComponents()
+{
+	// Find the rig components authored on BP_VRChar by their tags. Done by tag (rather than
+	// CreateDefaultSubobject in C++) because the components live in the Blueprint child.
+	TInlineComponentArray<USceneComponent*> SceneComps(this);
+	for (USceneComponent* Comp : SceneComps)
+	{
+		if (!Comp)
+		{
+			continue;
+		}
+		if (!CachedVROrigin && Comp->ComponentHasTag(VROriginTag))
+		{
+			CachedVROrigin = Comp;
+		}
+		if (!CachedVRCamera && Comp->ComponentHasTag(VRCameraTag))
+		{
+			CachedVRCamera = Cast<UCameraComponent>(Comp);
+		}
+	}
+
+	if (!CachedVROrigin)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ACharVR: No component tagged '%s' (VR origin) found on %s."),
+			*VROriginTag.ToString(), *GetName());
+		return;
+	}
+	if (!CachedVRCamera)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ACharVR: No UCameraComponent tagged '%s' (VR camera) found on %s."),
+			*VRCameraTag.ToString(), *GetName());
+	}
+
+	// The HMD drives the camera transform directly (true by default, set explicitly for clarity).
+	if (CachedVRCamera)
+	{
+		CachedVRCamera->bLockToHmd = true;
+	}
+
+	// Place the tracking origin at the bottom of the capsule (the player's feet). Combined with
+	// a floor-level HMD tracking origin below, this puts the camera at the player's real-world
+	// head height and makes physical crouching/squatting "just work": the HMD lowers, so does
+	// the camera, with no extra code.
+	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		VROriginBaseZ = -Capsule->GetScaledCapsuleHalfHeight();
+	}
+
+	// Only the local player with a live HMD should be re-homed to floor level and have its
+	// tracking origin changed. Remote/simulated proxies keep the Blueprint-authored layout.
+	if (!(IsLocallyControlled() && UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled()))
+	{
+		return;
+	}
+
+	CachedVROrigin->SetRelativeLocation(FVector(0.0f, 0.0f, VROriginBaseZ));
+
+	// Floor-level tracking: HMD pose is reported relative to the physical floor, so the player
+	// can walk/lean/crouch within their play space and the camera mirrors it 1:1.
+	UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::LocalFloor);
+}
+
+void ACharVR::UpdateHeadCollision(float DeltaTime)
+{
+	if (!CachedVROrigin)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// VROrigin is a child of the capsule (the root), so the actor transform is its parent.
+	// "Base" = the uncorrected origin at the feet; we always trace from this fixed reference
+	// so the result can't oscillate with last frame's applied offset.
+	const FTransform ActorXform = GetActorTransform();
+	const FVector BaseWorldLoc  = ActorXform.TransformPosition(FVector(0.0f, 0.0f, VROriginBaseZ));
+	const FQuat   OriginRot     = ActorXform.GetRotation();          // VROrigin carries no relative rotation
+	const FVector UpDir         = ActorXform.GetUnitAxis(EAxis::Z);  // capsule "up" (gravity-aligned on the globe)
+
+	// Where the HMD currently wants the head, relative to the (uncorrected) tracking origin.
+	FRotator HmdRot;
+	FVector  HmdPos;
+	UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HmdRot, HmdPos);
+	const FVector HeadWorldLoc = BaseWorldLoc + OriginRot.RotateVector(HmdPos);
+
+	float DesiredPush = 0.0f;
+	if (bEnableHeadCollision)
+	{
+		// Sweep a sphere from just above the feet up to the head. A hit means the head would
+		// be inside/through geometry (e.g. a low roof); push the rig down by the penetration
+		// along "up" so the camera ends up resting just below the obstruction.
+		const FVector TraceStart = BaseWorldLoc + UpDir * HeadCollisionRadius;
+
+		FHitResult Hit;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(VRHeadCollision), /*bTraceComplex=*/false, this);
+		if (World->SweepSingleByChannel(Hit, TraceStart, HeadWorldLoc, FQuat::Identity,
+			ECC_WorldStatic, FCollisionShape::MakeSphere(HeadCollisionRadius), Params))
+		{
+			DesiredPush = FMath::Max(0.0f, FVector::DotProduct(HeadWorldLoc - Hit.Location, UpDir));
+		}
+	}
+
+	// Smooth the offset so the view eases under obstructions rather than snapping (comfort).
+	CurrentHeadCollisionPush = FMath::FInterpTo(CurrentHeadCollisionPush, DesiredPush, DeltaTime, HeadCollisionInterpSpeed);
+	CachedVROrigin->SetRelativeLocation(FVector(0.0f, 0.0f, VROriginBaseZ - CurrentHeadCollisionPush));
 }

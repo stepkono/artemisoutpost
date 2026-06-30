@@ -28,22 +28,32 @@ void AArtemisGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(AArtemisGameState, RawAnchors);
 	DOREPLIFETIME(AArtemisGameState, SharingGroupUUID);
 	DOREPLIFETIME(AArtemisGameState, MapBaseCoordinates);
-	DOREPLIFETIME(AArtemisGameState, ControlCommand);
 }
 
 void AArtemisGameState::OnRep_RawAnchors()
 {
-	OnRawAnchorsUpdated.Broadcast(RawAnchors); 
+	// [AnchorRepl] Client received replicated anchors. Log the UUIDs and whether the session
+	// group UUID is already present — if the group is still invalid here, RequestSharedAnchors
+	// will abort (replication-ordering bug).
+	UE_LOG(LogTemp, Warning, TEXT("[AnchorRepl] OnRep_RawAnchors on client. A=%s B=%s C=%s D=%s | GroupUUID valid=%d (%s)"),
+		*RawAnchors.AAnchorUUID.ToString(), *RawAnchors.BAnchorUUID.ToString(),
+		*RawAnchors.CAnchorUUID.ToString(), *RawAnchors.DAnchorUUID.ToString(),
+		SharingGroupUUID.IsValidUUID(), *SharingGroupUUID.ToString());
+
+	OnRawAnchorsUpdated.Broadcast(RawAnchors);
+}
+
+void AArtemisGameState::OnRep_SharingGroupUUID()
+{
+	// [AnchorRepl] Observe when the group UUID arrives relative to the anchors. If this fires
+	// AFTER OnRep_RawAnchors, the first RequestSharedAnchors ran without a valid group.
+	UE_LOG(LogTemp, Warning, TEXT("[AnchorRepl] OnRep_SharingGroupUUID on client. GroupUUID valid=%d (%s)"),
+		SharingGroupUUID.IsValidUUID(), *SharingGroupUUID.ToString());
 }
 
 void AArtemisGameState::OnRep_MapBaseCoordinates()
 {
 	OnMapCoordinatesReceived.Broadcast(MapBaseCoordinates);
-}
-
-void AArtemisGameState::OnRep_ControlCommand()
-{
-	OnControlCommandReceived.Broadcast(ControlCommand);
 }
 
 void AArtemisGameState::WriteRawAnchors(const FOrderedAnchors& Anchors)
@@ -114,4 +124,5 @@ void AArtemisGameState::WriteControlCommand(const FControlCommand& Command)
 {
 	UE_LOG(LogTemp, Display, TEXT("ArtemisGameState: Writing new controls..."))
 	ControlCommand = Command;
+	OnControlCommandReceived.Broadcast(ControlCommand);
 }

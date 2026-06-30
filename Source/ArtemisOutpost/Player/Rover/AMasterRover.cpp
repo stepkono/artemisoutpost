@@ -2,10 +2,15 @@
 
 
 #include "AMasterRover.h"
+
+#include "AudioMixerBlueprintLibrary.h"
 #include "Cesium3DTileset.h"
 #include "EngineUtils.h"
 #include "PuppetRover.h"
 #include "ArtemisOutpost/Cesium/GeoRefsManager.h"
+#include "ArtemisOutpost/Miscellaneous/GeoUtils.h"
+#include "ChaosWheeledVehicleMovementComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 AMasterRover::AMasterRover()
 {
@@ -47,6 +52,34 @@ void AMasterRover::BeginPlay()
 		UE_LOG(LogTemp, Error, TEXT("[Master][%s] BeginPlay: Failed to get GeoRefsManager."), Net);
 		return;
 	}
+	
+	AArtemisGameState* GS = Cast<AArtemisGameState>(GetWorld()->GetGameState());
+	if (GS)
+	{
+		GameState = GS;
+		
+		// Only bind on server
+		if (HasAuthority())
+		{
+			// The rover is NOT possessed by a controller — it's driven entirely by server code
+			// (websocket -> GameState -> HandleControls -> SetThrottleInput). By default the Chaos
+			// vehicle movement component only applies input when the pawn has a controller, and
+			// zeroes it otherwise. Turn that requirement off so our programmatic input is honoured.
+			
+			//TODO: this should probably apply to both server AND client
+			if (UChaosVehicleMovementComponent* VMC = GetVehicleMovementComponent())
+			{
+				VMC->SetRequiresControllerForInputs(false);
+			}
+
+			UE_LOG(LogTemp, Log, TEXT("MasterRover: Bind the controls handling."))
+			GameState->OnControlCommandReceived.AddDynamic(this, &AMasterRover::HandleControls);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("MasterRover: Failed to cast and init Game State."));
+	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[Master][%s] BeginPlay: GeoRefsManager OK | VRMoon=%s | ARMoon=%s"),
 		Net, *GetNameSafe(GeoRefsManager->GetVRMoon()), *GetNameSafe(GeoRefsManager->GetARMoon()));
@@ -56,8 +89,8 @@ void AMasterRover::BeginPlay()
 	StartLocalPosition_UE  = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPositionNoScale(WorldPos);
 	UE_LOG(LogTemp, Warning, TEXT("[Master][%s] BeginPlay: WorldPos=%s | StartLocalPos_VR=%s"),
 		Net, *WorldPos.ToString(), *StartLocalPosition_UE.ToString());
-		
-	Super::BeginPlay();
+	
+	Super::BeginPlay(); 
 }
 
 void AMasterRover::Tick(float DeltaTime)
@@ -73,6 +106,31 @@ void AMasterRover::Tick(float DeltaTime)
 		bLogThisFrame = true;
 	}
 	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+
+	// ---- Position / jitter tracking (server authority, throttled log) ----
+	// We measure |dPos| EVERY tick but only LOG the peak on the throttled cadence (no spam).
+	// A large MaxTickJitter while LinVel is small means the body is being teleport-corrected by
+	// collision (penetration resolution) frame-to-frame rather than moving under real physics.
+	if (HasAuthority())
+	{
+		const FVector P = GetActorLocation();
+		if (bHasLastTickPos)
+		{
+			MaxTickDelta = FMath::Max(MaxTickDelta, (P - LastTickPos).Size());
+		}
+		LastTickPos = P;
+		bHasLastTickPos = true;
+
+		if (bLogThisFrame)
+		{
+			const USkeletalMeshComponent* M = GetMesh();
+			const float AngVel = M ? M->GetPhysicsAngularVelocityInDegrees().Size() : 0.f;
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Master][SERVER] Pos | %s | MaxTickJitter(|dPos|)=%.2f | LinVel=%.1f AngVel=%.1f"),
+				*P.ToString(), MaxTickDelta, GetVelocity().Size(), AngVel);
+			MaxTickDelta = 0.0f;
+		}
+	}
 
 	// ---- Server-side collision probe ----
 	// Physics for the master rover is authoritative on the server, so the only collision
@@ -103,14 +161,91 @@ void AMasterRover::Tick(float DeltaTime)
 		}
 	}
 
+	// ---- Server-side physics-state probe ----
+	// Diagnoses the "falls through then spins violently" behaviour:
+	//  - LinVel direction vs world-down vs moon-centre-down reveals whether gravity is
+	//    misaligned (default world -Z) instead of pointing at the moon centre.
+	//  - AngVel magnitude shows the violent spin directly.
+	//  - Wheel contact count shows whether the Chaos vehicle thinks it's grounded.
+	//  - |WorldPos| shows how far from origin we are (float precision degrades badly past ~1e5).
+	if (HasAuthority() && bLogThisFrame)
+	{
+		const FVector WorldPos = GetActorLocation();
+		const FVector LinVel   = GetVelocity();
+		const USkeletalMeshComponent* MeshComp = GetMesh();
+		const FVector AngVel   = MeshComp ? MeshComp->GetPhysicsAngularVelocityInDegrees() : FVector::ZeroVector;
+
+		FVector MoonDownDir = FVector::DownVector;
+		if (GeoRefsManager && GeoRefsManager->GetVRMoon())
+		{
+			MoonDownDir = (GeoRefsManager->GetVRMoon()->GetActorLocation() - WorldPos).GetSafeNormal();
+		}
+		const FVector VelDir          = LinVel.GetSafeNormal();
+		const float DotWorldDown       = FVector::DotProduct(VelDir, FVector(0.f, 0.f, -1.f)); // ~1 => falling along world -Z (default gravity, WRONG on a globe)
+		const float DotMoonDown        = FVector::DotProduct(VelDir, MoonDownDir);               // ~1 => falling toward moon centre (correct gravity)
+
+		int32 WheelsInContact = 0, NumWheels = 0;
+		if (UChaosWheeledVehicleMovementComponent* VMC = Cast<UChaosWheeledVehicleMovementComponent>(GetVehicleMovementComponent()))
+		{
+			NumWheels = VMC->GetNumWheels();
+			for (int32 i = 0; i < NumWheels; ++i)
+			{
+				if (VMC->GetWheelState(i).bInContact)
+				{
+					++WheelsInContact;
+				}
+			}
+		}
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Master][SERVER] Phys | |WorldPos|=%.0f | LinVel=%.1f (worldDown=%.2f moonDown=%.2f) | AngVel(deg/s)=%.1f %s | Wheels=%d/%d | Rot=%s"),
+			WorldPos.Size(), LinVel.Size(), DotWorldDown, DotMoonDown,
+			AngVel.Size(), *AngVel.ToString(), WheelsInContact, NumWheels, *GetActorRotation().ToString());
+	}
+
+	// ---- Mesh physics-body diagnostic ----
+	// Confirms whether the VehicleMesh is actually a simulating dynamic rigid body. Chaos only
+	// creates a dynamic particle (the thing FCustomGravityAsyncCallback iterates and applies moon
+	// gravity to) when the mesh has a valid body AND is simulating physics. If SimPhysics=0,
+	// ValidBody=0, or HasPhysAsset=0, this rover has no dynamic particle and the custom gravity
+	// silently skips it — i.e. it "doesn't have physics". Not gated on authority so it reports on
+	// whichever instance is running.
+	if (bLogThisFrame)
+	{
+		if (USkeletalMeshComponent* M = GetMesh())
+		{
+			const FBodyInstance* BI = M->GetBodyInstance();
+			// COMLocalOffset = center of mass expressed in the rover's own frame. For the suspension
+			// to be valid this must sit inside the wheel footprint (roughly centred, low). A large
+			// X/Y offset here is what triggers "Spring configuration is invalid".
+			const FVector COMLocalOffset = GetActorTransform().InverseTransformPosition(M->GetCenterOfMass());
+			// GravityEnabled + world GravityZ: if GravityEnabled=1 the body still receives default
+			// world -Z gravity, which the custom moon-attractor callback only ADDS to (never replaces).
+			// World -Z (~-980) dwarfs moon gravity (~162), so the rover falls world-down -> must disable.
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Master][%s] MeshPhys | SimPhysics=%d Awake=%d ValidBody=%d HasPhysAsset=%d CollEnabled=%d | Mass=%.1f COMLocal=%s | GravityEnabled=%d WorldGravityZ=%.1f"),
+				Net, M->IsSimulatingPhysics() ? 1 : 0, M->RigidBodyIsAwake() ? 1 : 0,
+				(BI && BI->IsValidBodyInstance()) ? 1 : 0,
+				(M->GetPhysicsAsset() != nullptr) ? 1 : 0,
+				(int32)M->GetCollisionEnabled(),
+				M->GetMass(), *COMLocalOffset.ToString(),
+				M->IsGravityEnabled() ? 1 : 0, GetWorld() ? GetWorld()->GetGravityZ() : 0.f);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Master][%s] MeshPhys | GetMesh() returned null"), Net);
+		}
+	}
+
 	if (!PuppetRover || !GeoRefsManager)
 	{
 		return;
 	}
 
-	// Run transform of puppet on server
+	// Run transform of puppet on client
 	if (!HasAuthority())
 	{
+		/*
 		// Position
 		const FVector MasterWorldPos = GetActorLocation();
 		const FVector MasterLocalPos_VRMoon_UE = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPosition(MasterWorldPos);
@@ -119,7 +254,65 @@ void AMasterRover::Tick(float DeltaTime)
 		// Orientation
 		const FQuat MasterOrientation_World = GetActorQuat();
 		const FQuat MasterOrientation_Local = GeoRefsManager->GetVRMoon()->GetActorQuat().Inverse() * MasterOrientation_World;
-		PuppetRover->SetActorRelativeRotation(MasterOrientation_Local);	
+		PuppetRover->SetActorRelativeRotation(MasterOrientation_Local);
+		*/
+		
+		// Position: map the master's geodetic location (VR moon) onto the AR moon.
+		const FVector MasterWorld         = GetActorLocation();
+		const FVector MasterGeoPosition   = GeoRefsManager->UECoordsToVRMoonCoords(MasterWorld);   // world -> VR-moon LLH
+		const FVector PuppetWorldPosition = GeoRefsManager->ARMoonCoordsToUECoords(MasterGeoPosition); // LLH -> AR-moon world
+
+		// Orientation: transfer the master's pose THROUGH the local surface frame (N/E/U) at
+		// its lat/long, mirroring how position is transferred through geodetic coords.
+		auto SurfaceQuatWorld = [](ACesiumGeoreference* Geo, const FVector& GeoPos) -> FQuat
+		{
+			const FMatrix LocalBasis = UGeoUtils::GetLocalSpatialReferenceFrame(GeoPos, Geo);
+			return Geo->GetActorQuat() * LocalBasis.ToQuat();
+		};
+
+		const FQuat MasterQuat = GetActorQuat();
+		const FQuat VRSurface  = SurfaceQuatWorld(GeoRefsManager->GetVRMoon(), MasterGeoPosition);
+		const FQuat ARSurface  = SurfaceQuatWorld(GeoRefsManager->GetARMoon(), MasterGeoPosition);
+
+		const FQuat MasterPoseRelToSurface = VRSurface.Inverse() * MasterQuat;          // heading/tilt vs the ground
+		const FQuat PuppetWorldOrientation = ARSurface * MasterPoseRelToSurface;        // same ground-relative pose on AR moon
+
+		// ---- NaN guard + per-stage diagnostic ----
+		// Pinpoints exactly which conversion stage first produces non-finite values, and refuses to
+		// push NaN into the puppet (which would make it vanish and corrupt its replicated movement).
+		const bool bMasterWorldOK = !MasterWorld.ContainsNaN();
+		const bool bGeoOK         = !MasterGeoPosition.ContainsNaN();
+		const bool bPuppetPosOK   = !PuppetWorldPosition.ContainsNaN();
+		const bool bRotOK         = !PuppetWorldOrientation.ContainsNaN();
+
+		if (bMasterWorldOK && bGeoOK && bPuppetPosOK && bRotOK)
+		{
+			PuppetRover->SetActorLocationAndRotation(PuppetWorldPosition, PuppetWorldOrientation);
+		}
+
+		if (bLogThisFrame || !bMasterWorldOK || !bGeoOK || !bPuppetPosOK || !bRotOK)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Puppet][CLIENT] conv | MasterWorld=%s(ok%d) -> GeoLLH=%s(ok%d) -> PuppetWorld=%s(ok%d) | VRSurfNaN=%d ARSurfNaN=%d RotNaN=%d | applied=%d"),
+				*MasterWorld.ToString(), bMasterWorldOK ? 1 : 0,
+				*MasterGeoPosition.ToString(), bGeoOK ? 1 : 0,
+				*PuppetWorldPosition.ToString(), bPuppetPosOK ? 1 : 0,
+				VRSurface.ContainsNaN() ? 1 : 0, ARSurface.ContainsNaN() ? 1 : 0, PuppetWorldOrientation.ContainsNaN() ? 1 : 0,
+				(bMasterWorldOK && bGeoOK && bPuppetPosOK && bRotOK) ? 1 : 0);
+		}
+
+		// ---- Geodetic round-trip verification ----
+		// Convert the master's WORLD pos back to VR-moon geodetic, and the puppet's WORLD pos back
+		// to AR-moon geodetic. Because the puppet was placed at the master's geodetic position on
+		// the AR moon, these two LLH values MUST be identical. Any delta = a conversion bug.
+		if (bLogThisFrame)
+		{
+			const FVector MasterGeo_VR = GeoRefsManager->UECoordsToVRMoonCoords(GetActorLocation());
+			const FVector PuppetGeo_AR = GeoRefsManager->UECoordsToARMoonCoords(PuppetRover->GetActorLocation());
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Puppet][CLIENT] GeoCheck | MasterGeo(VR)=%s | PuppetGeo(AR)=%s | delta=%s"),
+				*MasterGeo_VR.ToString(), *PuppetGeo_AR.ToString(), *(PuppetGeo_AR - MasterGeo_VR).ToString());
+		}
 	}
 
 	if (bLogThisFrame)
@@ -145,4 +338,31 @@ APuppetRover* AMasterRover::GetPuppetRover()
 void AMasterRover::SetGeoRefsManager(AGeoRefsManager* InManager)
 {
 	GeoRefsManager = InManager;
+}
+
+void AMasterRover::HandleControls(FControlCommand& ControlCommand)
+{
+	UE_LOG(LogTemp, Log, TEXT("MasterRover: Handling new controls..."))
+	
+	// Throttle 
+	if (ControlCommand.Accelerator > 0.0f)
+	{
+		GetVehicleMovementComponent()->SetTargetGear(1, true);
+		GetVehicleMovementComponent()->SetThrottleInput(ControlCommand.Accelerator);
+		GetVehicleMovementComponent()->SetBrakeInput(0.0f);
+	}
+	else if (ControlCommand.Accelerator < 0.0f)
+	{
+		GetVehicleMovementComponent()->SetTargetGear(-1, true);
+		GetVehicleMovementComponent()->SetThrottleInput(FMath::Abs(ControlCommand.Accelerator));
+		GetVehicleMovementComponent()->SetBrakeInput(0.0f);
+	}
+	else
+	{
+		GetVehicleMovementComponent()->SetThrottleInput(0.0f);
+		GetVehicleMovementComponent()->SetBrakeInput(0.0f);
+	}
+	
+	// Steering 
+	this->GetVehicleMovementComponent()->SetSteeringInput(ControlCommand.Steering);
 }

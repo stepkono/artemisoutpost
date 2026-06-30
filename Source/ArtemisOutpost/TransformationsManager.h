@@ -11,6 +11,7 @@
 #include "Containers/Queue.h"
 #include "GameData/ArtemisGameState.h"
 #include "Miscellaneous/XRUtilsSubsystem.h"
+#include "Player/PawnController.h"
 #include "TransformationsManager.generated.h"
 
 // Broadcast on the frame the spatial anchors have adopted a new WorldToMeters scale (zoom) or were
@@ -203,6 +204,9 @@ private:
 	AWheeledVehiclePawn* Rover;
 	
 	UPROPERTY()
+	APawnController* PlayerController;
+	
+	UPROPERTY()
 	UMaterialParameterCollection* AnchorsCollection; 
 	
 	UPROPERTY()
@@ -249,7 +253,7 @@ private:
 	float RelativeWorldScaleFactor = 1; 
 	
 	UPROPERTY()
-	float BaseWorldScale = 0;
+	float BaseWorldScale = 100;
 
 	UPROPERTY()
 	float InitialMoonScalingFactor = 1;

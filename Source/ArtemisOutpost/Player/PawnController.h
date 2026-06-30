@@ -19,21 +19,20 @@ class ARTEMISOUTPOST_API APawnController : public APlayerController
 	
 public: 
 	UFUNCTION(BlueprintCallable, Category = "AR/VR Pawns")
-	void InitializePawns(ACharVR* VRPlayer,  AMasterRover* RoverPuppet); 
+	void InitializePawns(ACharVR* InVRChar,  AMasterRover* InMasterRover); 
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(BlueprintCallable, Category = "GeoReferences Manager")
 	void SetGeoRefsManager(AGeoRefsManager* InGeoRefsManager); 
 	
+	UFUNCTION(BlueprintCallable, Category = "XR Mode")
+	TEnumAsByte<EXRMode> GetXRMode() const;
+	
 protected: 
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
-	
-private: 
-	UFUNCTION()
-	void SpawnVRPlayer(); 
-	
+
 protected: 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	APawnAR* ARPawn; 
@@ -49,4 +48,10 @@ protected:
 	
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "GeoRefs Manager")
 	AGeoRefsManager* GeoRefsManager;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "XR Mode")
+	TEnumAsByte<EXRMode> CurrentXRMode = EXRMode::AR;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "XR Mode")
+	float CachedWTMValue = 100; 
 };

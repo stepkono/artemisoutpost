@@ -28,11 +28,21 @@ public:
 	void AddAttractor(UGravityAttractorComponent* GravityAttractorComponent); 
 	void RemoveAttractor(UGravityAttractorComponent* GravityAttractorComponent);
 	
-	virtual void RegisterAsyncCallback(); 
+	virtual void RegisterAsyncCallback();
 	virtual bool IsAsyncCallbackRegistered() const;
-	void AddGravityAttractorData(const FGravityAttractorData& InputData) const; 
-	FCustomGravityAsyncCallback* AsyncCallback = nullptr; 
+	void AddGravityAttractorData(const FGravityAttractorData& InputData) const;
+	FCustomGravityAsyncCallback* AsyncCallback = nullptr;
 
 protected:
-	TArray<TWeakObjectPtr<UGravityAttractorComponent>> Attractors;	
+	TArray<TWeakObjectPtr<UGravityAttractorComponent>> Attractors;
+
+	// ---- CMC characters (driven via SetGravityDirection + AddForce, not the Chaos callback) ----
+	void UpdateCMCGravities();
+	void AddActorToTrackedCharacters(AActor* Actor);
+	void RemoveActorFromTrackedCharacters(AActor* Actor);
+
+	FDelegateHandle ActorSpawnedHandle;
+	FDelegateHandle ActorDestroyedHandle;
+
+	TArray<TWeakObjectPtr<class UCharacterMovementComponent>> TrackedCharacterMovementComponents;
 };

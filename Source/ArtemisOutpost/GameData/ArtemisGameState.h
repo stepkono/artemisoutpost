@@ -50,15 +50,16 @@ private:
 
 	UFUNCTION()
 	void OnRep_RawAnchors();
-	
+
 	UFUNCTION()
-	void OnRep_ControlCommand();
-	
+	void OnRep_SharingGroupUUID();
+
 	UFUNCTION()
 	void OnRep_MapBaseCoordinates();
 	
 public: 
 	FOnAnchorsUpdated OnRawAnchorsUpdated; 
+	UPROPERTY(BlueprintAssignable, Category = "Rover Controls")
 	FControlCommandReceived OnControlCommandReceived;
 	FMapCoordinatesReceived OnMapCoordinatesReceived;
 	
@@ -66,14 +67,14 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_RawAnchors)
 	FOrderedAnchors RawAnchors;
 
-	/** Session group UUID. Replicated plainly (no OnRep) — clients read it on demand in
-	 *  RequestSharedAnchors. Written before RawAnchors so it is present when OnRep_RawAnchors fires. */
-	UPROPERTY(Replicated)
+	/** Session group UUID, replicated to clients. OnRep is for diagnostics (and to observe
+	 *  replication ordering relative to RawAnchors). Clients read it on demand in RequestSharedAnchors. */
+	UPROPERTY(ReplicatedUsing=OnRep_SharingGroupUUID)
 	FOculusXRUUID SharingGroupUUID;
 
 	UPROPERTY(ReplicatedUsing=OnRep_MapBaseCoordinates)
 	FMapBaseCoordinates MapBaseCoordinates;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_ControlCommand)
+	UPROPERTY()
 	FControlCommand ControlCommand;
 };
