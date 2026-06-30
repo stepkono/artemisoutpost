@@ -71,13 +71,19 @@ void UMapCutoutManager::BeginPlay()
 
 	GS->OnRawAnchorsUpdated.AddDynamic(this, &UMapCutoutManager::HandleAnchorsUpdate);
 
-	// TODO: not sure if this is even necessary. Because every client gets the replicated vars from  GameState. Question is, if the HandleAnchorsUpdate will be triggered. 
+	UE_LOG(LogTemp, Warning, TEXT("[Cutout] BeginPlay: NetMode=%d | IsAuthoritativeClient=%d | subscribed to OnRawAnchorsUpdated"),
+		(int32)GetNetMode(), IsAuthoritativeClient());
+
+	// TODO: not sure if this is even necessary. Because every client gets the replicated vars from  GameState. Question is, if the HandleAnchorsUpdate will be triggered.
 	if (!IsAuthoritativeClient())
 	{
 		UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Not authoritative client."))
 
 		FOrderedAnchors AnchorsFromServer;
-		if (GS->GetAnchorsFromCurrentSession(AnchorsFromServer))
+		const bool bHadDiskAnchors = GS->GetAnchorsFromCurrentSession(AnchorsFromServer);
+		UE_LOG(LogTemp, Warning, TEXT("[Cutout] Non-auth disk fallback (GetAnchorsFromCurrentSession) returned %d. Otherwise waiting on OnRep replication."),
+			bHadDiskAnchors);
+		if (bHadDiskAnchors)
 		{
 			HandleAnchorsUpdate(AnchorsFromServer);
 		}
@@ -92,8 +98,11 @@ void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 
 void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
 {
-	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Received new anchors to handle...")); 
-	
+	UE_LOG(LogTemp, Warning, TEXT("[Cutout] HandleAnchorsUpdate: branch=%s | A=%s B=%s C=%s D=%s"),
+		IsAuthoritativeClient() ? TEXT("DISCOVER(auth)") : TEXT("REQUEST_SHARED(non-auth)"),
+		*RawAnchors.AAnchorUUID.ToString(), *RawAnchors.BAnchorUUID.ToString(),
+		*RawAnchors.CAnchorUUID.ToString(), *RawAnchors.DAnchorUUID.ToString());
+
 	if (IsAuthoritativeClient())
 	{
 		AnchorsManager->DiscoverAnchors(RawAnchors, [this](TArray<AActor*> &SpawnedOrderedAnchors)

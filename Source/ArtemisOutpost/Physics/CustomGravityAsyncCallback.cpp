@@ -31,13 +31,38 @@ void FCustomGravityAsyncCallback::OnPreIntegrate_Internal()
 		const FCustomGravityAsyncInput* Input = GetConsumerInput_Internal();
 		if (Input)
 		{
-			// Iterate over all the currently simulated rigid bodies - They are named Particles in Chaos. 
+			// Iterate over all the currently simulated rigid bodies - They are named Particles in Chaos.
 			TParticleView<FPBDRigidParticles> ActiveParticles = PBDSolver->GetParticles().GetNonDisabledDynamicView();
-			
+
+			// ---- Dynamic-body roster diagnostic (throttled) ----
+			// Lists every simulated dynamic particle the custom gravity will be applied to. If
+			// BP_VRChar never appears here, it is NOT a dynamic body: an ACharacter's capsule is
+			// kinematic/query-only (driven by the Character Movement Component), so Chaos creates
+			// no dynamic particle for it and this callback can never give it gravity. Such
+			// characters must be gravity-driven separately via the CMC (SetGravityDirection +
+			// AddForce), not through this rigid-body path.
+			const bool bLogRoster = ((++DebugLogCounter % DebugLogInterval) == 0);
+			int32 DynamicParticleCount = 0;
+			FString RosterText;
+
 			for (auto& ActiveParticle : ActiveParticles)
 			{
 				if (ActiveParticle.Handle())
 				{
+					if (bLogRoster)
+					{
+						++DynamicParticleCount;
+#if CHAOS_DEBUG_NAME
+						const FString ParticleName = ActiveParticle.GetDebugName();
+#else
+						const FString ParticleName = TEXT("<name unavailable: CHAOS_DEBUG_NAME off>");
+#endif
+						const auto& X = ActiveParticle.GetX();
+						RosterText += FString::Printf(TEXT("\n  [%d] %s @ (%.0f, %.0f, %.0f)"),
+							DynamicParticleCount - 1, *ParticleName,
+							static_cast<float>(X.X), static_cast<float>(X.Y), static_cast<float>(X.Z));
+					}
+
 					//UE_LOG(LogTemp, Warning, TEXT("Current active particle: %s"), *ActiveParticle.GetDebugName());
 					// Draw current acceleration
 					
@@ -81,10 +106,18 @@ void FCustomGravityAsyncCallback::OnPreIntegrate_Internal()
 						FDebugDrawQueue::GetInstance().DrawDebugString(ActiveParticle.GetX(), * FString::Printf(TEXT("I:%.2f / A:%.2f"), ActiveParticle.Acceleration().Length(), AdditionalAcceleration.Length()),nullptr, FColor::Red, 0.5, false, 1.0f  );
 					}
 					
-					// Add the force field value to the rigid body. 
+					// Add the force field value to the rigid body.
 					ActiveParticle.SetAcceleration(ActiveParticle.Acceleration() + AdditionalAcceleration);
 				}
-			}	
+			}
+
+			if (bLogRoster && false)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[CustomGravity][PT] %d dynamic body(ies) receiving custom gravity. "
+						 "If BP_VRChar is missing it is a CMC character (kinematic capsule), not a dynamic body:%s"),
+					DynamicParticleCount, RosterText.IsEmpty() ? TEXT(" <none>") : *RosterText);
+			}
 		}
 	}
 }

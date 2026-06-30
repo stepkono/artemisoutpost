@@ -22,7 +22,7 @@ void APawnController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 void APawnController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-	SetViewTarget(InPawn);
+	SetViewTarget(InPawn); // TODO: do we have to do that? 
 	
 	if (!ARPawn)
 	{
@@ -33,25 +33,25 @@ void APawnController::OnPossess(APawn* InPawn)
 	}
 }
 
-void APawnController::InitializePawns(ACharVR* VRPlayer, AMasterRover* RoverPuppet)
+void APawnController::InitializePawns(ACharVR* InVRChar, AMasterRover* InMasterRover)
 {
 	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 	UE_LOG(LogTemp, Warning, TEXT("[Ctrl][%s] InitializePawns: VRPlayer=%s | RoverPuppet(Master)=%s"),
-		Net, *GetNameSafe(VRPlayer), *GetNameSafe(RoverPuppet));
+		Net, *GetNameSafe(InVRChar), *GetNameSafe(InMasterRover));
 
-	if (!VRPlayer)
+	if (!InVRChar)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[Ctrl][%s] InitializePawns: VRPlayer is NULL. Aborting."), Net);
 		return; 
 	}
-	if (!RoverPuppet)
+	if (!InMasterRover)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[Ctrl][%s] InitializePawns: RoverPuppet (Master) is NULL. Aborting."), Net);
 		return; 
 	}
 	
-	VRPawn = VRPlayer;
-	MasterRover = RoverPuppet;
+	VRPawn = InVRChar;
+	MasterRover = InMasterRover;
 	
 	if (!GeoRefsManager)
 	{
@@ -63,21 +63,12 @@ void APawnController::InitializePawns(ACharVR* VRPlayer, AMasterRover* RoverPupp
 	MasterRover->SetGeoRefsManager(GeoRefsManager);
 }
 
-void APawnController::SpawnVRPlayer()
-{
-	if (UWorld* World = GetWorld())
-	{
-		const FActorSpawnParameters SpawnParams;
-		VRPawn = World->SpawnActor<ACharVR>(SpawnParams);
-		VRPawn->SetActorHiddenInGame(true);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("PawnController: World not found."));
-	}
-}
-
 void APawnController::SetGeoRefsManager(AGeoRefsManager* InGeoRefsManager)
 {
 	GeoRefsManager = InGeoRefsManager;
+}
+
+TEnumAsByte<EXRMode> APawnController::GetXRMode() const 
+{
+	return CurrentXRMode; 
 }

@@ -17,6 +17,7 @@ public class ArtemisOutpost : ModuleRules
 			"InputCore",
 			"OculusXRHMD",
 			"OculusXRAnchors",
+			"HeadMountedDisplay",
 			"AndroidPermission",
 			"DeveloperSettings", 
 			"Json", 

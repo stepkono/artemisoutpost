@@ -19,7 +19,6 @@
 void UTransformationsManager::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
-	
 }
 
 void UTransformationsManager::Activate(const FVector &InTableCenter, const FVector &InTableNormal)
@@ -46,6 +45,14 @@ void UTransformationsManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if (!bCutoutSet /*|| !Rover*/ || !ARGeoRef) return;
+	
+	if (PlayerController)
+	{
+		if (PlayerController->GetXRMode() == EXRMode::VR)
+		{
+			return; 
+		}
+	}
 	
 	// Sample params before any transform
 	const FTransform MoonNow = ARGeoRef->GetActorTransform();
@@ -117,8 +124,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 
 		// The WTM change has now taken effect, so the anchors' world positions reflect the new scale.
 		// Notify listeners (cutout material) to re-push them.
-		UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Scale committed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"),
-			OnCutoutNeedsUpdate.IsBound() ? 1 : 0);
+		//UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Scale committed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"), OnCutoutNeedsUpdate.IsBound() ? 1 : 0); // TODO
 		OnCutoutNeedsUpdate.Broadcast();
 	}
 
@@ -315,6 +321,15 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("[TransformationManager]: Expected 4 anchors to seed spatial anchors, found %d."), Anchors.Num())
+	}
+	
+	if (APawnController* PC = Cast<APawnController>(GetWorld()->GetFirstPlayerController()))
+	{
+		PlayerController = PC; 
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("TransformationsManager: Failed to cast and initialize player controller."))
 	}
 	
 	FCalibratedData CalibratedData;
