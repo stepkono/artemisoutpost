@@ -84,6 +84,23 @@ void AMasterRover::BeginPlay()
 	UE_LOG(LogTemp, Warning, TEXT("[Master][%s] BeginPlay: GeoRefsManager OK | VRMoon=%s | ARMoon=%s"),
 		Net, *GetNameSafe(GeoRefsManager->GetVRMoon()), *GetNameSafe(GeoRefsManager->GetARMoon()));
 
+	// [BasketA] On the client, resolve the VR-moon tileset (the one the master drives on) so Tick
+	// can report whether it is actually streaming collision here. The server keeps it resident via
+	// GeorefServerLogic; the client does NOT, so this is where fall-through is expected to originate.
+	if (!HasAuthority())
+	{
+		for (TActorIterator<ACesium3DTileset> It(World); It; ++It)
+		{
+			if (It->ActorHasTag(FName("DEFAULT_TILESET")))
+			{
+				ClientVRTileset = *It;
+				break;
+			}
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[BasketA][CLIENT] BeginPlay: ClientVRTileset=%s (by DEFAULT_TILESET tag)"),
+			*GetNameSafe(ClientVRTileset));
+	}
+
 	// Initialize the start position to calc the delta vector in next frames
 	const FVector WorldPos = this->GetActorLocation();
 	StartLocalPosition_UE  = GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPositionNoScale(WorldPos);
@@ -107,6 +124,25 @@ void AMasterRover::Tick(float DeltaTime)
 	}
 	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 
+	// ---- [BasketA FIX] Client master is a pure replicated-transform carrier ----
+	// The client instance must NOT run its own physics. When it does, it free-simulates during the
+	// gaps where the server sends no movement updates (the server body sleeps at rest -> movement
+	// replication goes quiet -> the client keeps simulating under custom gravity and sinks, dragging
+	// the puppet through the surface; a later server update snaps it back — see the RepDiv logs).
+	// With simulation off the client simply holds the server's last replicated transform, which is
+	// correct, and the body drops out of the custom-gravity dynamic-particle list. Re-assert every
+	// tick because the Chaos vehicle movement component may otherwise re-enable simulation.
+	if (!HasAuthority())
+	{
+		if (USkeletalMeshComponent* M = GetMesh())
+		{
+			if (M->IsSimulatingPhysics())
+			{
+				M->SetSimulatePhysics(false);
+			}
+		}
+	}
+
 	// ---- Position / jitter tracking (server authority, throttled log) ----
 	// We measure |dPos| EVERY tick but only LOG the peak on the throttled cadence (no spam).
 	// A large MaxTickJitter while LinVel is small means the body is being teleport-corrected by
@@ -120,16 +156,6 @@ void AMasterRover::Tick(float DeltaTime)
 		}
 		LastTickPos = P;
 		bHasLastTickPos = true;
-
-		if (bLogThisFrame)
-		{
-			const USkeletalMeshComponent* M = GetMesh();
-			const float AngVel = M ? M->GetPhysicsAngularVelocityInDegrees().Size() : 0.f;
-			UE_LOG(LogTemp, Warning,
-				TEXT("[Master][SERVER] Pos | %s | MaxTickJitter(|dPos|)=%.2f | LinVel=%.1f AngVel=%.1f"),
-				*P.ToString(), MaxTickDelta, GetVelocity().Size(), AngVel);
-			MaxTickDelta = 0.0f;
-		}
 	}
 
 	// ---- Server-side collision probe ----
@@ -237,6 +263,155 @@ void AMasterRover::Tick(float DeltaTime)
 		}
 	}
 
+	// ---- [BasketA] Client-side streaming / replication-divergence probe ----
+	// Basket A hypothesis: on the client the master free-simulates on a VR moon whose collision is
+	// NOT kept resident (GeorefServerLogic runs server-only; the proxy camera may not drive client
+	// streaming). Runs on the client only, before the puppet early-return so it reports even if the
+	// puppet is missing. Three orthogonal signals:
+	//   * GroundProbe   - is there collision under the client master right now? (client MISS while the
+	//                     server logs a HIT at the same time => client streaming/collision is the cause)
+	//   * RepDiv        - how far the local simulated transform has drifted from the last server
+	//                     correction, and how stale that correction is (stale age => corrections stalled)
+	//   * Tileset       - client VR tileset culling flags + load progress (expect culling ON, streaming starved)
+	if (!HasAuthority() && bLogThisFrame && GeoRefsManager && GeoRefsManager->GetVRMoon())
+	{
+		const FVector RoverPos   = GetActorLocation();
+		const FVector MoonCenter = GeoRefsManager->GetVRMoon()->GetActorLocation();
+		const FVector DownDir    = (MoonCenter - RoverPos).GetSafeNormal();
+		const FVector TraceEnd   = RoverPos + DownDir * 5000000.0f;
+
+		FHitResult Hit;
+		FCollisionQueryParams Params(FName(TEXT("BasketAClientGroundProbe")), /*bTraceComplex=*/true, this);
+		const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, RoverPos, TraceEnd, ECC_WorldStatic, Params);
+		if (bHit)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[BasketA][CLIENT] GroundProbe HIT: Actor=%s Comp=%s Dist=%.1f"),
+				*GetNameSafe(Hit.GetActor()), *GetNameSafe(Hit.GetComponent()), Hit.Distance);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BasketA][CLIENT] GroundProbe MISS: NO collision under client master (VR tiles not streamed on client)."));
+		}
+
+		// Local (client-simulated) transform vs the last server correction.
+		const double Now = GetWorld()->GetTimeSeconds();
+		const double Age = (LastRepMoveWorldTime >= 0.0) ? (Now - LastRepMoveWorldTime) : -1.0;
+		const float  Divergence = (RoverPos - LastRepMoveLocation).Size();
+		const USkeletalMeshComponent* M = GetMesh();
+		UE_LOG(LogTemp, Warning,
+			TEXT("[BasketA][CLIENT] RepDiv | LocalLoc=%s | LastServerLoc=%s | Divergence=%.1f | RepUpdates=%d LastCorrAge=%.2fs | SimPhys=%d Awake=%d"),
+			*RoverPos.ToString(), *LastRepMoveLocation.ToString(), Divergence,
+			RepMoveUpdateCount, Age,
+			(M && M->IsSimulatingPhysics()) ? 1 : 0, (M && M->RigidBodyIsAwake()) ? 1 : 0);
+
+		// Client VR tileset streaming / culling state.
+		if (ClientVRTileset)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[BasketA][CLIENT] Tileset=%s | FogCulling=%d FrustumCulling=%d | LoadProgress=%.1f%%"),
+				*GetNameSafe(ClientVRTileset),
+				ClientVRTileset->EnableFogCulling ? 1 : 0,
+				ClientVRTileset->EnableFrustumCulling ? 1 : 0,
+				ClientVRTileset->GetLoadProgress());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BasketA][CLIENT] ClientVRTileset is NULL (not resolved by DEFAULT_TILESET tag)."));
+		}
+	}
+
+	// ---- [Collision][SERVER] resolution + streaming probe (~1 Hz while authoritative) ----
+	// Directly answers the three sink/hover questions at the rover's LIVE position:
+	//   Q "tiles loaded here?"      -> central down-probe HIT (cooked tile present) vs MISS (nothing).
+	//   Q "how coarse here?"        -> hit tile's Bounds.SphereRadius (deeper LOD = smaller tiles) plus
+	//                                  a lateral facet scan: how far we can step before the surface
+	//                                  normal changes. Big radius / big facet distance => coarse collision.
+	//   Q "is the proxy cam working?"-> if the camera is registered ([CamMgr][SERVER]) AND feeding the
+	//                                  tileset, the tile under the rover should be fine (small); a coarse
+	//                                  tile right under a registered camera points at MaxSSE / consumption.
+	// Footprint fan shows whether collision spans the whole rover, not just one point.
+	if (HasAuthority() && GeoRefsManager && GeoRefsManager->GetVRMoon())
+	{
+		CollisionLogAccumulator += DeltaTime;
+		if (CollisionLogAccumulator >= 1.0f)
+		{
+			CollisionLogAccumulator = 0.0f;
+
+			UWorld* W               = GetWorld();
+			const FVector RoverPos  = GetActorLocation();
+			const FVector Center    = GeoRefsManager->GetVRMoon()->GetActorLocation();
+			const FVector Down      = (Center - RoverPos).GetSafeNormal();
+			const float   ProbeLen  = 5000000.0f;
+
+			FCollisionQueryParams P(FName(TEXT("CollisionResProbe")), /*bTraceComplex=*/true, this);
+
+			// Central probe: loaded? which tile? how coarse (tile bounds radius)? which tileset + its LOD settings?
+			FHitResult C;
+			const bool bC = W->LineTraceSingleByChannel(C, RoverPos, RoverPos + Down * ProbeLen, ECC_WorldStatic, P);
+			if (bC)
+			{
+				ACesium3DTileset* TS = Cast<ACesium3DTileset>(C.GetActor());
+				const float BoundsR  = C.GetComponent() ? C.GetComponent()->Bounds.SphereRadius : -1.f;
+				UE_LOG(LogTemp, Warning,
+					TEXT("[Collision][SERVER] Central HIT | clr=%.1f | tile=%s boundsR=%.1f | nrm=%s | tileset=%s load=%.1f%% MaxSSE=%.1f"),
+					C.Distance, *GetNameSafe(C.GetComponent()), BoundsR, *C.ImpactNormal.ToString(),
+					*GetNameSafe(C.GetActor()),
+					TS ? TS->GetLoadProgress() : -1.f,
+					TS ? TS->MaximumScreenSpaceError : -1.f);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error,
+					TEXT("[Collision][SERVER] Central MISS | no cooked collision under rover (tile not loaded / no physics mesh here)."));
+			}
+
+			// Tangent basis for lateral probes.
+			FVector T1 = FVector::CrossProduct(Down, FVector::UpVector);
+			if (T1.IsNearlyZero()) { T1 = FVector::CrossProduct(Down, FVector::ForwardVector); }
+			T1.Normalize();
+			const FVector T2 = FVector::CrossProduct(Down, T1).GetSafeNormal();
+
+			// Facet scan: smallest lateral offset at which the surface normal changes (coarse => far).
+			// Negative result = we ran off loaded collision at that radius (a coverage gap / streaming edge).
+			float FacetScaleCm = 0.f;
+			if (bC)
+			{
+				static const float Offsets[] = { 10.f, 25.f, 50.f, 100.f, 200.f, 400.f, 800.f };
+				for (float Off : Offsets)
+				{
+					const FVector Start = RoverPos + T1 * Off;
+					FHitResult H;
+					if (W->LineTraceSingleByChannel(H, Start, Start + Down * ProbeLen, ECC_WorldStatic, P))
+					{
+						if (FVector::DotProduct(H.ImpactNormal, C.ImpactNormal) < 0.999f) { FacetScaleCm = Off; break; }
+					}
+					else { FacetScaleCm = -Off; break; }
+				}
+			}
+
+			// Footprint fan: coverage + clearance spread across the rover footprint.
+			int32 FanHits = 0; const int32 FanN = 8;
+			float MinClr = MAX_flt, MaxClr = -MAX_flt;
+			for (int32 i = 0; i < FanN; ++i)
+			{
+				const float Ang     = (2.f * PI * i) / FanN;
+				const FVector Dir   = (T1 * FMath::Cos(Ang) + T2 * FMath::Sin(Ang));
+				const FVector Start = RoverPos + Dir * 150.f;
+				FHitResult H;
+				if (W->LineTraceSingleByChannel(H, Start, Start + Down * ProbeLen, ECC_WorldStatic, P))
+				{
+					++FanHits;
+					MinClr = FMath::Min(MinClr, (float)H.Distance);
+					MaxClr = FMath::Max(MaxClr, (float)H.Distance);
+				}
+			}
+			const float Spread = (FanHits > 0) ? (MaxClr - MinClr) : -1.f;
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Collision][SERVER] Fan hits=%d/%d clrSpread=%.1f | FacetScan(cm; first normal change, neg=coverage gap)=%.0f | LinVel=%.1f"),
+				FanHits, FanN, Spread, FacetScaleCm, GetVelocity().Size());
+		}
+	}
+
 	if (!PuppetRover || !GeoRefsManager)
 	{
 		return;
@@ -319,6 +494,33 @@ void AMasterRover::Tick(float DeltaTime)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Puppet][%s] Tick: MasterWorld=%s | RelLoc(VRlocal)=%s | PuppetWorld=%s"),
 			Net, *GetActorLocation().ToString(), *GeoRefsManager->GetVRMoon()->GetTransform().InverseTransformPosition(GetActorLocation()).ToString(), *PuppetRover->GetActorLocation().ToString());
+	}
+}
+
+void AMasterRover::OnRep_ReplicatedMovement()
+{
+	Super::OnRep_ReplicatedMovement();
+
+	// [BasketA] Record when/where the server's authoritative transform correction lands on the
+	// client, for the RepDiv diagnostic (age = time since last correction; drift = local vs server).
+	if (const UWorld* W = GetWorld())
+	{
+		LastRepMoveWorldTime = W->GetTimeSeconds();
+	}
+	++RepMoveUpdateCount;
+
+	const FRepMovement& RM = GetReplicatedMovement();
+	LastRepMoveLocation = RM.Location;
+
+	// [BasketA FIX] The client master has physics simulation disabled (see Tick), so Unreal's
+	// physics-replication path (bRepPhysics=true, because the SERVER body simulates) no longer
+	// applies the incoming transform — the actor would freeze in place while corrections keep
+	// arriving. Apply the replicated transform explicitly so the client master tracks the server
+	// exactly, giving the puppet a correct, drift-free source. Teleport (no sweep): this is a
+	// remote-authoritative mirror, not a locally-colliding body.
+	if (!HasAuthority())
+	{
+		SetActorLocationAndRotation(RM.Location, RM.Rotation);
 	}
 }
 

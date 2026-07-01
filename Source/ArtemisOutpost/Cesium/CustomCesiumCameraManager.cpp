@@ -3,6 +3,19 @@
 
 #include "CustomCesiumCameraManager.h"
 
+ACustomCesiumCameraManager::ACustomCesiumCameraManager()
+{
+	// The base ACesiumCameraManager does NOT enable ticking, and this subclass had no constructor,
+	// so our Tick() — which repositions the proxy camera to follow the rover every frame — never
+	// ran. AddNewMasterRover registered the camera once at the rover's SPAWN location and it stayed
+	// frozen there, so Cesium streamed fine tiles/collision only around spawn and progressively
+	// coarser ones as the rover drove away (measured collision boundsR 3k -> 96k), dropping the
+	// rover onto a crude flat collision hull below the detailed visual surface (the "submerged" bug).
+	// Enabling tick makes the proxy track the rover so detail follows it everywhere.
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+}
+
 void ACustomCesiumCameraManager::BeginPlay()
 {
 	Super::BeginPlay();
@@ -98,16 +111,27 @@ void ACustomCesiumCameraManager::Tick(float DeltaTime)
 	}
 
 	// Throttled diagnostic (~every 5s): confirm the tileset will see our cameras and
-	// that the proxy actually tracks the rover. If size()==0 the registration failed;
-	// if Loc is static/zero the proxy component isn't following the pawn.
+	// that the proxy actually tracks the rover. [BasketA] Logs UNCONDITIONALLY (even when 0)
+	// and tags SERVER/CLIENT: if RegisteredProxies=0 on the CLIENT, nothing is driving VR-moon
+	// tile/collision streaming there, which is the suspected root of the client fall-through.
 	DebugLogAccumulator += DeltaTime;
-	if (DebugLogAccumulator >= 5.0f && MasterRoversVirtualCams.Num() > 0)
+	if (DebugLogAccumulator >= 5.0f)
 	{
 		DebugLogAccumulator = 0.0f;
-		UE_LOG(LogTemp, Warning,
-			TEXT("[CamMgr] Tick | RegisteredProxies=%d | GetAllCameras().size()=%d | Cam0Loc=%s | Cam0Rot=%s"),
-			MasterRoversVirtualCams.Num(), (int32)GetAllCameras().size(),
-			*MasterRoversVirtualCams[0].CesiumCamera.Location.ToString(),
-			*MasterRoversVirtualCams[0].CesiumCamera.Rotation.ToString());
+		const TCHAR* Net = (GetNetMode() == NM_Client) ? TEXT("CLIENT") : TEXT("SERVER");
+		if (MasterRoversVirtualCams.Num() > 0)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[CamMgr][%s] Tick | RegisteredProxies=%d | GetAllCameras().size()=%d | Cam0Loc=%s | Cam0Rot=%s"),
+				Net, MasterRoversVirtualCams.Num(), (int32)GetAllCameras().size(),
+				*MasterRoversVirtualCams[0].CesiumCamera.Location.ToString(),
+				*MasterRoversVirtualCams[0].CesiumCamera.Rotation.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[CamMgr][%s] Tick | RegisteredProxies=0 (nothing driving VR-moon streaming on this instance) | GetAllCameras().size()=%d"),
+				Net, (int32)GetAllCameras().size());
+		}
 	}
 }

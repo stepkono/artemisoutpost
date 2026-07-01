@@ -27,7 +27,9 @@ class ARTEMISOUTPOST_API ACustomCesiumCameraManager : public ACesiumCameraManage
 {
 	GENERATED_BODY()
 	
-public: 
+public:
+	ACustomCesiumCameraManager();
+
 	UFUNCTION(BLueprintCallable, Category="Master Rover")
 	void AddNewMasterRover(AMasterRover* InMasterRover);
 	

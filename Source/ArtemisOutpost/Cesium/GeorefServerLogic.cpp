@@ -36,6 +36,8 @@ void UGeorefServerLogic::BeginPlay()
 	
 	VRTileSet->EnableFogCulling = false; 
 	VRTileSet->EnableFrustumCulling = false; 
+	VRTileSet->MaximumScreenSpaceError = 16; 
+	VRTileSet->EnforceCulledScreenSpaceError = true;
 }
 
 
