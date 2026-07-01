@@ -43,7 +43,4 @@ private:
 
 	UPROPERTY()
 	TArray<FVirtualCamera> MasterRoversVirtualCams;
-
-	// Accumulates DeltaTime for the throttled diagnostic log in Tick.
-	float DebugLogAccumulator = 0.0f;
 };
