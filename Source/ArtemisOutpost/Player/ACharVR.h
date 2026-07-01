@@ -93,6 +93,9 @@ private:
 	// Smoothed downward offset (cm) currently applied for head/roof collision.
 	float CurrentHeadCollisionPush = 0.0f;
 
+	// Ensures the one-time HMD recenter (snap head onto the pawn) runs only once.
+	bool bHasRecenteredHMD = false;
+
 	// Accumulates DeltaTime for the throttled client-side VR-moon collision probe in Tick.
 	float DebugProbeAccumulator = 0.0f;
 };

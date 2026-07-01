@@ -80,7 +80,7 @@ void FCustomGravityAsyncCallback::OnPreIntegrate_Internal()
 					{
 						// TODO: Not sure if this direction is correct
 						FVector Direction(GravityAttractorData.Location - ActiveParticle.GetX());
-						double SquaredDistance = FVector::DotProduct(Direction, Direction); // We'll be using UE units here, no meters... 
+						double SquaredDistance = FVector::DotProduct(Direction, Direction); // We'll be using UE units here, not meters... 
 						Direction.Normalize();
  
 						// Intensity

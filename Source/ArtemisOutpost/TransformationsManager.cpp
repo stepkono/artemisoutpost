@@ -633,11 +633,10 @@ void UTransformationsManager::RecalibrateFromAnchors()
 	CurrentMoonPosition = ARGeoRef->GetActorLocation();
 
 	// Anchor world positions just shifted (re-localization), so the cutout must follow.
-	UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Re-seed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"),
-		OnCutoutNeedsUpdate.IsBound() ? 1 : 0);
+	//TODO: we have to examine this deeper
+	//UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Re-seed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"), OnCutoutNeedsUpdate.IsBound() ? 1 : 0);
 	OnCutoutNeedsUpdate.Broadcast();
-
-	UE_LOG(LogTemp, Warning, TEXT("[TM][Recalib] Re-seeded from anchors. TableCenter=%s"), *TableCenter.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("[TM][Recalib] Re-seeded from anchors. TableCenter=%s"), *TableCenter.ToString());
 }
 
 /*---------------MOON POSITION---------------*/

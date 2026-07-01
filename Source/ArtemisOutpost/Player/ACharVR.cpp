@@ -72,6 +72,25 @@ void ACharVR::Tick(float DeltaTime)
 	// regardless of net role, so it sits before the client-only probe's early return below.
 	if (IsLocallyControlled() && UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
 	{
+		// One-time recenter: snap the HMD tracking origin onto this pawn so the camera sits on
+		// the character regardless of where the player physically stands in their play space.
+		if (!bHasRecenteredHMD)
+		{
+			bHasRecenteredHMD = true;
+			UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition(0.f);
+
+			// Confirm we really are the local view target (rules out a possession problem).
+			if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[VRChar] Recentered. Controller=%s ViewTarget=%s (this=%s)"),
+					*GetNameSafe(PC), *GetNameSafe(PC->GetViewTarget()), *GetName());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("[VRChar] LocallyControlled but no PlayerController — NOT possessed locally."));
+			}
+		}
+
 		UpdateHeadCollision(DeltaTime);
 	}
 
