@@ -53,6 +53,22 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, Category="Puppet Rover")
 	APuppetRover* PuppetRover;
+
+	// Client master motion smoothing. The client master doesn't simulate; it receives the server's
+	// transform at network cadence, which is choppy. We ease the MASTER toward the latest replicated
+	// target each frame (VInterpTo/QInterpTo) so it moves smoothly on the VR moon — visible when a
+	// user is in VR — and the puppet, which copies the master, is smooth for free. Higher speed =
+	// snappier/less smooth; lower = smoother/laggier. Tunable in the BP defaults.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rover Smoothing")
+	float ClientLocationInterpSpeed = 12.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rover Smoothing")
+	float ClientRotationInterpSpeed = 12.0f;
+
+	// If the target jumps farther than this (VR-moon world units) we snap instead of easing, so a
+	// teleport / respawn / big correction doesn't produce a slow slide across the moon.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rover Smoothing")
+	float ClientSnapDistance = 5000.0f;
 	
 	UPROPERTY(BlueprintReadOnly, Category="Game State")
 	AArtemisGameState* GameState;
@@ -81,7 +97,12 @@ private:
 	// client is free-simulating away from server truth (the suspected fall-through cause).
 	double LastRepMoveWorldTime = -1.0;
 	int32 RepMoveUpdateCount = 0;
-	FVector LastRepMoveLocation = FVector::ZeroVector;
+	FVector LastRepMoveLocation = FVector::ZeroVector;    // latest replicated target location (VR-moon world)
+	FRotator LastRepMoveRotation = FRotator::ZeroRotator; // latest replicated target rotation
+	bool bHasRepTarget = false;                            // a replicated transform has arrived at least once
+
+	// False until the client master has been placed once, so the first update snaps (no slide-in from spawn).
+	bool bClientSmoothingInit = false;
 
 	// Client-side VR-moon tileset (the moon the master physically drives on), resolved by the
 	// "DEFAULT_TILESET" tag in BeginPlay. Used to report client streaming/culling state.
