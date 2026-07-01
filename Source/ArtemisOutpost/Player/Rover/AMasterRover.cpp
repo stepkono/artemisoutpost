@@ -141,6 +141,29 @@ void AMasterRover::Tick(float DeltaTime)
 				M->SetSimulatePhysics(false);
 			}
 		}
+
+		// Smooth the client master toward the latest replicated transform (recorded in
+		// OnRep_ReplicatedMovement). Easing here — rather than snapping in OnRep — makes the master
+		// itself move smoothly on the VR moon (what a VR user sees), and the puppet copies it. Snap
+		// on the first placement and on large jumps (teleport / respawn / big correction).
+		if (bHasRepTarget)
+		{
+			const FVector CurLoc = GetActorLocation();
+			const FQuat   CurRot = GetActorQuat();
+			const FQuat   TgtRot = LastRepMoveRotation.Quaternion();
+			const bool bSnap = !bClientSmoothingInit
+				|| FVector::Dist(CurLoc, LastRepMoveLocation) > ClientSnapDistance;
+
+			const FVector NewLoc = bSnap
+				? LastRepMoveLocation
+				: FMath::VInterpTo(CurLoc, LastRepMoveLocation, DeltaTime, ClientLocationInterpSpeed);
+			const FQuat NewRot = bSnap
+				? TgtRot
+				: FMath::QInterpTo(CurRot, TgtRot, DeltaTime, ClientRotationInterpSpeed);
+
+			SetActorLocationAndRotation(NewLoc, NewRot);
+			bClientSmoothingInit = true;
+		}
 	}
 
 	// ---- Position / jitter tracking (server authority, throttled log) ----
@@ -462,6 +485,8 @@ void AMasterRover::Tick(float DeltaTime)
 
 		if (bMasterWorldOK && bGeoOK && bPuppetPosOK && bRotOK)
 		{
+			// The master itself is already smoothed (eased toward the replicated target earlier this
+			// Tick), so the puppet just copies it — one interpolation, both rovers smooth.
 			PuppetRover->SetActorLocationAndRotation(PuppetWorldPosition, PuppetWorldOrientation);
 		}
 
@@ -509,19 +534,15 @@ void AMasterRover::OnRep_ReplicatedMovement()
 	}
 	++RepMoveUpdateCount;
 
-	const FRepMovement& RM = GetReplicatedMovement();
-	LastRepMoveLocation = RM.Location;
-
 	// [BasketA FIX] The client master has physics simulation disabled (see Tick), so Unreal's
 	// physics-replication path (bRepPhysics=true, because the SERVER body simulates) no longer
-	// applies the incoming transform — the actor would freeze in place while corrections keep
-	// arriving. Apply the replicated transform explicitly so the client master tracks the server
-	// exactly, giving the puppet a correct, drift-free source. Teleport (no sweep): this is a
-	// remote-authoritative mirror, not a locally-colliding body.
-	if (!HasAuthority())
-	{
-		SetActorLocationAndRotation(RM.Location, RM.Rotation);
-	}
+	// applies the incoming transform. Instead of snapping the actor here (choppy at network
+	// cadence), record it as the target that Tick eases the master toward, so the master moves
+	// smoothly on the VR moon and the puppet copies that smoothed motion.
+	const FRepMovement& RM = GetReplicatedMovement();
+	LastRepMoveLocation = RM.Location;
+	LastRepMoveRotation = RM.Rotation;
+	bHasRepTarget = true;
 }
 
 FVector AMasterRover::GetLocalPos_UE() const
