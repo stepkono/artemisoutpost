@@ -29,11 +29,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "XR Mode")
 	TEnumAsByte<EXRMode> GetXRMode() const;
 	
+	UFUNCTION(BlueprintCallable, Category = "Player ID")
+	FString GetPlayerUPID() const;
+	
 protected: 
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
 
 protected: 
+	UPROPERTY(BlueprintReadOnly, Category = "Player ID")
+	FString UPID; 
+	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	APawnAR* ARPawn; 
 	

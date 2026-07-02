@@ -2,7 +2,6 @@
 
 
 #include "ArtemisGameState.h"
-
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -92,9 +91,7 @@ bool AArtemisGameState::GetAnchorsFromCurrentSession(FOrderedAnchors& OutAnchors
 		return false;
 	}
 
-	UAnchorSaveGame* SaveGame = Cast<UAnchorSaveGame>(
-		UGameplayStatics::LoadGameFromSlot(AnchorSaveSlot, 0)
-	);
+	UAnchorSaveGame* SaveGame = Cast<UAnchorSaveGame>(UGameplayStatics::LoadGameFromSlot(AnchorSaveSlot, 0));
 
 	if (!SaveGame)
 	{
@@ -103,8 +100,8 @@ bool AArtemisGameState::GetAnchorsFromCurrentSession(FOrderedAnchors& OutAnchors
 	}
 	
 	if (!(SaveGame->ServerAnchors.AAnchorUUID.IsValidUUID() && 
-		SaveGame->ServerAnchors.BAnchorUUID.IsValidUUID() && 
-		SaveGame->ServerAnchors.CAnchorUUID.IsValidUUID() && 
+		SaveGame->ServerAnchors.BAnchorUUID.IsValidUUID()   && 
+		SaveGame->ServerAnchors.CAnchorUUID.IsValidUUID()   && 
 		SaveGame->ServerAnchors.DAnchorUUID.IsValidUUID()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AArtemisGameState: No Anchors Data was saved to the slot."));
