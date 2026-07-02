@@ -7,6 +7,16 @@
 void APawnController::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	UArtemisGameInstance* GI = Cast<UArtemisGameInstance>(GetGameInstance());
+	const FString CachedUPID = GI->GetUPID(); 
+	if (CachedUPID.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("PawnController: UPID returned empty string."));
+		return; 
+	}
+	
+	UPID = CachedUPID;
 }
 
 void APawnController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -71,4 +81,9 @@ void APawnController::SetGeoRefsManager(AGeoRefsManager* InGeoRefsManager)
 TEnumAsByte<EXRMode> APawnController::GetXRMode() const 
 {
 	return CurrentXRMode; 
+}
+
+FString APawnController::GetPlayerUPID() const
+{
+	return UPID;
 }

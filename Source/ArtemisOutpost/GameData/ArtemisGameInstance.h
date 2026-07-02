@@ -34,8 +34,20 @@ class ARTEMISOUTPOST_API UArtemisGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	virtual void OnStart() override;
+	
 	UFUNCTION()
 	bool CheckForInitializedSpatialAnchors() const; 
+	
+	UFUNCTION()
+	FString GetUPID() const; 
+	
+private: 
+	UFUNCTION()
+	void InitializeClientIdentity(); 
+	
+	UFUNCTION()
+	void CreateNewClientIdentity(); 
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spatial Anchors")
@@ -45,4 +57,8 @@ public:
 	 *  when the authoritative client shares anchors, then replicated to clients via the GameState. */
 	UPROPERTY(BlueprintReadWrite, Category="Spatial Anchors")
 	FOculusXRUUID SharingGroupUUID;
+	
+private: 
+	UPROPERTY()
+	FString UPID_GI;  
 };
