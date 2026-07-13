@@ -4,7 +4,7 @@
 #include "GeorefServerLogic.h"
 
 #include "Cesium3DTileset.h"
-#include "ArtemisOutpost/Miscellaneous/NetUtils.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 
 
 // Sets default values for this component's properties

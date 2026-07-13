@@ -6,7 +6,7 @@
 #include "ArtemisOutpost/TransformationsManager.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "ArtemisOutpost/Miscellaneous/GeoUtils.h"
-#include "ArtemisOutpost/Miscellaneous/NetUtils.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "Kismet/KismetMaterialLibrary.h"
 
 

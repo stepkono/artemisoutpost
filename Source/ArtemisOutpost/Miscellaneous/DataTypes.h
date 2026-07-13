@@ -3,8 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArtemisOutpost/Player/PawnController.h"
 #include "DataTypes.generated.h"
+
+class ACharVR;
+class AMasterRover;
+class APawnController;
 
 USTRUCT()
 struct FOrderedAnchorsPositions
@@ -118,13 +121,19 @@ USTRUCT(BlueprintType)
 struct FArtemisPlayer
 {
 	GENERATED_BODY()
-	
-	UPROPERTY()
+
+	UPROPERTY(BlueprintReadOnly)
 	APawnController* PawnController;
+
+	UPROPERTY(BlueprintReadOnly)
+	int PlayerNumber = -1;
 	
-	UPROPERTY()
-	int PlayerNumber;
-}; 
+	UPROPERTY(BlueprintReadOnly)
+	AMasterRover* MasterRover;
+
+	UPROPERTY(BlueprintReadOnly)
+	ACharVR* VRChar;
+};
 
 UENUM(BlueprintType)
 enum EXRMode

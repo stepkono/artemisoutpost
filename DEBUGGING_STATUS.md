@@ -32,13 +32,18 @@ The client master snapped to each replicated transform (network cadence) → cho
 
 ---
 
-## ⏳ Next — Basket B: long-idle disconnect → showcase level
+## 🔨 In progress — Basket B: long-idle disconnect → showcase level
 
-**Symptom:** after the HMD is idle/off for a while, the rover falls through and the client travels back to the local `SA_Showcase` level; it does not reconnect. Short idles are fine.
+**Confirmed cause (instrumented):** HMD doff fully *suspends* the Quest app (game thread frozen). The server drops the client after `ConnectionTimeout` (60 s observed). On re-don the app only tries to *resume the stale connection* (restart-handshake), which the server already discarded, so after another 60 s it bails to `SA_Showcase`. Two problems: (1) unavoidable disconnect on long doff; (2) no fresh reconnect.
 
-**Hypothesis:** Quest suspends/throttles the app on HMD doff → the `UNetConnection` misses heartbeats → the server drops the client → client returns to its default map, with no reconnect logic. (The fall-through half is now gone with Basket A; this is the pure network-lifecycle problem.)
+**Design (multi-device):** the rover is server-authoritative and websocket-driven, so a sleeping Quest is only a *viewer* dropping — the rover must keep living/driving. So player slots are keyed by a **persistent cross-device UPID**; the rover is never destroyed on `Logout`; a returning Quest re-attaches to its existing slot.
 
-**Plan:** instrument, on the client, HMD mounted/unmounted + app pause/resume + last-received-packet age + net error / travel events; correlate the doff→disconnect timing against the connection timeout; then decide between raising timeouts, keeping the app alive on doff, and/or adding reconnect.
+**Implemented so far:**
+- `UConnectionLifecycleSubsystem` client **reconnect**: captures the server URL while connected; on re-don after a long doff (or on any network failure / landing on a local map) does a fresh `ClientTravel` with `?UPID=` appended, with backoff via the GameInstance timer (survives the level bounce). `ConnectToServer(Host)` BlueprintCallable for the initial connect so it carries `?UPID` too.
+- `AServerGameMode`: reads `?UPID=` in `InitNewPlayer`; keys `PlayersInGame` by UPID; **first join → `PlayerJoinDelegate`** (BP spawns, then calls `RegisterPlayerPawns`), **reconnect → `PlayerReconnectedDelegate`** (BP re-attaches the stored pawns, no spawn). `FArtemisPlayer` now stores `MasterRover`/`VRChar`.
+- Bug fixes: `ArtemisGameInstance::OnStart` inverted world check; `ServerGameMode` never assigned its `GeoRefsManager` member; `PawnController::BeginPlay` was reading UPID from the server's GameInstance (now client-only + null-guarded).
+
+**Open (BP wiring + follow-ups):** reparent the level GameMode BP to `AServerGameMode`; call `ConnectToServer` for the initial connect; bind `PlayerReconnectedDelegate` (re-attach + re-register proxy camera, no spawn) and call `RegisterPlayerPawns` after first-join spawn; ensure `Logout` never destroys the rover; **route websocket control commands to the right rover by UPID** (today all rovers react to every command); tune `AssumeDroppedAfterBackgroundSeconds` (45) below the server `ConnectionTimeout`. Optional: suppress the `SA_Showcase` bounce entirely; keep-alive on doff.
 
 ## ⏳ Later — Basket C: world re-orients on HMD re-don
 

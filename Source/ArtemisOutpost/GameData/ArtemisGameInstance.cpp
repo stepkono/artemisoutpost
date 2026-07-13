@@ -3,7 +3,7 @@
 
 #include "ArtemisGameInstance.h"
 
-#include "ArtemisOutpost/Networking/NetUtils.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Persistance/ClientIdentitySave.h"
 
