@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "ArtemisGameInstance.h"
-#include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "ArtemisOutpost/Anchors/AnchorSaveGame.h"
+#include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "GameFramework/GameState.h"
 #include "ArtemisGameState.generated.h"
 

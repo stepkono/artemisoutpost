@@ -31,6 +31,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Player ID")
 	FString GetPlayerUPID() const;
+
+	// Set server-side from the ?UPID= login option (see AServerGameMode::InitNewPlayer). The client
+	// sets its own UPID from the save/GameInstance in BeginPlay.
+	void SetUPID(const FString& InUPID);
 	
 protected: 
 	virtual void BeginPlay() override;

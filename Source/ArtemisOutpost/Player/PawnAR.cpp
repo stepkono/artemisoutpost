@@ -4,7 +4,7 @@
 #include "PawnAR.h"
 #include "Cesium3DTileset.h"
 #include "EngineUtils.h"
-#include "ArtemisOutpost/Networking/NetUtils.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 
 
 // Sets default values

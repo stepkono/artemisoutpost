@@ -3,20 +3,40 @@
 
 #include "PawnController.h"
 #include "Net/UnrealNetwork.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 
 void APawnController::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	UArtemisGameInstance* GI = Cast<UArtemisGameInstance>(GetGameInstance());
-	const FString CachedUPID = GI->GetUPID(); 
+
+	// UPID is the persistent player identity. On the SERVER it is set from the ?UPID= login option in
+	// AServerGameMode::InitNewPlayer, so we must NOT overwrite it here with the server machine's own
+	// GameInstance value. Only the client reads its identity from its local save/GameInstance.
+	if (!ArtemisNet::IsClientContext(GetNetMode()))
+	{
+		return;
+	}
+
+	const UArtemisGameInstance* GI = Cast<UArtemisGameInstance>(GetGameInstance());
+	if (!GI)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PawnController: GameInstance is not a UArtemisGameInstance."));
+		return;
+	}
+
+	const FString CachedUPID = GI->GetUPID();
 	if (CachedUPID.IsEmpty())
 	{
 		UE_LOG(LogTemp, Error, TEXT("PawnController: UPID returned empty string."));
-		return; 
+		return;
 	}
-	
+
 	UPID = CachedUPID;
+}
+
+void APawnController::SetUPID(const FString& InUPID)
+{
+	UPID = InUPID;
 }
 
 void APawnController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

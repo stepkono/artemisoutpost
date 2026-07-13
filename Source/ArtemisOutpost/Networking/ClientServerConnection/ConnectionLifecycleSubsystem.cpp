@@ -3,6 +3,7 @@
 
 #include "ConnectionLifecycleSubsystem.h"
 
+#include "NetUtils.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Engine/NetDriver.h"
@@ -13,7 +14,6 @@
 #include "UObject/UObjectGlobals.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerController.h"
-#include "ArtemisOutpost/Networking/NetUtils.h"
 #include "ArtemisOutpost/GameData/ArtemisGameInstance.h"
 
 void UConnectionLifecycleSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -178,6 +178,30 @@ void UConnectionLifecycleSubsystem::HandleAppWillDeactivate()
 void UConnectionLifecycleSubsystem::HandleAppHasReactivated()
 {
 	UE_LOG(LogTemp, Warning, TEXT("[NetLife][%s] App HAS REACTIVATED."), *NetModeString());
+}
+
+void UConnectionLifecycleSubsystem::ConnectToServer(const FString& HostAddress)
+{
+	if (HostAddress.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[NetLife][CLIENT] ConnectToServer: empty host address."));
+		return;
+	}
+
+	// Remember the target so reconnects go to the same place, then travel with ?UPID appended.
+	LastServerURL = HostAddress;
+	const FString URL = BuildReconnectURL();
+	UE_LOG(LogTemp, Warning, TEXT("[NetLife][CLIENT] ConnectToServer -> %s"), *URL);
+
+	UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
+	if (APlayerController* PC = GetGameInstance() ? GetGameInstance()->GetFirstLocalPlayerController(World) : nullptr)
+	{
+		PC->ClientTravel(URL, TRAVEL_Absolute);
+	}
+	else if (GEngine && World)
+	{
+		GEngine->SetClientTravel(World, *URL, TRAVEL_Absolute);
+	}
 }
 
 bool UConnectionLifecycleSubsystem::IsClientContextNow() const

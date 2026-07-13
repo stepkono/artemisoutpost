@@ -7,7 +7,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
-#include "ArtemisOutpost/Miscellaneous/NetUtils.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 
 
 // Sets default values

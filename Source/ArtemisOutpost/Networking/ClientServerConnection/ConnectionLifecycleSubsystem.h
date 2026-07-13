@@ -30,6 +30,12 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
+	// Initial connect entry point for the client BP: travels to the server and appends the ?UPID login
+	// option so the server keys/reuses this player's slot. Reconnects reuse the same URL builder.
+	// HostAddress is e.g. "192.168.1.171" or "192.168.1.171:7777".
+	UFUNCTION(BlueprintCallable, Category = "Connection")
+	void ConnectToServer(const FString& HostAddress);
+
 private:
 	void HandleNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString);
 	void HandleTravelFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& ErrorString);
