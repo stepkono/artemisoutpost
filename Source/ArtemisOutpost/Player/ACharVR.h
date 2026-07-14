@@ -53,6 +53,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "VR")
 	FName VRCameraTag = TEXT("VR_Camera");
 
+	// ---- VR surface-alignment (tilt the HMD horizon to the moon surface normal) ----
+	// The XR compositor renders the head pose in a WORLD/gravity-up tracking space and ignores the
+	// pawn/camera component orientation, so on the georeferenced globe the horizon stays world-up
+	// (you appear to lie on the tilted surface). We fix this by rotating the tracking space itself
+	// every frame via SetBaseRotation, aligning world-up to the pawn's up (surface normal). The HMD
+	// still controls look direction freely within that tilted frame, and the tilt follows the player
+	// as they move across the globe.
+	UPROPERTY(EditDefaultsOnly, Category = "VR|Surface Alignment")
+	bool bAlignVRViewToSurface = true;
+
+	// Selects the sign of the base-orientation convention (base = tilt vs tilt.Inverse), which
+	// differs between XR runtimes. Defaults to TRUE because the Oculus/OpenXR runtime applies base
+	// orientation as an INVERSE (recenter convention): reported = Base^-1 * device, so we must feed
+	// TiltQ.Inverse() to get camera-up = surface normal. Editable at runtime to flip live in PIE.
+	UPROPERTY(EditAnywhere, Category = "VR|Surface Alignment")
+	bool bInvertVRViewTilt = true;
+
 	// ---- Head / roof collision (keeps the HMD view from clipping through geometry above) ----
 	// When true, if the player's real head rises into a ceiling the VR view is pushed back
 	// down so the camera stays below the obstruction instead of seeing through it.
@@ -68,11 +85,35 @@ protected:
 	float HeadCollisionInterpSpeed = 15.0f;
 
 private:
-	// Resolves VROrigin/VRCamera (by tag) and applies the standing VR setup. Local + HMD only.
+	// Resolves VROrigin/VRCamera (by tag), caches them, locks the camera to the HMD and computes
+	// the feet-level origin offset. Safe on every instance (server/proxy/local) — does NOT touch
+	// the global HMD tracking origin. Call once in BeginPlay.
 	void InitVRComponents();
+
+	// The local-player-only part of the VR setup: re-homes VROrigin to the feet and switches the
+	// HMD to floor-level tracking. Guarded by IsLocallyControlled() + HMD and a one-shot flag, so
+	// it can be called from both BeginPlay and NotifyControllerChanged — whichever wins the race
+	// once local control is actually established (in networked play, possession happens AFTER
+	// BeginPlay, so BeginPlay alone is too early).
+	void ApplyLocalVRSetup();
+
+	// Throttled diagnostic: logs the real world/relative rotations of the actor, VROrigin, VRCamera
+	// and the raw HMD pose so we can see exactly which node does (or does not) inherit the rig tilt.
+	void LogVRTransforms(float DeltaTime);
+
+	// Rotates the XR tracking space each frame so the rendered horizon aligns to the pawn's up
+	// (moon surface normal). This is the ONLY way to tilt the VR horizon — the compositor ignores
+	// the camera component orientation (see bAlignVRViewToSurface). Local + HMD only.
+	void UpdateVRViewTilt();
 
 	// Per-frame roof/ceiling avoidance for the HMD view. Local + HMD only.
 	void UpdateHeadCollision(float DeltaTime);
+
+	// One-shot guard so the local floor/origin setup is applied exactly once.
+	bool bLocalVRSetupApplied = false;
+
+	// Accumulator to throttle LogVRTransforms to ~1 Hz.
+	float VRDebugLogTimer = 0.0f;
 
 	UPROPERTY()
 	ACesium3DTileset* VRTileSet;

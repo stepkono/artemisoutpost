@@ -4,6 +4,8 @@
 #include "ACharVR.h"
 #include "Cesium3DTileset.h"
 #include "EngineUtils.h"
+#include "Engine/Engine.h"
+#include "IXRTrackingSystem.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
@@ -30,9 +32,11 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Resolve the VR rig and apply the standing/floor-level setup. Safe to call on every
-	// instance: it no-ops unless this is the locally controlled pawn with an active HMD.
+	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
+	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
+	// will no-op and NotifyControllerChanged will apply it once we actually become locally controlled.
 	InitVRComponents();
+	ApplyLocalVRSetup();
 
 	// VR-moon tileset caching is client-only (used to show/hide the player's view).
 	// The server host doesn't render and must not depend on it.
@@ -72,7 +76,14 @@ void ACharVR::Tick(float DeltaTime)
 	// regardless of net role, so it sits before the client-only probe's early return below.
 	if (IsLocallyControlled() && UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
 	{
+		UpdateVRViewTilt();
 		UpdateHeadCollision(DeltaTime);
+	}
+
+	// TEMP diagnostic: only for our own pawn, throttled to ~1 Hz.
+	if (IsLocallyControlled())
+	{
+		LogVRTransforms(DeltaTime);
 	}
 }
 
@@ -85,10 +96,13 @@ void ACharVR::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void ACharVR::NotifyControllerChanged()
 {
 	Super::NotifyControllerChanged();
-	
+
 	UE_LOG(LogTemp, Log, TEXT("ACharVR: NotifyControllerChanged"));
-	
-	
+
+	// Possession on the owning client arrives here (after BeginPlay), which is the first point at
+	// which IsLocallyControlled() is reliably true. Apply the deferred local VR setup now.
+	ApplyLocalVRSetup();
+
 	// Check locally 
 	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
@@ -175,23 +189,37 @@ void ACharVR::InitVRComponents()
 			*VRCameraTag.ToString(), *GetName());
 	}
 
-	// The HMD drives the camera transform directly (true by default, set explicitly for clarity).
+	// NOTE: The VR stereo view is rendered by the XR system from a tracking space whose ROTATION is
+	// forced to world/gravity-up; it uses the rig POSITION but ignores the camera component's
+	// orientation. Neither bLockToHmd nor manually posing the camera can tilt the rendered horizon
+	// to the moon surface normal (verified via LogVRTransforms). The only levers are (a) rotating the
+	// XR tracking space via base orientation, or (b) aligning the VR play area to world-up. Left at
+	// the default lock; the actual horizon fix lives elsewhere.
 	if (CachedVRCamera)
 	{
 		CachedVRCamera->bLockToHmd = true;
 	}
 
-	// Place the tracking origin at the bottom of the capsule (the player's feet). Combined with
-	// a floor-level HMD tracking origin below, this puts the camera at the player's real-world
-	// head height and makes physical crouching/squatting "just work": the HMD lowers, so does
-	// the camera, with no extra code.
+	// Compute the feet-level origin offset once. Combined with a floor-level HMD tracking origin
+	// (applied in ApplyLocalVRSetup), this puts the camera at the player's real-world head height
+	// and makes physical crouching/squatting "just work": the HMD lowers, so does the camera.
 	if (const UCapsuleComponent* Capsule = GetCapsuleComponent())
 	{
 		VROriginBaseZ = -Capsule->GetScaledCapsuleHalfHeight();
 	}
+}
 
-	// Only the local player with a live HMD should be re-homed to floor level and have its
-	// tracking origin changed. Remote/simulated proxies keep the Blueprint-authored layout.
+void ACharVR::ApplyLocalVRSetup()
+{
+	// Idempotent: only the local player with a live HMD gets re-homed to floor level and has the
+	// (global) tracking origin changed. Remote/simulated proxies keep the Blueprint-authored layout.
+	// In networked play the owning client possesses AFTER BeginPlay, so this is also invoked from
+	// NotifyControllerChanged — the one-shot flag makes whichever call wins the race the only one
+	// that takes effect.
+	if (bLocalVRSetupApplied || !CachedVROrigin)
+	{
+		return;
+	}
 	if (!(IsLocallyControlled() && UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled()))
 	{
 		return;
@@ -202,6 +230,106 @@ void ACharVR::InitVRComponents()
 	// Floor-level tracking: HMD pose is reported relative to the physical floor, so the player
 	// can walk/lean/crouch within their play space and the camera mirrors it 1:1.
 	UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::LocalFloor);
+
+	bLocalVRSetupApplied = true;
+	UE_LOG(LogTemp, Log, TEXT("ACharVR: Local VR setup applied (VROrigin re-homed to feet, LocalFloor tracking) on %s."), *GetName());
+}
+
+void ACharVR::UpdateVRViewTilt()
+{
+	if (!bAlignVRViewToSurface)
+	{
+		return;
+	}
+
+	// Base-orientation lives on the XR tracking system, not the HMD function library.
+	if (!GEngine || !GEngine->XRSystem.IsValid())
+	{
+		return;
+	}
+
+	// The pawn is rotated (in BP) so its up axis = the moon surface normal. We want the rendered VR
+	// horizon to match that. The compositor renders the head pose as TrackingToWorld(rotation forced
+	// to world-up) * HMDPose, so the only rotation we can influence is the tracking-space base.
+	//
+	// TiltQ is the minimal rotation that takes world-up (Z) to the surface normal. Applying it as the
+	// base orientation rotates the whole tracking space, so a physically level head renders looking
+	// at the local (tilted) horizon. Using FindBetweenNormals (up-only) rather than the full pawn
+	// rotation avoids forcing the pawn's yaw onto the view, so head yaw stays HMD-controlled.
+	const FVector SurfaceUp = GetActorUpVector();
+	FQuat TiltQ = FQuat::FindBetweenNormals(FVector::UpVector, SurfaceUp);
+
+	// Base-orientation sign convention differs between runtimes; bInvertVRViewTilt lets us settle it
+	// live in one PIE session (watch the [VRXform] VRCamera WorldUp line vs the surface normal).
+	if (bInvertVRViewTilt)
+	{
+		TiltQ = TiltQ.Inverse();
+	}
+
+	GEngine->XRSystem->SetBaseOrientation(TiltQ);
+}
+
+void ACharVR::LogVRTransforms(float DeltaTime)
+{
+	// Throttle to ~1 Hz so the log stays readable.
+	VRDebugLogTimer += DeltaTime;
+	if (VRDebugLogTimer < 1.0f)
+	{
+		return;
+	}
+	VRDebugLogTimer = 0.0f;
+
+	auto V = [](const FVector& X) { return FString::Printf(TEXT("(%.3f, %.3f, %.3f)"), X.X, X.Y, X.Z); };
+	auto R = [](const FRotator& X) { return FString::Printf(TEXT("P=%.1f Y=%.1f R=%.1f"), X.Pitch, X.Yaw, X.Roll); };
+
+	// 1) The actor (capsule root). If the rig were rotated to the surface normal, ActorUp would be
+	//    the diagonal moon-up vector — NOT (0,0,1). If it prints (0,0,1) the actor is NOT rotated.
+	UE_LOG(LogTemp, Warning, TEXT("[VRXform] ActorRot[%s]  ActorUp=%s"),
+		*R(GetActorRotation()), *V(GetActorUpVector()));
+
+	// 2) VROrigin — should inherit the actor rotation (its Up should match ActorUp).
+	if (CachedVROrigin)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VROrigin  WorldRot[%s]  WorldUp=%s  RelLoc=%s"),
+			*R(CachedVROrigin->GetComponentRotation()),
+			*V(CachedVROrigin->GetUpVector()),
+			*V(CachedVROrigin->GetRelativeLocation()));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VROrigin = NULL (tag not resolved)"));
+	}
+
+	// 3) VRCamera — this is what you actually see through. If its WorldUp stays ~(0,0,1) while the
+	//    actor/VROrigin Up is the diagonal moon-up, then the HMD view is NOT inheriting the tilt
+	//    (the real bug). If its WorldUp matches ActorUp, orientation is being inherited correctly.
+	if (CachedVRCamera)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VRCamera  WorldRot[%s]  WorldUp=%s  RelRot[%s]  LockToHmd=%d"),
+			*R(CachedVRCamera->GetComponentRotation()),
+			*V(CachedVRCamera->GetUpVector()),
+			*R(CachedVRCamera->GetRelativeRotation()),
+			CachedVRCamera->bLockToHmd ? 1 : 0);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VRCamera = NULL (tag not resolved)"));
+	}
+
+	// 4) Raw HMD pose (tracking space). This is what the runtime reports before the parent transform
+	//    is applied — HmdRot is relative to the tracking origin, so its Up is real-world up.
+	if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
+	{
+		FRotator HmdRot;
+		FVector  HmdPos;
+		UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HmdRot, HmdPos);
+		UE_LOG(LogTemp, Warning, TEXT("[VRXform] HMD raw   Rot[%s]  Pos=%s  LocalSetupApplied=%d"),
+			*R(HmdRot), *V(HmdPos), bLocalVRSetupApplied ? 1 : 0);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[VRXform] HMD not enabled  LocalSetupApplied=%d"), bLocalVRSetupApplied ? 1 : 0);
+	}
 }
 
 void ACharVR::UpdateHeadCollision(float DeltaTime)
