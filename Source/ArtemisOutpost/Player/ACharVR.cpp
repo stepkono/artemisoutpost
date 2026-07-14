@@ -8,7 +8,9 @@
 #include "IXRTrackingSystem.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
+#include "ArtemisOutpost/Miscellaneous/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 
 
@@ -35,7 +37,7 @@ void ACharVR::BeginPlay()
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
 	// will no-op and NotifyControllerChanged will apply it once we actually become locally controlled.
-	InitVRComponents();
+	InitComponentsFromBP();
 	ApplyLocalVRSetup();
 
 	// VR-moon tileset caching is client-only (used to show/hide the player's view).
@@ -70,20 +72,42 @@ void ACharVR::BeginPlay()
 void ACharVR::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	// ---- VR head/roof collision ----
-	// Runs for the local player's own HMD only (each client owns its head pose). Must run
-	// regardless of net role, so it sits before the client-only probe's early return below.
-	if (IsLocallyControlled() && UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
+	
+	// Only the pawn that set up the local VR view manages the GLOBAL XR base orientation.
+	// bLocalVRSetupApplied is true ONLY for our own HMD pawn (set in ApplyLocalVRSetup) and stays
+	// true across possess/unpossess. This is what keeps a remote player's proxy ACharVR — which also
+	// ticks on this machine, with bIsPossessed=false — from calling ResetXRBaseOrientation and
+	// flattening OUR horizon. It also works whether or not our pawn is still engine-possessed in AR
+	// (IsLocallyControlled() would go false there and be indistinguishable from a remote proxy).
+	if (!bLocalVRSetupApplied)
 	{
-		UpdateVRViewTilt();
-		UpdateHeadCollision(DeltaTime);
+		return;
 	}
-
-	// TEMP diagnostic: only for our own pawn, throttled to ~1 Hz.
-	if (IsLocallyControlled())
+	
+	if (bIsPossessed)
 	{
+		// VR mode: tilt the horizon to the surface and keep the body under the HMD.
+		bXRBaseIsReset = false;
+		UpdateVRViewTilt();
+		UpdateCapsuleFollowsHMD();
+		// NOTE: UpdateHeadCollision is temporarily not called — it re-homes VROrigin's full relative
+		// location every frame, which would fight UpdateCapsuleFollowsHMD's horizontal offset. Roof
+		// avoidance needs to be folded into the capsule-follow step before re-enabling.
+
+		// TEMP diagnostic, throttled to ~1 Hz.
 		LogVRTransforms(DeltaTime);
+	}
+	else if (!bXRBaseIsReset)
+	{
+		// Switched out of VR (AR): clear our tilt exactly once per transition.
+		if (UGameInstance* GameInst = GetGameInstance())
+		{
+			if (UXRUtilsSubsystem* XRUtils = GameInst->GetSubsystem<UXRUtilsSubsystem>())
+			{
+				XRUtils->ResetXRBaseOrientation();
+			}
+		}
+		bXRBaseIsReset = true;
 	}
 }
 
@@ -118,12 +142,14 @@ void ACharVR::NotifyControllerChanged()
 		if (CurrentController == nullptr)
 		{
 			UE_LOG(LogTemp, Log, TEXT("ACharVR: UNPOSSESSED"));
+			//GetWorld()->GetGameInstance()->GetSubsystem<UXRUtilsSubsystem>()->ResetXRBaseOrientation();
 			//VRTileSet->SetActorHiddenInGame(true);
 		}
 		//POSSESSED
 		else
 		{
 			UE_LOG(LogTemp, Log, TEXT("ACharVR: POSSESSED"));
+			UE_LOG(LogTemp, Log, TEXT("ACharVR [CLIENT]: ACharVR Character Position: %s"), *GetActorLocation().ToString());
 			//VRTileSet->SetActorHiddenInGame(false);
 		}		
 	}
@@ -156,7 +182,7 @@ void ACharVR::SetGeoRefsManager(AGeoRefsManager* InManager)
 	GeoRefsManager = InManager;
 }
 
-void ACharVR::InitVRComponents()
+void ACharVR::InitComponentsFromBP()
 {
 	// Find the rig components authored on BP_VRChar by their tags. Done by tag (rather than
 	// CreateDefaultSubobject in C++) because the components live in the Blueprint child.
@@ -175,6 +201,10 @@ void ACharVR::InitVRComponents()
 		{
 			CachedVRCamera = Cast<UCameraComponent>(Comp);
 		}
+		if (!SkeletalMesh && Comp->ComponentHasTag(FName("Skeletal")))
+		{
+			SkeletalMesh = Cast<USkeletalMeshComponent>(Comp);
+		}
 	}
 
 	if (!CachedVROrigin)
@@ -187,6 +217,10 @@ void ACharVR::InitVRComponents()
 	{
 		UE_LOG(LogTemp, Error, TEXT("ACharVR: No UCameraComponent tagged '%s' (VR camera) found on %s."),
 			*VRCameraTag.ToString(), *GetName());
+	}
+	if (!SkeletalMesh)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ACharVR: No USkeletalMeshComponent tagged '%s' found on %s"), *FString("Skeletal"), *GetName());
 	}
 
 	// NOTE: The VR stereo view is rendered by the XR system from a tracking space whose ROTATION is
@@ -225,10 +259,24 @@ void ACharVR::ApplyLocalVRSetup()
 		return;
 	}
 
+	// Floor-relative rig: VROrigin at the feet, floor-level HMD tracking. The camera is therefore at
+	// the player's real head height above the ground, and sitting down / standing up both read
+	// naturally (the HMD height changes, the camera follows). The player's real height maps 1:1, so
+	// the mannequin should be sized to roughly the player's standing height for the eyeline to match.
+	VROriginBaseZ = -GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	CachedVROrigin->SetRelativeLocation(FVector(0.0f, 0.0f, VROriginBaseZ));
 
-	// Floor-level tracking: HMD pose is reported relative to the physical floor, so the player
-	// can walk/lean/crouch within their play space and the camera mirrors it 1:1.
+	// Keep the VR rig WORLD-ALIGNED in rotation. The capsule is tilted to the surface normal (for
+	// the body mesh + gravity), and VROrigin would normally inherit that tilt. But the horizon fix
+	// already tilts the whole tracking space via SetBaseOrientation — so an additionally-tilted
+	// VROrigin double-rotates the HMD position offset and drops the camera below the feet
+	// (measured: HeightAlongUp ≈ -86 instead of +120). Absolute rotation makes VROrigin ignore the
+	// capsule tilt for ROTATION, while its relative LOCATION still follows the capsule (location
+	// stays parent-relative). Net: base orientation applies the tilt exactly once, so the camera
+	// lands at the intended height along the surface normal.
+	CachedVROrigin->SetUsingAbsoluteRotation(true);
+	CachedVROrigin->SetWorldRotation(FRotator::ZeroRotator);
+
 	UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::LocalFloor);
 
 	bLocalVRSetupApplied = true;
@@ -267,6 +315,40 @@ void ACharVR::UpdateVRViewTilt()
 	}
 
 	GEngine->XRSystem->SetBaseOrientation(TiltQ);
+}
+
+void ACharVR::UpdateCapsuleFollowsHMD()
+{
+	if (!bLocalVRSetupApplied || !CachedVROrigin || !CachedVRCamera)
+	{
+		return;
+	}
+
+	// How far the HMD/camera has physically drifted from the capsule centre, measured in the surface
+	// tangent plane (perpendicular to the moon-up axis). This is the horizontal "you walked away from
+	// your body" component — vertical head movement (sit/stand/crouch) is intentionally left alone.
+	const FVector Up        = GetActorUpVector();
+	const FVector CamWorld   = CachedVRCamera->GetComponentLocation();
+	const FVector Delta      = CamWorld - GetActorLocation();
+	const FVector HorizOffset = Delta - FVector::DotProduct(Delta, Up) * Up;
+
+	if (HorizOffset.SizeSquared() < KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	// Slide the capsule under the camera (sweep so the body collides with the world), then slide the
+	// VR origin back by the same amount so the CAMERA does not move in the world — only the body
+	// catches up. Net: you can never physically walk out of your capsule; walking moves the whole
+	// character, and thumbstick locomotion (which moves the actor) carries the camera with it.
+	//
+	// NOTE: this is the minimal version. Known follow-ups if needed: (1) on a swept collision the
+	// capsule moves less than HorizOffset, so counter-sliding by the full amount pushes the view back
+	// slightly — for wall-stop comfort, counter-slide by the ACTUAL moved delta instead; (2) networked
+	// room-scale movement / head-through-wall fade are handled robustly by VRExpansion if this proves
+	// insufficient.
+	AddActorWorldOffset(HorizOffset, /*bSweep=*/true);
+	CachedVROrigin->AddWorldOffset(-HorizOffset);
 }
 
 void ACharVR::LogVRTransforms(float DeltaTime)
@@ -314,6 +396,33 @@ void ACharVR::LogVRTransforms(float DeltaTime)
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VRCamera = NULL (tag not resolved)"));
+	}
+
+	// 3b) WORLD POSITIONS. The camera should sit ~real-head-height ABOVE the feet ALONG the surface
+	//     normal. HeightAlongUp = (camera - VROrigin) . SurfaceUp — expect roughly +120 (cm). If it's
+	//     negative or tiny, the head offset is being placed in the wrong direction (e.g. the base
+	//     orientation rotated the up-offset downward), which drops the camera below the legs.
+	if (CachedVROrigin && CachedVRCamera)
+	{
+		const FVector ActorLoc  = GetActorLocation();
+		const FVector OriginLoc = CachedVROrigin->GetComponentLocation();
+		const FVector CamLoc    = CachedVRCamera->GetComponentLocation();
+		const FVector SurfUp    = GetActorUpVector();
+		const float   HeightAlongUp = FVector::DotProduct(CamLoc - OriginLoc, SurfUp);
+		UE_LOG(LogTemp, Warning, TEXT("[VRXform] Pos  Actor=%s  VROrigin(feet)=%s  VRCamera=%s  HeightAlongUp=%.1f"),
+			*V(ActorLoc), *V(OriginLoc), *V(CamLoc), HeightAlongUp);
+
+		// Mannequin scale check: how far the mesh's 'head' bone sits ABOVE the feet, along the surface
+		// normal. Compare to HeightAlongUp (your real eye height). If the mesh head is much larger
+		// (e.g. 230+), the mannequin is oversized and no room-scale height will reach its eyes.
+		if (USkeletalMeshComponent* BodyMesh = GetMesh())
+		{
+			const FVector FeetW    = OriginLoc; // VROrigin is at the feet
+			const FVector HeadBoneW = BodyMesh->GetSocketLocation(TEXT("head"));
+			const float   MeshHeadAboveFeet = FVector::DotProduct(HeadBoneW - FeetW, SurfUp);
+			UE_LOG(LogTemp, Warning, TEXT("[VRXform] MeshHeadAboveFeet=%.1f  (compare to your HeightAlongUp=%.1f; capsuleHalfHeight=%.1f)"),
+				MeshHeadAboveFeet, HeightAlongUp, GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f);
+		}
 	}
 
 	// 4) Raw HMD pose (tracking space). This is what the runtime reports before the parent transform
@@ -379,4 +488,9 @@ void ACharVR::UpdateHeadCollision(float DeltaTime)
 	// Smooth the offset so the view eases under obstructions rather than snapping (comfort).
 	CurrentHeadCollisionPush = FMath::FInterpTo(CurrentHeadCollisionPush, DesiredPush, DeltaTime, HeadCollisionInterpSpeed);
 	CachedVROrigin->SetRelativeLocation(FVector(0.0f, 0.0f, VROriginBaseZ - CurrentHeadCollisionPush));
+}
+
+void ACharVR::SetIsPossessed(const bool InIsPossessed)
+{
+	bIsPossessed = InIsPossessed;
 }

@@ -29,6 +29,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "GeoRefsManager")
 	void SetGeoRefsManager(AGeoRefsManager* InManager);
+	
+	UFUNCTION(BlueprintCallable, Category = "Possession")
+	void SetIsPossessed(const bool InIsPossessed); 
 
 protected:
 	// Called when the game starts or when spawned
@@ -83,12 +86,15 @@ protected:
 	// How quickly the push-down offset eases in/out. Higher = snappier, lower = smoother
 	UPROPERTY(EditDefaultsOnly, Category = "VR|Head Collision", meta = (ClampMin = "0.0"))
 	float HeadCollisionInterpSpeed = 15.0f;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Possession")
+	bool bIsPossessed = false;
 
 private:
 	// Resolves VROrigin/VRCamera (by tag), caches them, locks the camera to the HMD and computes
 	// the feet-level origin offset. Safe on every instance (server/proxy/local) — does NOT touch
 	// the global HMD tracking origin. Call once in BeginPlay.
-	void InitVRComponents();
+	void InitComponentsFromBP();
 
 	// The local-player-only part of the VR setup: re-homes VROrigin to the feet and switches the
 	// HMD to floor-level tracking. Guarded by IsLocallyControlled() + HMD and a one-shot flag, so
@@ -106,6 +112,11 @@ private:
 	// the camera component orientation (see bAlignVRViewToSurface). Local + HMD only.
 	void UpdateVRViewTilt();
 
+	// Slides the capsule under the HMD every frame (and counter-slides the VR origin so the view
+	// doesn't jump) so the player can never physically walk out of their own body. This is what
+	// turns a free-floating VR camera into an actual VR character. Local + HMD only.
+	void UpdateCapsuleFollowsHMD();
+
 	// Per-frame roof/ceiling avoidance for the HMD view. Local + HMD only.
 	void UpdateHeadCollision(float DeltaTime);
 
@@ -117,12 +128,18 @@ private:
 
 	UPROPERTY()
 	ACesium3DTileset* VRTileSet;
+	
+	UPROPERTY()
+	USkeletalMeshComponent* SkeletalMesh;
 
 	// VR rig, resolved from BP_VRChar by tag in BeginPlay.
 	// NOTE: deliberately NOT named VROrigin/VRCamera — those names belong to the components
 	// authored in BP_VRChar, and matching them would collide with the generated BP properties.
 	UPROPERTY(Transient)
 	USceneComponent* CachedVROrigin = nullptr;
+	
+	UPROPERTY()
+	bool bXRBaseIsReset = false; 
 
 	UPROPERTY(Transient)
 	class UCameraComponent* CachedVRCamera = nullptr;

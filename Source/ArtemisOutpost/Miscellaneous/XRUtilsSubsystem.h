@@ -36,12 +36,15 @@ public:
 	void SetXRTransform(FTransform TrackingToWorldTransform);
 	
 	UFUNCTION()
-	void InitXRTRansform(); 
+	void InitXRTRansform();
+	
+	UFUNCTION(BlueprintCallable, Category = "XR Tracking Space")
+	void ResetXRBaseOrientation();
 
 public:
 	UPROPERTY(BlueprintReadOnly)
 	FTransform XRTransform;
-
+	
 private:
 	UPROPERTY()
 	float XRScaleFactor = 1;

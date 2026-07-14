@@ -4,6 +4,7 @@
 #include "PawnAR.h"
 #include "Cesium3DTileset.h"
 #include "EngineUtils.h"
+#include "ArtemisOutpost/Miscellaneous/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 
 
@@ -12,13 +13,12 @@ APawnAR::APawnAR()
 {
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bAlwaysRelevant = true; 
 }
 
 // Called when the game starts or when spawned
 void APawnAR::BeginPlay()
 {
-	
-	
 	Super::BeginPlay();
 	
 	UE_LOG(LogTemp, Display, TEXT("PawnAR: BeginPlay()"));
@@ -40,7 +40,7 @@ void APawnAR::BeginPlay()
 	
 	// Client-only: AR tileset show/hide + OculusXR anchor sharing. Must NOT run on the
 	// listen-server host (its pawn is also locally controlled, but it has no headset).
-	if (IsLocallyControlled() && ArtemisNet::IsClientContext(GetNetMode()))
+	if (/*IsLocallyControlled() && */ ArtemisNet::IsClientContext(GetNetMode()))
 	{
 		const UWorld* World = GetWorld();
 		if (!World)
@@ -154,12 +154,13 @@ void APawnAR::NotifyControllerChanged()
 		// UNPOSSESSED
 		if (CurrentController == nullptr)
 		{
-			ARTileSet->SetActorHiddenInGame(true);
+			//ARTileSet->SetActorHiddenInGame(true);
 		}
 		//POSSESSED
 		else
 		{
-			ARTileSet->SetActorHiddenInGame(false);
+			//GetWorld()->GetGameInstance()->GetSubsystem<UXRUtilsSubsystem>()->ResetXRBaseOrientation();
+			//ARTileSet->SetActorHiddenInGame(false);
 		}		
 	}
 }

@@ -57,3 +57,15 @@ void UXRUtilsSubsystem::InitXRTRansform()
 	XRTransform = UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(GetWorld());
 	// IXRTrackingSystem::GetTrackingToWorldTransform()
 }
+
+void UXRUtilsSubsystem::ResetXRBaseOrientation()
+{
+	if (GEngine && GEngine->XRSystem.IsValid())
+	{
+		GEngine->XRSystem->SetBaseOrientation(FQuat::Identity);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("XRUtilsSubsystem: Unable to retrieve GEngine or GEngine->XRSystem. The XRBaseOrientation won't be set to default."))
+	}
+}
