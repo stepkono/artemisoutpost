@@ -9,6 +9,8 @@
 #include "GameFramework/GameState.h"
 #include "ArtemisGameState.generated.h"
 
+class UMoonDataManager;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnchorsUpdated, const FOrderedAnchors&, RawAnchors); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FControlCommandReceived, FControlCommand&, Command);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMapCoordinatesReceived, FMapBaseCoordinates&, MapBaseCoordinates);
@@ -19,6 +21,7 @@ class ARTEMISOUTPOST_API AArtemisGameState : public AGameStateBase
 	GENERATED_BODY()
 	
 public:
+	AArtemisGameState(); 
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -62,6 +65,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rover Controls")
 	FControlCommandReceived OnControlCommandReceived;
 	FMapCoordinatesReceived OnMapCoordinatesReceived;
+	
+protected:
+	UPROPERTY()
+	UMoonDataManager* MoonDataManager;
 	
 private: 
 	UPROPERTY(ReplicatedUsing=OnRep_RawAnchors)

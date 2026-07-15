@@ -2,10 +2,17 @@
 
 
 #include "ArtemisGameState.h"
+
+#include "ArtemisOutpost/Moon/MoonData/MoonDataManager.h"
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 
 static const FString AnchorSaveSlot = TEXT("ArtemisAnchorSave");
+
+AArtemisGameState::AArtemisGameState()
+{
+	MoonDataManager = CreateDefaultSubobject<UMoonDataManager>(TEXT("MoonDataManager"));
+}
 
 void AArtemisGameState::BeginPlay()
 {
