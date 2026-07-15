@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DataTypes.h"
 #include "DataTypes.generated.h"
 
 class ACharVR;
@@ -136,12 +137,62 @@ struct FArtemisPlayer
 };
 
 UENUM(BlueprintType)
+enum EBuildingType
+{
+	NoneBuilding UMETA(DisplayName = "None"),
+	SOLAR_PANEL UMETA(DisplayName = "Solar Panel"),
+	HABITAT UMETA(DisplayName = "Habitat"),
+};
+
+UENUM(BlueprintType)
+enum ERessourceType
+{
+	NoneRessource UMETA(DisplayName = "None"), 
+	REGOLITH UMETA(DisplayName = "Regular"),
+};
+
+USTRUCT(BlueprintType)
+struct FAreaScan
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	FVector GeoPosition; 
+	
+	UPROPERTY(BlueprintReadWrite)
+	FArtemisPlayer Authorship; 
+};
+
+USTRUCT(BlueprintType)
+struct FBuilding
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	TEnumAsByte<EBuildingType> BuildingType;
+};
+
+USTRUCT(BlueprintType)
+struct FPositionMetaData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsExplored = false; 
+	
+	UPROPERTY(BlueprintReadWrite)
+	TEnumAsByte<ERessourceType> RessourceType = ERessourceType::NoneRessource;
+	
+	UPROPERTY(BlueprintReadWrite)
+	TEnumAsByte<EBuildingType> BuildingType = EBuildingType::NoneBuilding;	
+};
+
+UENUM(BlueprintType)
 enum EXRMode
 {
 	VR UMETA(DisplayName = "VR"),
 	AR UMETA(DisplayName = "AR"),
 };
-
 
 /**
  * 
