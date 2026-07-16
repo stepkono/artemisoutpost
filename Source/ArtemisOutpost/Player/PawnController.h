@@ -32,6 +32,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player ID")
 	FString GetPlayerUPID() const;
 
+	// Client -> server entry point for adding an area scan. The GameState (which owns MoonDataManager)
+	// is server-owned, so a client Server RPC must originate on this client-owned PlayerController.
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Area Scan")
+	void ServerAddAreaScan(FAreaScan Scan);
+
 	// Set server-side from the ?UPID= login option (see AServerGameMode::InitNewPlayer). The client
 	// sets its own UPID from the save/GameInstance in BeginPlay.
 	void SetUPID(const FString& InUPID);

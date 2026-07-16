@@ -14,6 +14,7 @@
 #include "Miscellaneous/GeoUtils.h"
 #include "Miscellaneous/XRUtilsSubsystem.h"
 #include "Moon/MapCutoutManager.h"
+#include "Moon/MoonData/MoonDataManager.h"
 
 #pragma region Constructors
 void UTransformationsManager::OnWorldBeginPlay(UWorld& InWorld)
@@ -158,6 +159,8 @@ void UTransformationsManager::Tick(float DeltaTime)
 		if (bAnchorMoved)
 		{
 			RecalibrateFromAnchors();
+			// Re-localization moved the moon -> the fog's scan world positions must follow.
+			RefreshFogTexture();
 		}
 		return;
 	}
@@ -232,8 +235,12 @@ void UTransformationsManager::Tick(float DeltaTime)
 	{
 		bNewTransformAvailable = false;
 	}
+
+	// The moon transform changed this frame (rotation / scale-commit / position) -> re-push scan
+	// world positions into the fog texture so the fog stays glued to the surface during the transform.
+	RefreshFogTexture();
 }
-#pragma endregion 
+#pragma endregion
 
 #pragma region Initialization 
 void UTransformationsManager::InitConstants(const FVector &InTableCenter, const FVector &InTableNormal)
@@ -248,8 +255,11 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	
 	if (AArtemisGameState* GameState = Cast<AArtemisGameState>(World->GetGameState()))
 	{
-		GS = GameState; 
+		GS = GameState;
 		GS->OnMapCoordinatesReceived.AddDynamic(this, &UTransformationsManager::OnNewBaseCoordinates);
+		MoonDataManager = GS->FindComponentByClass<UMoonDataManager>();
+		UE_LOG(LogTemp, Warning, TEXT("[TransformationsManager] MoonDataManager resolved: %s"),
+			MoonDataManager ? TEXT("OK") : TEXT("NULL"));
 	}
 	else
 	{
@@ -447,9 +457,23 @@ void UTransformationsManager::ProcessBaseCoordinates_GameThread()
 	}
 	
 	// Release the gaming thread
-	bProcessingTask.Store(false); 
+	bProcessingTask.Store(false);
 }
-#pragma endregion 
+
+void UTransformationsManager::RefreshFogTexture()
+{
+	// Lazy-resolve in case InitConstants ran before the GameState's component was registered.
+	if (!MoonDataManager && GS)
+	{
+		MoonDataManager = GS->FindComponentByClass<UMoonDataManager>();
+	}
+
+	if (MoonDataManager)
+	{
+		MoonDataManager->UpdateFogOfWarTexture();
+	}
+}
+#pragma endregion
 
 #pragma region ROTATION
 /*---------------MOON ROTATION---------------*/

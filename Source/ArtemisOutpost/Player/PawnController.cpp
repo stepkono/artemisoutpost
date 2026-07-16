@@ -2,8 +2,11 @@
 
 
 #include "PawnController.h"
+
+#include "ArtemisOutpost/Moon/MoonData/MoonDataManager.h"
 #include "Net/UnrealNetwork.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
+#include "ArtemisOutpost/GameData/ArtemisGameState.h"
 
 void APawnController::BeginPlay()
 {
@@ -106,4 +109,24 @@ TEnumAsByte<EXRMode> APawnController::GetXRMode() const
 FString APawnController::GetPlayerUPID() const
 {
 	return UPID;
+}
+
+void APawnController::ServerAddAreaScan_Implementation(FAreaScan Scan)
+{
+	// Runs on the server. Forward to the authoritative MoonDataManager on the GameState.
+	AArtemisGameState* AGS = GetWorld() ? GetWorld()->GetGameState<AArtemisGameState>() : nullptr;
+	if (!AGS)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[PawnController] ServerAddAreaScan: GameState is not AArtemisGameState."));
+		return;
+	}
+
+	UMoonDataManager* MDM = AGS->FindComponentByClass<UMoonDataManager>();
+	if (!MDM)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[PawnController] ServerAddAreaScan: No MoonDataManager on GameState."));
+		return;
+	}
+
+	MDM->AddNewAreaScan(Scan);
 }

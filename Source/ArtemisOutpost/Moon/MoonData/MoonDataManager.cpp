@@ -6,6 +6,8 @@
 #include "EngineUtils.h"
 #include "ArtemisOutpost/Cesium/GeoRefsManager.h"
 #include "ArtemisOutpost/Miscellaneous/ConstantSettings.h"
+#include "ArtemisOutpost/Moon/MoonTexturer.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "Net/UnrealNetwork.h"
 
 namespace
@@ -56,10 +58,43 @@ void UMoonDataManager::BeginPlay()
 	
 	if (!GeoRefsManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MoonDataManager: Failed to get GeoRefsManager.")); 
+		UE_LOG(LogTemp, Error, TEXT("MoonDataManager: Failed to get GeoRefsManager."));
+	}
+
+	const bool bClientCtx = ArtemisNet::IsClientContext(GetNetMode());
+	UE_LOG(LogTemp, Warning, TEXT("[MoonDataManager] BeginPlay: NetMode=%d, IsClientContext=%d, GeoRefsManager=%s"),
+		(int32)GetNetMode(), bClientCtx ? 1 : 0, GeoRefsManager ? TEXT("OK") : TEXT("NULL"));
+
+	// Setup moon the texturing only on clients
+	if (bClientCtx)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			for (TActorIterator<ACesium3DTileset> It(World); It; ++It)
+			{
+				if (It->ActorHasTag(FName("AR_TILESET")))
+				{
+					ARMoonTileSet = *It;
+				}
+			}
+		}
+		if (!ARMoonTileSet)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[MoonDataManager] Failed to get AR_Tileset (no actor tagged 'AR_TILESET'). Aborting."));
+			return;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[MoonDataManager] Found AR_TILESET: %s"), *ARMoonTileSet->GetName());
+
+		// The tileset owns the texture/material via its MoonTexturer component; we only push data to it.
+		MoonTexturer = ARMoonTileSet->FindComponentByClass<UMoonTexturer>();
+		UE_LOG(LogTemp, Warning, TEXT("[MoonDataManager] MoonTexturer on AR_TILESET: %s"),
+			MoonTexturer ? TEXT("FOUND") : TEXT("NULL"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MoonDataManager] Not a client context -> fog texturer not resolved."));
 	}
 }
-
 
 // Called every frame
 void UMoonDataManager::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -70,8 +105,9 @@ void UMoonDataManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	// ...
 }
 
-void UMoonDataManager::AddNewAreaScan_Implementation(FAreaScan AreaScan)
+void UMoonDataManager::AddNewAreaScan(FAreaScan AreaScan)
 {
+	// Server-authoritative. The append replicates AreaScans -> clients run OnRep_UpdateForOfWar.
 	AreaScans.Add(AreaScan);
 }
 
@@ -123,5 +159,47 @@ bool UMoonDataManager::IsPositionExploredARMoon(FVector& GeoPosition, bool bForA
 
 void UMoonDataManager::OnRep_UpdateForOfWar()
 {
-	
+	// A new scan arrived from the server -> refresh what the client renders.
+	UE_LOG(LogTemp, Log, TEXT("sdkjhsfdkhjsfdkhjsfdkhjlsfdhjksdf"));
+	UpdateFogOfWarTexture();
 }
+
+void UMoonDataManager::UpdateFogOfWarTexture()
+{
+	if (!MoonTexturer || !GeoRefsManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MoonDataManager] UpdateFogOfWarTexture skipped: MoonTexturer=%s, GeoRefsManager=%s"),
+			MoonTexturer ? TEXT("OK") : TEXT("NULL"), GeoRefsManager ? TEXT("OK") : TEXT("NULL"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[MoonDataManager] UpdateFogOfWarTexture: %d scans"), AreaScans.Num());
+
+	TArray<FLinearColor> ScanPixels;
+	ScanPixels.Reserve(AreaScans.Num());
+
+	for (const FAreaScan& AreaScan : AreaScans)
+	{
+		// Current AR-moon world position of the scan center (reflects the moon's live transform).
+		const FVector ScanCenterWorld = GeoRefsManager->ARMoonCoordsToUECoords(AreaScan.GeoPosition);
+
+		// RGB = world position, A = scan radius. The material mirrors IsPositionExploredARMoon:
+		// dist(AbsoluteWorldPosition, ScanCenterWorld) - radius, folded with SmoothMin.
+		ScanPixels.Add(FLinearColor(
+			static_cast<float>(ScanCenterWorld.X),
+			static_cast<float>(ScanCenterWorld.Y),
+			static_cast<float>(ScanCenterWorld.Z),
+			UConstantSettings::ScanningRadius));
+	}
+
+	if (ScanPixels.Num() > 0)
+	{
+		const FVector P(ScanPixels[0].R, ScanPixels[0].G, ScanPixels[0].B);
+		UE_LOG(LogTemp, Warning, TEXT("[MoonDataManager] Scan[0] world=%s |pos|=%.0f radius=%.2f"),
+			*P.ToString(), P.Size(), ScanPixels[0].A);
+	}
+
+	MoonTexturer->ApplyScanData(ScanPixels);
+}
+
+

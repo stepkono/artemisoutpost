@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DataTypes.h"
 #include "DataTypes.generated.h"
 
 class ACharVR;

@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnchorsUpdated, const FOrderedAnc
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FControlCommandReceived, FControlCommand&, Command);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMapCoordinatesReceived, FMapBaseCoordinates&, MapBaseCoordinates);
 
-UCLASS()
+UCLASS(Blueprintable)
 class ARTEMISOUTPOST_API AArtemisGameState : public AGameStateBase
 {
 	GENERATED_BODY()
@@ -40,6 +40,9 @@ public:
 
 	UFUNCTION()
 	void WriteControlCommand(const FControlCommand& Command);
+	
+	UFUNCTION(BlueprintCallable, Category = "Moon Data")
+	UMoonDataManager* GetMoonDataManager() const { return MoonDataManager; }
 
 	/**
 	 * Attempts to load anchor UUIDs saved from a previous session.
@@ -66,11 +69,10 @@ public:
 	FControlCommandReceived OnControlCommandReceived;
 	FMapCoordinatesReceived OnMapCoordinatesReceived;
 	
-protected:
+private: 
 	UPROPERTY()
 	UMoonDataManager* MoonDataManager;
 	
-private: 
 	UPROPERTY(ReplicatedUsing=OnRep_RawAnchors)
 	FOrderedAnchors RawAnchors;
 
