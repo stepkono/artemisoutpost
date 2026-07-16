@@ -2,7 +2,6 @@
 
 
 #include "ArtemisGameState.h"
-
 #include "ArtemisOutpost/Moon/MoonData/MoonDataManager.h"
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"

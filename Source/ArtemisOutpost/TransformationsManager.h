@@ -14,6 +14,8 @@
 #include "Player/PawnController.h"
 #include "TransformationsManager.generated.h"
 
+class UMoonDataManager;
+
 // Broadcast on the frame the spatial anchors have adopted a new WorldToMeters scale (zoom) or were
 // re-seeded from a re-localization — i.e. whenever their world positions changed and any cutout
 // material driven by those positions must be re-pushed.
@@ -108,10 +110,10 @@ private:
 	void ProcessBaseCoordinates_GameThread();
 	
 	UFUNCTION()
-	FVector CoordinatesToVector(const FCoordinates Coordinates) const; 
-	
-	//UFUNCTION()
-	//void UpdateCutout() const; 
+	FVector CoordinatesToVector(const FCoordinates Coordinates) const;
+
+	// Pushes the current moon transform into the fog-of-war texture (scan world positions move with the moon).
+	void RefreshFogTexture();
 #pragma endregion
 	
 #pragma region Rotation
@@ -196,6 +198,9 @@ private:
 #pragma region Objects
 	UPROPERTY()
 	ACesiumGeoreference* ARGeoRef;
+
+	UPROPERTY()
+	UMoonDataManager* MoonDataManager;
 
 	UPROPERTY()
 	UXRUtilsSubsystem* XRUtils;
