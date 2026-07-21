@@ -33,6 +33,8 @@ ACharVR::ACharVR()
 void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
@@ -72,7 +74,12 @@ void ACharVR::BeginPlay()
 void ACharVR::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
+	// TEMP diagnostic — runs on EVERY instance, in both possessed/unpossessed states and even
+	// before local setup, so we can see the real state during the "outside the body" repro
+	// (which system is moving the rig, and where the capsule/origin/camera actually end up).
+	LogVRTransforms(DeltaTime);
+
 	// Only the pawn that set up the local VR view manages the GLOBAL XR base orientation.
 	// bLocalVRSetupApplied is true ONLY for our own HMD pawn (set in ApplyLocalVRSetup) and stays
 	// true across possess/unpossess. This is what keeps a remote player's proxy ACharVR — which also
@@ -93,9 +100,6 @@ void ACharVR::Tick(float DeltaTime)
 		// NOTE: UpdateHeadCollision is temporarily not called — it re-homes VROrigin's full relative
 		// location every frame, which would fight UpdateCapsuleFollowsHMD's horizontal offset. Roof
 		// avoidance needs to be folded into the capsule-follow step before re-enabling.
-
-		// TEMP diagnostic, throttled to ~1 Hz.
-		LogVRTransforms(DeltaTime);
 	}
 	else if (!bXRBaseIsReset)
 	{
@@ -364,6 +368,13 @@ void ACharVR::LogVRTransforms(float DeltaTime)
 	auto V = [](const FVector& X) { return FString::Printf(TEXT("(%.3f, %.3f, %.3f)"), X.X, X.Y, X.Z); };
 	auto R = [](const FRotator& X) { return FString::Printf(TEXT("P=%.1f Y=%.1f R=%.1f"), X.Pitch, X.Yaw, X.Roll); };
 
+	// 0) Which instance is this and which branch of Tick is it taking? Tells us whether the C++ VR
+	//    logic is even active here (bIsPossessed / bLocalVRSetupApplied) vs. everything being driven
+	//    by the Blueprint OffsetActorToHMD / ScaleCapsuleToHMD instead.
+	UE_LOG(LogTemp, Warning, TEXT("[VRXform] STATE %s  bIsPossessed=%d  bLocalVRSetupApplied=%d  IsLocallyControlled=%d  LocalRole=%d  NetMode=%d"),
+		*GetName(), bIsPossessed ? 1 : 0, bLocalVRSetupApplied ? 1 : 0, IsLocallyControlled() ? 1 : 0,
+		(int32)GetLocalRole(), (int32)GetNetMode());
+
 	// 1) The actor (capsule root). If the rig were rotated to the surface normal, ActorUp would be
 	//    the diagonal moon-up vector — NOT (0,0,1). If it prints (0,0,1) the actor is NOT rotated.
 	UE_LOG(LogTemp, Warning, TEXT("[VRXform] ActorRot[%s]  ActorUp=%s"),
@@ -493,4 +504,9 @@ void ACharVR::UpdateHeadCollision(float DeltaTime)
 void ACharVR::SetIsPossessed(const bool InIsPossessed)
 {
 	bIsPossessed = InIsPossessed;
+}
+
+void ACharVR::SetShouldReplicateTransform(bool bReplicateTransform)
+{
+	bShouldReplicateTransform = bReplicateTransform;
 }
