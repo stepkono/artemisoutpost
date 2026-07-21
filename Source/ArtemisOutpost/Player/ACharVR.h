@@ -31,7 +31,10 @@ public:
 	void SetGeoRefsManager(AGeoRefsManager* InManager);
 	
 	UFUNCTION(BlueprintCallable, Category = "Possession")
-	void SetIsPossessed(const bool InIsPossessed); 
+	void SetIsPossessed(const bool InIsPossessed);
+	
+	UFUNCTION(BlueprintCallable, Category = "Replication")
+	void SetShouldReplicateTransform(bool bReplicateTransform);
 
 protected:
 	// Called when the game starts or when spawned
@@ -120,6 +123,14 @@ private:
 	// Per-frame roof/ceiling avoidance for the HMD view. Local + HMD only.
 	void UpdateHeadCollision(float DeltaTime);
 
+protected:
+	UPROPERTY(BlueprintReadWrite, Category = "Player Height")
+	float Height = 180;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Replication")
+	bool bShouldReplicateTransform = false;
+	
+private:
 	// One-shot guard so the local floor/origin setup is applied exactly once.
 	bool bLocalVRSetupApplied = false;
 
@@ -130,7 +141,7 @@ private:
 	ACesium3DTileset* VRTileSet;
 	
 	UPROPERTY()
-	USkeletalMeshComponent* SkeletalMesh;
+	USkeletalMeshComponent* SkeletalMesh; 
 
 	// VR rig, resolved from BP_VRChar by tag in BeginPlay.
 	// NOTE: deliberately NOT named VROrigin/VRCamera — those names belong to the components
