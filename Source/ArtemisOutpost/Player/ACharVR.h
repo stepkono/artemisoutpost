@@ -51,7 +51,7 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "GeoRefsManager")
 	AGeoRefsManager* GeoRefsManager;
-
+	
 	// ---- VR component tags (must match the tags set on the components in BP_VRChar) ----
 	UPROPERTY(EditDefaultsOnly, Category = "VR")
 	FName VROriginTag = TEXT("VR_Origin");
