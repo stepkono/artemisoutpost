@@ -7,6 +7,17 @@
 #include "Net/UnrealNetwork.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
+#include "ArtemisOutpost/Player/MiniGameInteraction/MinigameClientComponent.h"
+
+APawnController::APawnController()
+{
+	MinigameClient = CreateDefaultSubobject<UMinigameClientComponent>(TEXT("MinigameClient"));
+}
+
+UMinigameClientComponent* APawnController::GetMinigameClient() const
+{
+	return MinigameClient;
+}
 
 void APawnController::BeginPlay()
 {

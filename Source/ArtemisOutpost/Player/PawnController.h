@@ -9,15 +9,19 @@
 #include "Rover/AMasterRover.h"
 #include "PawnController.generated.h"
 
+class UMinigameClientComponent;
+
 /**
- * 
+ *
  */
 UCLASS()
 class ARTEMISOUTPOST_API APawnController : public APlayerController
 {
 	GENERATED_BODY()
-	
-public: 
+
+public:
+	APawnController();
+
 	UFUNCTION(BlueprintCallable, Category = "AR/VR Pawns")
 	void InitializePawns(ACharVR* InVRChar,  AMasterRover* InMasterRover); 
 	
@@ -36,6 +40,10 @@ public:
 	// is server-owned, so a client Server RPC must originate on this client-owned PlayerController.
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Area Scan")
 	void ServerAddAreaScan(FAreaScan Scan);
+
+	// The minigame RPC transport. Lives in its own component (§9) so the controller stays lean.
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	UMinigameClientComponent* GetMinigameClient() const;
 
 	// Set server-side from the ?UPID= login option (see AServerGameMode::InitNewPlayer). The client
 	// sets its own UPID from the save/GameInstance in BeginPlay.
@@ -68,5 +76,8 @@ protected:
 	TEnumAsByte<EXRMode> CurrentXRMode = EXRMode::AR;
 	
 	UPROPERTY(BlueprintReadWrite, Category = "XR Mode")
-	float CachedWTMValue = 100; 
+	float CachedWTMValue = 100;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Minigame")
+	UMinigameClientComponent* MinigameClient;
 };
