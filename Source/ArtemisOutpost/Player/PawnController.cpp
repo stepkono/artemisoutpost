@@ -7,16 +7,16 @@
 #include "Net/UnrealNetwork.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
-#include "ArtemisOutpost/Player/MiniGameInteraction/MinigameClientComponent.h"
+#include "ArtemisOutpost/Player/MiniGameInteraction/MinigamePlayerController.h"
 
 APawnController::APawnController()
 {
-	MinigameClient = CreateDefaultSubobject<UMinigameClientComponent>(TEXT("MinigameClient"));
+	MinigameController = CreateDefaultSubobject<UMinigamePlayerController>(TEXT("MinigameController"));
 }
 
-UMinigameClientComponent* APawnController::GetMinigameClient() const
+UMinigamePlayerController* APawnController::GetMinigamePlayerController() const
 {
-	return MinigameClient;
+	return MinigameController;
 }
 
 void APawnController::BeginPlay()
@@ -140,4 +140,9 @@ void APawnController::ServerAddAreaScan_Implementation(FAreaScan Scan)
 	}
 
 	MDM->AddNewAreaScan(Scan);
+}
+
+ACharVR* APawnController::GetVRPawn() const
+{
+	return VRPawn;
 }

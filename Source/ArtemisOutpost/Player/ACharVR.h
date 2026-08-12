@@ -130,15 +130,15 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Replication")
 	bool bShouldReplicateTransform = false;
 	
+	UPROPERTY(BlueprintReadOnly, Category = "VR Moon")
+	ACesium3DTileset* VRTileSet;
+	
 private:
 	// One-shot guard so the local floor/origin setup is applied exactly once.
 	bool bLocalVRSetupApplied = false;
 
 	// Accumulator to throttle LogVRTransforms to ~1 Hz.
 	float VRDebugLogTimer = 0.0f;
-
-	UPROPERTY()
-	ACesium3DTileset* VRTileSet;
 	
 	UPROPERTY()
 	USkeletalMeshComponent* SkeletalMesh; 

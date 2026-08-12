@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ArtemisOutpost/Minigame/SignalTower/SignalTowerLogicComponent.h"
+#include "SignalTowerLogicComponent.h"
 
 int32 USignalTowerLogicComponent::GetAxisCount() const
 {

@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArtemisOutpost/Minigame/General/MinigameTypes.h"
 #include "Components/ActorComponent.h"
-#include "ArtemisOutpost/Minigame/MinigameTypes.h"
 #include "MinigameLogicComponent.generated.h"
 
 class UConnectionComponent;
+class UMiniGameUI;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMinigameStateChangedBP);
 
@@ -31,6 +32,11 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	EMinigameState GetState() const;
+
+	// The screen-space View class this minigame opens for a connected local player. Set per game
+	// in the BP defaults (Signal Tower -> WBP_SignalTowerUI).
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	TSubclassOf<UMiniGameUI> GetMiniGameUIClass() const;
 
 	// Single subscription point for bridge/logging/cues. Payload is a JSON snapshot.
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSnapshot, const FString& /*Json*/);
@@ -60,6 +66,9 @@ protected:
 	void SetState(EMinigameState NewState);
 	void PublishSnapshot();
 
+	UPROPERTY(EditAnywhere, Category = "Minigame")
+	TSubclassOf<UMiniGameUI> MiniGameUIClass;
+
 	UPROPERTY(ReplicatedUsing = OnRep_State, BlueprintReadOnly, Category = "Minigame")
 	EMinigameState State = EMinigameState::Idle;
 
@@ -68,6 +77,13 @@ protected:
 
 private:
 	void HandleStateChanged();
+
+	// Opens/closes the local player's screen View when their own membership or the state changes
+	// (runs on every peer; acts only for the local participant). Bound to OnSlotsChanged.
+	UFUNCTION()
+	void RefreshLocalUI();
+
+	bool bLocalUIOpen = false;
 
 	// Bound to the connection: gate joins on CanStart while Idle, allow otherwise.
 	bool HandleCanJoin(const FString& UPID, FText& OutReason);

@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ArtemisOutpost/Connection/ConnectionComponent.h"
+#include "ConnectionComponent.h"
+
+#include "ArtemisOutpost/Minigame/General/MinigameTypes.h"
 #include "Net/UnrealNetwork.h"
 
 UConnectionComponent::UConnectionComponent()
@@ -43,7 +45,6 @@ void UConnectionComponent::ServerRequestJoin(const FString& UPID)
 	ActiveSlots.Add(NewSlot);
 
 	OnParticipantJoined.Broadcast(UPID);
-	OnSlotsChanged.Broadcast();
 }
 
 void UConnectionComponent::ServerRequestLeave(const FString& UPID)
@@ -60,8 +61,8 @@ void UConnectionComponent::ServerRequestLeave(const FString& UPID)
 	}
 
 	ActiveSlots.RemoveAt(Index);
+	
 	OnParticipantLeft.Broadcast(UPID);
-	OnSlotsChanged.Broadcast();
 }
 
 int32 UConnectionComponent::GetMaxSlots() const
@@ -71,7 +72,7 @@ int32 UConnectionComponent::GetMaxSlots() const
 
 int32 UConnectionComponent::GetFreeSlotCount() const
 {
-	return FMath::Max(0, MaxSlots - ActiveSlots.Num());
+	return MaxSlots - ActiveSlots.Num();
 }
 
 int32 UConnectionComponent::GetParticipantCount() const

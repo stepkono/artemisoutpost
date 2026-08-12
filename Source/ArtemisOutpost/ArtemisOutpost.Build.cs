@@ -23,11 +23,14 @@ public class ArtemisOutpost : ModuleRules
 			"Json", 
 			"JsonUtilities",
 			"WebSockets", 
-			"Chaos", 
+			"Chaos",
 			"ChaosVehiclesCore",
 			"ChaosVehicles",
-			"ChaosVehiclesEngine", 
-			"CesiumRuntime"
+			"ChaosVehiclesEngine",
+			"CesiumRuntime",
+			"UMG",
+			"Slate",
+			"SlateCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "XRBase" });

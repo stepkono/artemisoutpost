@@ -51,12 +51,26 @@ struct FAxisState
 	FString OwnerUPID;
 };
 
-// A rotation intent along one axis, sent client -> server as a rate in [-1, 1] (never an
-// absolute value), scaled by speed * dt on the server to stay robust under latency (§9).
+// What an input intent does. Claim/Release manage which participant owns an axis (the
+// axis-selection screen); Rotate turns the owned axis.
+UENUM(BlueprintType)
+enum class EMinigameInputType : uint8
+{
+	ClaimAxis   UMETA(DisplayName = "Claim Axis"),
+	ReleaseAxis UMETA(DisplayName = "Release Axis"),
+	Rotate      UMETA(DisplayName = "Rotate")
+};
+
+// An input intent from a participant, sent client -> server. For Rotate, Delta is a signed
+// angular increment in DEGREES (never an absolute angle), so lost/reordered messages only lose
+// a small step and stay robust under latency (§9). The server clamps it per message.
 USTRUCT(BlueprintType)
 struct FMinigameInput
 {
 	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "Minigame")
+	EMinigameInputType Type = EMinigameInputType::Rotate;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Minigame")
 	int32 AxisIndex = 0;

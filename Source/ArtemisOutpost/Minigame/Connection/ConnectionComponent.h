@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArtemisOutpost/Minigame/General/MinigameTypes.h"
 #include "Components/ActorComponent.h"
-#include "ArtemisOutpost/Minigame/MinigameTypes.h"
 #include "ConnectionComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSlotsChangedBP);

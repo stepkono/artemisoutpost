@@ -9,7 +9,7 @@
 #include "Rover/AMasterRover.h"
 #include "PawnController.generated.h"
 
-class UMinigameClientComponent;
+class UMinigamePlayerController;
 
 /**
  *
@@ -35,15 +35,19 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Player ID")
 	FString GetPlayerUPID() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "AR/VR Pawns")
+	ACharVR* GetVRPawn() const;
 
 	// Client -> server entry point for adding an area scan. The GameState (which owns MoonDataManager)
 	// is server-owned, so a client Server RPC must originate on this client-owned PlayerController.
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Area Scan")
 	void ServerAddAreaScan(FAreaScan Scan);
 
-	// The minigame RPC transport. Lives in its own component (§9) so the controller stays lean.
+	// The per-player minigame controller (transport + screen-UI lifecycle). Its own component
+	// (§9) so this controller stays lean.
 	UFUNCTION(BlueprintPure, Category = "Minigame")
-	UMinigameClientComponent* GetMinigameClient() const;
+	UMinigamePlayerController* GetMinigamePlayerController() const;
 
 	// Set server-side from the ?UPID= login option (see AServerGameMode::InitNewPlayer). The client
 	// sets its own UPID from the save/GameInstance in BeginPlay.
@@ -79,5 +83,5 @@ protected:
 	float CachedWTMValue = 100;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Minigame")
-	UMinigameClientComponent* MinigameClient;
+	UMinigamePlayerController* MinigameController;
 };

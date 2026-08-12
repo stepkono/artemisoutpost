@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArtemisOutpost/Minigame/CoupledAxisLogicComponent.h"
+#include "ArtemisOutpost/Minigame/General/Logic/CoupledAxisLogicComponent.h"
 #include "SignalTowerLogicComponent.generated.h"
 
 // Signal Tower (Funkmast) task: two coupled alignment axes — [0] toward Earth, [1] toward a

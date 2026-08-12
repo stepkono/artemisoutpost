@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ArtemisOutpost/Minigame/CoupledAxisLogicComponent.h"
-#include "ArtemisOutpost/Connection/ConnectionComponent.h"
+#include "CoupledAxisLogicComponent.h"
+
 #include "Net/UnrealNetwork.h"
 #include "Dom/JsonObject.h"
 
@@ -32,6 +32,16 @@ const TArray<FAxisState>& UCoupledAxisLogicComponent::GetAxes() const
 	return Axes;
 }
 
+int32 UCoupledAxisLogicComponent::GetNumAxes() const
+{
+	return Axes.Num();
+}
+
+float UCoupledAxisLogicComponent::GetDwellSeconds() const
+{
+	return DwellSeconds;
+}
+
 void UCoupledAxisLogicComponent::OnStart()
 {
 	Super::OnStart();
@@ -39,47 +49,89 @@ void UCoupledAxisLogicComponent::OnStart()
 	Axes.Reset();
 	Axes.SetNum(FMath::Max(1, GetAxisCount()));
 	InitAxisTargets();
-	ReassignAxisOwnership();
 
 	SetComponentTickEnabled(true);
-	
-	OnAlignmentUpdated(Axes);
+	OnAxesUpdated.Broadcast(Axes);
 }
 
 void UCoupledAxisLogicComponent::OnAbort()
 {
 	Super::OnAbort();
 	SetComponentTickEnabled(false);
-	
+
 	Axes.Reset();
-	
-	OnAlignmentUpdated(Axes);
+	OnAxesUpdated.Broadcast(Axes);
 }
 
 void UCoupledAxisLogicComponent::OnParticipantJoined(const FString& UPID)
 {
-	ReassignAxisOwnership();
+	// Nothing to claim yet — the participant picks an axis via the selection screen.
 }
 
 void UCoupledAxisLogicComponent::OnParticipantLeft(const FString& UPID)
 {
-	ReassignAxisOwnership();
+	ReleaseAxesOf(UPID);
+	OnAxesUpdated.Broadcast(Axes);
 }
 
 void UCoupledAxisLogicComponent::ApplyInput(const FString& UPID, const FMinigameInput& Input)
 {
-	if (!Axes.IsValidIndex(Input.AxisIndex) || !CanControlAxis(UPID, Input.AxisIndex))
+	switch (Input.Type)
+	{
+	case EMinigameInputType::ClaimAxis:
+		ClaimAxis(UPID, Input.AxisIndex);
+		break;
+	case EMinigameInputType::ReleaseAxis:
+		ReleaseAxis(UPID, Input.AxisIndex);
+		break;
+	case EMinigameInputType::Rotate:
+		RotateAxis(UPID, Input.AxisIndex, Input.Delta);
+		break;
+	}
+
+	OnAxesUpdated.Broadcast(Axes);
+}
+
+void UCoupledAxisLogicComponent::ClaimAxis(const FString& UPID, int32 AxisIndex)
+{
+	// Only a still-free axis can be claimed; a participant owns at most one at a time.
+	if (!Axes.IsValidIndex(AxisIndex) || !Axes[AxisIndex].OwnerUPID.IsEmpty())
+	{
+		return;
+	}
+	ReleaseAxesOf(UPID);
+	Axes[AxisIndex].OwnerUPID = UPID;
+}
+
+void UCoupledAxisLogicComponent::ReleaseAxis(const FString& UPID, int32 AxisIndex)
+{
+	if (Axes.IsValidIndex(AxisIndex) && Axes[AxisIndex].OwnerUPID == UPID)
+	{
+		Axes[AxisIndex].OwnerUPID.Empty();
+	}
+}
+
+void UCoupledAxisLogicComponent::ReleaseAxesOf(const FString& UPID)
+{
+	for (FAxisState& Axis : Axes)
+	{
+		if (Axis.OwnerUPID == UPID)
+		{
+			Axis.OwnerUPID.Empty();
+		}
+	}
+}
+
+void UCoupledAxisLogicComponent::RotateAxis(const FString& UPID, int32 AxisIndex, float DeltaDegrees)
+{
+	if (!CanControlAxis(UPID, AxisIndex))
 	{
 		return;
 	}
 
-	const float Dt = GetWorld() ? GetWorld()->GetDeltaSeconds() : 0.0f;
-	const float Step = FMath::Clamp(Input.Delta, -1.0f, 1.0f) * InputSpeedDegPerSec * Dt;
-
-	FAxisState& Axis = Axes[Input.AxisIndex];
+	const float Step = FMath::Clamp(DeltaDegrees, -MaxStepPerInputDeg, MaxStepPerInputDeg);
+	FAxisState& Axis = Axes[AxisIndex];
 	Axis.Value = NormalizeDeg(Axis.Value + Step);
-
-	OnAlignmentUpdated(Axes);
 }
 
 void UCoupledAxisLogicComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -112,39 +164,7 @@ void UCoupledAxisLogicComponent::EvaluateCompletion(float DeltaTime)
 
 bool UCoupledAxisLogicComponent::CanControlAxis(const FString& UPID, int32 AxisIndex) const
 {
-	if (!Axes.IsValidIndex(AxisIndex))
-	{
-		return false;
-	}
-	const FString& Owner = Axes[AxisIndex].OwnerUPID;
-	return Owner.IsEmpty() || Owner == UPID;
-}
-
-void UCoupledAxisLogicComponent::ReassignAxisOwnership()
-{
-	const UConnectionComponent* Connection = GetConnection();
-	if (!Connection)
-	{
-		return;
-	}
-
-	const TArray<FString> Participants = Connection->GetParticipantUPIDs();
-
-	if (Participants.Num() <= 1)
-	{
-		for (FAxisState& Axis : Axes)
-		{
-			Axis.OwnerUPID.Empty();
-		}
-		return;
-	}
-
-	// Partition axes one-per-participant in join order: the joiner takes the axis the earlier
-	// participant does not own (§8.7). Extra participants share the last axis.
-	for (int32 i = 0; i < Axes.Num(); ++i)
-	{
-		Axes[i].OwnerUPID = Participants[FMath::Min(i, Participants.Num() - 1)];
-	}
+	return Axes.IsValidIndex(AxisIndex) && Axes[AxisIndex].OwnerUPID == UPID;
 }
 
 float UCoupledAxisLogicComponent::GetAxisProgress(int32 AxisIndex) const
@@ -156,9 +176,18 @@ float UCoupledAxisLogicComponent::GetAxisProgress(int32 AxisIndex) const
 	return FMath::Clamp(Axes[AxisIndex].InToleranceTime / DwellSeconds, 0.0f, 1.0f);
 }
 
+bool UCoupledAxisLogicComponent::IsAxisAligned(int32 AxisIndex) const
+{
+	if (!Axes.IsValidIndex(AxisIndex))
+	{
+		return false;
+	}
+	return AngularDistanceDeg(Axes[AxisIndex].Value, Axes[AxisIndex].TargetValue) <= AxisToleranceDeg;
+}
+
 void UCoupledAxisLogicComponent::OnRep_UpdateAxes()
 {
-	OnAlignmentUpdated(Axes);
+	OnAxesUpdated.Broadcast(Axes);
 }
 
 TSharedRef<FJsonObject> UCoupledAxisLogicComponent::BuildSnapshot() const

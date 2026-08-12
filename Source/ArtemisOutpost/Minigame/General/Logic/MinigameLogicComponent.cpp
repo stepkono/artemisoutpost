@@ -1,7 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ArtemisOutpost/Minigame/MinigameLogicComponent.h"
-#include "ArtemisOutpost/Connection/ConnectionComponent.h"
+#include "MinigameLogicComponent.h"
+
+#include "ArtemisOutpost/Minigame/General/GameInstance/MinigameActor.h"
+#include "ArtemisOutpost/Minigame/General/MinigameTypes.h"
+#include "ArtemisOutpost/Minigame/Connection/ConnectionComponent.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
+#include "ArtemisOutpost/Player/PawnController.h"
+#include "ArtemisOutpost/Player/MiniGameInteraction/MinigamePlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
@@ -22,17 +29,58 @@ void UMinigameLogicComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!GetOwner() || !GetOwner()->HasAuthority())
+	UConnectionComponent* Connection = GetConnection();
+	if (!Connection)
 	{
 		return;
 	}
 
-	// The connection owns join/leave; the logic only reacts and gates.
-	if (UConnectionComponent* Connection = GetConnection())
+	// Clients only: the local player's screen View reacts to slot changes.
+	if (ArtemisNet::IsClientContext(GetNetMode()))
+	{
+		Connection->OnSlotsChanged.AddDynamic(this, &UMinigameLogicComponent::RefreshLocalUI);	
+	}
+
+	// Server only: authoritative join gating + game reactions.
+	if (GetOwner() && GetOwner()->HasAuthority())
 	{
 		Connection->CanJoinPredicate.BindUObject(this, &UMinigameLogicComponent::HandleCanJoin);
 		Connection->OnParticipantJoined.AddUObject(this, &UMinigameLogicComponent::HandleParticipantJoined);
 		Connection->OnParticipantLeft.AddUObject(this, &UMinigameLogicComponent::HandleParticipantLeft);
+	}
+}
+
+TSubclassOf<UMiniGameUI> UMinigameLogicComponent::GetMiniGameUIClass() const
+{
+	return MiniGameUIClass;
+}
+
+void UMinigameLogicComponent::RefreshLocalUI()
+{
+	APawnController* PC = Cast<APawnController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	if (!PC)
+	{
+		return;
+	}
+
+	UMinigamePlayerController* Controller = PC->GetMinigamePlayerController();
+	if (!Controller)
+	{
+		return;
+	}
+
+	const UConnectionComponent* Connection = GetConnection();
+	const bool bShouldOpen = Connection && Connection->IsParticipant(PC->GetPlayerUPID());
+
+	if (bShouldOpen && !bLocalUIOpen)
+	{
+		Controller->OpenUI(Cast<AMinigameActor>(GetOwner()));
+		bLocalUIOpen = true;
+	}
+	else if (!bShouldOpen && bLocalUIOpen)
+	{
+		Controller->CloseUI();
+		bLocalUIOpen = false;
 	}
 }
 
@@ -42,6 +90,7 @@ UConnectionComponent* UMinigameLogicComponent::GetConnection() const
 	{
 		const_cast<UMinigameLogicComponent*>(this)->CachedConnection = GetOwner()->FindComponentByClass<UConnectionComponent>();
 	}
+	
 	return CachedConnection;
 }
 
@@ -149,8 +198,10 @@ void UMinigameLogicComponent::OnRep_State()
 void UMinigameLogicComponent::HandleStateChanged()
 {
 	OnStateChanged.Broadcast();
-	
 	PublishSnapshot();
+
+	// State changes (Active on start, Completed/Idle on finish/abort) also drive the local View.
+	RefreshLocalUI();
 }
 
 void UMinigameLogicComponent::PublishSnapshot()

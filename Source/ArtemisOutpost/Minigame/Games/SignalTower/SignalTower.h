@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArtemisOutpost/Minigame/MinigameActor.h"
+#include "ArtemisOutpost/Minigame/General/GameInstance/MinigameActor.h"
 #include "SignalTower.generated.h"
 
 class USignalTowerLogicComponent;
 
 // The radio mast (Funkmast). Pure composition: wires the reusable connection + alignment logic
 // onto the base minigame actor. Meshes, the world-space alignment widget, and the AR/VR beams
-// live on BP_SignalTower, which derives from this and reads the replicated axes (via
-// OnAlignmentUpdated).
+// live on BP_SignalTower, which derives from this and reads the replicated axes (via the
+// alignment component's OnAxesUpdated event).
 UCLASS()
 class ARTEMISOUTPOST_API ASignalTower : public AMinigameActor
 {
@@ -19,11 +19,5 @@ class ARTEMISOUTPOST_API ASignalTower : public AMinigameActor
 
 public:
 	ASignalTower();
-
-	UFUNCTION(BlueprintPure, Category = "Signal Tower")
-	USignalTowerLogicComponent* GetAlignment() const;
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Signal Tower")
-	USignalTowerLogicComponent* Alignment;
+	
 };
