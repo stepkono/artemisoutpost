@@ -8,15 +8,22 @@
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "ArtemisOutpost/Player/MiniGameInteraction/MinigamePlayerController.h"
+#include "ArtemisOutpost/Building/BuildingPlacementController.h"
 
 APawnController::APawnController()
 {
 	MinigameController = CreateDefaultSubobject<UMinigamePlayerController>(TEXT("MinigameController"));
+	BuildingPlacementController = CreateDefaultSubobject<UBuildingPlacementController>(TEXT("BuildingPlacementController"));
 }
 
 UMinigamePlayerController* APawnController::GetMinigamePlayerController() const
 {
 	return MinigameController;
+}
+
+UBuildingPlacementController* APawnController::GetBuildingPlacementController() const
+{
+	return BuildingPlacementController;
 }
 
 void APawnController::BeginPlay()

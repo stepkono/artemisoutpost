@@ -10,6 +10,7 @@
 #include "PawnController.generated.h"
 
 class UMinigamePlayerController;
+class UBuildingPlacementController;
 
 /**
  *
@@ -49,6 +50,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	UMinigamePlayerController* GetMinigamePlayerController() const;
 
+	// The per-player building-placement controller (validation + server spawn). Its own component so
+	// this controller stays lean, mirroring MinigameController.
+	UFUNCTION(BlueprintPure, Category = "Building")
+	UBuildingPlacementController* GetBuildingPlacementController() const;
+
 	// Set server-side from the ?UPID= login option (see AServerGameMode::InitNewPlayer). The client
 	// sets its own UPID from the save/GameInstance in BeginPlay.
 	void SetUPID(const FString& InUPID);
@@ -84,4 +90,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Minigame")
 	UMinigamePlayerController* MinigameController;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Building")
+	UBuildingPlacementController* BuildingPlacementController;
 };

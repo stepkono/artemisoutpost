@@ -9,6 +9,8 @@
 #include "GameFramework/Character.h"
 #include "ACharVR.generated.h"
 
+class UToolsHUDComponent;
+
 UCLASS()
 class ARTEMISOUTPOST_API ACharVR : public ACharacter
 {
@@ -92,6 +94,11 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Possession")
 	bool bIsPossessed = false;
+
+	// Client-local wrist Tools-HUD (open/close, navigate, dispatch). Created in the ctor; only does
+	// anything on the locally-controlled pawn. See UToolsHUDComponent.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tools HUD")
+	TObjectPtr<UToolsHUDComponent> ToolsHUDComponent;
 
 private:
 	// Resolves VROrigin/VRCamera (by tag), caches them, locks the camera to the HMD and computes

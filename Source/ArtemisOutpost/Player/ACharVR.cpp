@@ -12,6 +12,8 @@
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "ArtemisOutpost/Miscellaneous/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
+#include "EnhancedInputComponent.h"
+#include "ToolsHUD/ToolsHUDComponent.h"
 
 
 // Sets default values
@@ -27,6 +29,10 @@ ACharVR::ACharVR()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw   = false;
 	bUseControllerRotationRoll  = false;
+
+	// Client-local wrist Tools-HUD. It's a plain ActorComponent (no scene transform); the widget it
+	// hosts renders into a WidgetComponent authored under the right controller in BP_VRChar.
+	ToolsHUDComponent = CreateDefaultSubobject<UToolsHUDComponent>(TEXT("ToolsHUDComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -34,7 +40,7 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	//SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
+	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
@@ -119,6 +125,18 @@ void ACharVR::Tick(float DeltaTime)
 void ACharVR::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// This only runs on the locally-controlled pawn (after possession), which is exactly when the HUD
+	// input should bind. Locomotion is bound in BP_VRPawn; both coexist on the same EnhancedInput
+	// component. The HUD's "focus" is handled purely via its own mapping context (added while open),
+	// so no SetInputMode juggling is needed.
+	if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		if (ToolsHUDComponent)
+		{
+			ToolsHUDComponent->BindInput(EIC);
+		}
+	}
 }
 
 void ACharVR::NotifyControllerChanged()

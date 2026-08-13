@@ -52,7 +52,7 @@ void UMiniGameConnectionUIComponent::BeginPlay()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("ConnectionUIHolder: Failed to cast Widget to MiniGameConnectionUI."));
+		UE_LOG(LogTemp, Error, TEXT("ConnectionUIComponent: Failed to cast Widget to MiniGameConnectionUI."));
 	}
 	
 	SetWorldLocation(Owner->GetActorLocation());

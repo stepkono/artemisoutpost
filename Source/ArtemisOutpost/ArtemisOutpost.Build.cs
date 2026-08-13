@@ -30,7 +30,9 @@ public class ArtemisOutpost : ModuleRules
 			"CesiumRuntime",
 			"UMG",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"EnhancedInput",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "XRBase" });
