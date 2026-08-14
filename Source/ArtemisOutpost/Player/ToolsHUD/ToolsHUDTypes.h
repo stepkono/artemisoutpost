@@ -21,7 +21,7 @@ enum class EToolHUDPage : uint8
 // component what to do on confirm (navigate to a sub-page, close, or dispatch a gameplay action).
 // Grouped by page for readability; the page->tile mapping lives in UToolsHUDWidget::GetActionsForPage.
 UENUM(BlueprintType)
-enum class EToolAction : uint8
+enum class EHUDAction : uint8
 {
 	None            UMETA(DisplayName = "None"),
 
@@ -53,7 +53,7 @@ struct FToolTile
 
 	// The intent this tile emits on confirm.
 	UPROPERTY(BlueprintReadOnly, Category = "Tools HUD")
-	EToolAction Action = EToolAction::None;
+	EHUDAction Action = EHUDAction::None;
 
 	// Display label (localizable). Defaults come from UToolsHUDWidget::ActionLabels.
 	UPROPERTY(BlueprintReadOnly, Category = "Tools HUD")

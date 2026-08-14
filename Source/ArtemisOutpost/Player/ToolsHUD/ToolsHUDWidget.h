@@ -10,12 +10,12 @@
 // Fired when the player confirms a tile (trigger) that is ENABLED. The owning component listens and
 // decides what the action does (page nav, close, or dispatch a gameplay intent). BlueprintAssignable
 // so gameplay BP can also react directly.
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnToolActionConfirmed, EToolAction, Action);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnToolActionConfirmed, EHUDAction, Action);
 
 // Gating hook. The widget does NOT know about resources; it asks this delegate whether an action is
 // currently allowed and, if not, for a reason string. Bound in C++ by UToolsHUDComponent so the
 // resource system stays fully decoupled. If unbound, everything is enabled.
-DECLARE_DELEGATE_RetVal_TwoParams(bool, FToolAvailabilityDelegate, EToolAction /*Action*/, FText& /*OutReason*/);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FToolAvailabilityDelegate, EHUDAction /*Action*/, FText& /*OutReason*/);
 
 /**
  * C++ base for WBP_ToolsHUD. Owns ALL menu logic — current page, the ordered tile list per page,
@@ -100,21 +100,25 @@ protected:
 
 	// Per-action label overrides. Any action left unset falls back to a built-in default label.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tools HUD|Content")
-	TMap<EToolAction, FText> ActionLabels;
+	TMap<EHUDAction, FText> ActionLabels;
 
 	// Per-action tile icon. Assign the artwork here; unset actions render with a null icon.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tools HUD|Content")
-	TMap<EToolAction, TObjectPtr<UTexture2D>> ActionIcons;
+	TMap<EHUDAction, TObjectPtr<UTexture2D>> ActionIcons;
 
 	// ---- Navigation tuning ----
 
-	// Stick magnitude that triggers a step. Must exceed this (while primed) to move the highlight.
+	// Stick magnitude that triggers a step.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tools HUD|Navigation", meta = (ClampMin = "0.1", ClampMax = "1.0"))
-	float NavStepThreshold = 0.6f;
+	float NavStepThreshold = 0.5f;
 
-	// Stick must return below this magnitude before another step is allowed (flick debounce).
+	// Below this magnitude the stick counts as "centred", which re-arms an immediate next step.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tools HUD|Navigation", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float NavReleaseThreshold = 0.3f;
+
+	// Seconds between auto-repeat steps while the stick is held past the threshold.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tools HUD|Navigation", meta = (ClampMin = "0.05"))
+	float NavRepeatDelay = 0.2f;
 
 	// Wrap highlight from last->first and first->last.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tools HUD|Navigation")
@@ -122,10 +126,10 @@ protected:
 
 private:
 	// The fixed, ordered action set for a page. This is the single source of truth for tile order.
-	static TArray<EToolAction> GetActionsForPage(EToolHUDPage Page);
+	static TArray<EHUDAction> GetActionsForPage(EToolHUDPage Page);
 
 	// Built-in fallback label for an action (used when ActionLabels has no override).
-	static FText DefaultLabelFor(EToolAction Action);
+	static FText DefaultLabelFor(EHUDAction Action);
 
 	// Compose CurrentTiles for CurrentPage (label + icon + gating) and push to the view.
 	void RebuildTiles();
@@ -134,7 +138,7 @@ private:
 	void SetHighlight(int32 NewIndex);
 
 	// Ask the gating delegate; enabled by default when unbound.
-	bool EvaluateEnabled(EToolAction Action, FText& OutReason) const;
+	bool EvaluateEnabled(EHUDAction Action, FText& OutReason) const;
 
 	EToolHUDPage CurrentPage = EToolHUDPage::Main;
 
@@ -143,6 +147,6 @@ private:
 
 	int32 HighlightIndex = 0;
 
-	// Flick debounce: true when the stick has returned to centre and a new step is allowed.
-	bool bNavPrimed = true;
+	// Time (seconds) of the last highlight step, for auto-repeat timing. Very negative = ready now.
+	float LastNavStepTime = -1000.0f;
 };

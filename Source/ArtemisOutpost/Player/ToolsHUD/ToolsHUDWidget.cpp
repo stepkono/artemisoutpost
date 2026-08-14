@@ -6,33 +6,33 @@
 
 // ---- Page layout (single source of truth for tile order) ----
 
-TArray<EToolAction> UToolsHUDWidget::GetActionsForPage(EToolHUDPage Page)
+TArray<EHUDAction> UToolsHUDWidget::GetActionsForPage(EToolHUDPage Page)
 {
 	switch (Page)
 	{
 	case EToolHUDPage::Building:
-		return { EToolAction::BuildHabitat, EToolAction::BuildSolarPanel, EToolAction::BuildAntenna, EToolAction::Back };
+		return { EHUDAction::BuildHabitat, EHUDAction::BuildSolarPanel, EHUDAction::BuildAntenna, EHUDAction::Back };
 	case EToolHUDPage::Scanning:
-		return { EToolAction::ScanEnvironment, EToolAction::ScanResource, EToolAction::Back };
+		return { EHUDAction::ScanEnvironment, EHUDAction::ScanResource, EHUDAction::Back };
 	case EToolHUDPage::Main:
 	default:
-		return { EToolAction::OpenBuilding, EToolAction::OpenScanning, EToolAction::CloseMenu };
+		return { EHUDAction::OpenBuilding, EHUDAction::OpenScanning, EHUDAction::CloseMenu };
 	}
 }
 
-FText UToolsHUDWidget::DefaultLabelFor(EToolAction Action)
+FText UToolsHUDWidget::DefaultLabelFor(EHUDAction Action)
 {
 	switch (Action)
 	{
-	case EToolAction::OpenBuilding:    return LOCTEXT("BuildingMode",  "Building Mode");
-	case EToolAction::OpenScanning:    return LOCTEXT("ScanningMode",  "Scanning Mode");
-	case EToolAction::CloseMenu:       return LOCTEXT("CloseMenu",     "Schließen");
-	case EToolAction::BuildHabitat:    return LOCTEXT("Habitat",       "Habitat");
-	case EToolAction::BuildSolarPanel: return LOCTEXT("SolarPanel",    "Solar Panel");
-	case EToolAction::BuildAntenna:    return LOCTEXT("Antenna",       "Funkmast");
-	case EToolAction::ScanEnvironment: return LOCTEXT("Environment",   "Umgebung");
-	case EToolAction::ScanResource:    return LOCTEXT("Resource",      "Ressource");
-	case EToolAction::Back:            return LOCTEXT("Back",          "Zurück");
+	case EHUDAction::OpenBuilding:    return LOCTEXT("BuildingMode",  "Building Mode");
+	case EHUDAction::OpenScanning:    return LOCTEXT("ScanningMode",  "Scanning Mode");
+	case EHUDAction::CloseMenu:       return LOCTEXT("CloseMenu",     "Schließen");
+	case EHUDAction::BuildHabitat:    return LOCTEXT("Habitat",       "Habitat");
+	case EHUDAction::BuildSolarPanel: return LOCTEXT("SolarPanel",    "Solar Panel");
+	case EHUDAction::BuildAntenna:    return LOCTEXT("Antenna",       "Funkmast");
+	case EHUDAction::ScanEnvironment: return LOCTEXT("Environment",   "Umgebung");
+	case EHUDAction::ScanResource:    return LOCTEXT("Resource",      "Ressource");
+	case EHUDAction::Back:            return LOCTEXT("Back",          "Zurück");
 	default:                           return FText::GetEmpty();
 	}
 }
@@ -61,7 +61,7 @@ void UToolsHUDWidget::RebuildTiles()
 {
 	CurrentTiles.Reset();
 
-	for (const EToolAction Action : GetActionsForPage(CurrentPage))
+	for (const EHUDAction Action : GetActionsForPage(CurrentPage))
 	{
 		FToolTile Tile;
 		Tile.Action = Action;
@@ -84,7 +84,6 @@ void UToolsHUDWidget::RebuildTiles()
 	// Reset navigation state for the new page and let the view rebuild, then place the highlight on
 	// the first tile (OldIndex = INDEX_NONE signals "no previous highlight").
 	HighlightIndex = 0;
-	bNavPrimed = true;
 
 	OnPageBuilt(CurrentPage, CurrentTiles);
 
@@ -117,35 +116,36 @@ void UToolsHUDWidget::HandleNavigate(FVector2D Axis)
 {
 	const float Mag = Axis.Size();
 
-	// Wait for the stick to return near centre before allowing another step (one flick = one step).
-	if (!bNavPrimed)
+	// Stick returned near centre: re-arm so the very next push steps immediately (snappy flicks).
+	if (Mag < NavReleaseThreshold)
 	{
-		if (Mag < NavReleaseThreshold)
-		{
-			bNavPrimed = true;
-		}
+		LastNavStepTime = -1000.0f;
 		return;
 	}
 
+	// Not a firm-enough push yet.
 	if (Mag < NavStepThreshold)
+	{
+		return;
+	}
+
+	// Firm push: step on a fresh push, then auto-repeat every NavRepeatDelay while held. Time-based
+	// (not "wait for centre") so it stays responsive even though Enhanced Input stops calling us once
+	// the stick drops below its actuation threshold.
+	const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : LastNavStepTime + NavRepeatDelay;
+	if ((Now - LastNavStepTime) < NavRepeatDelay)
 	{
 		return;
 	}
 
 	// Dominant-axis stepping, tiles read in order: right / down = next, left / up = previous.
 	// (EnhancedInput thumbstick Y is +1 up, so a negative Y means "down".)
-	int32 Dir;
-	if (FMath::Abs(Axis.X) >= FMath::Abs(Axis.Y))
-	{
-		Dir = Axis.X > 0.f ? 1 : -1;
-	}
-	else
-	{
-		Dir = Axis.Y < 0.f ? 1 : -1;
-	}
+	const int32 Dir = (FMath::Abs(Axis.X) >= FMath::Abs(Axis.Y))
+		? (Axis.X > 0.f ? 1 : -1)
+		: (Axis.Y < 0.f ? 1 : -1);
 
 	SetHighlight(HighlightIndex + Dir);
-	bNavPrimed = false;
+	LastNavStepTime = Now;
 }
 
 void UToolsHUDWidget::SetHighlight(int32 NewIndex)
@@ -197,7 +197,7 @@ void UToolsHUDWidget::HandleConfirm()
 
 // ---- Gating ----
 
-bool UToolsHUDWidget::EvaluateEnabled(EToolAction Action, FText& OutReason) const
+bool UToolsHUDWidget::EvaluateEnabled(EHUDAction Action, FText& OutReason) const
 {
 	OutReason = FText::GetEmpty();
 

@@ -17,7 +17,10 @@ struct FInputActionValue;
 // closed by the time this fires. Gameplay BP / the placement system listens here to start the
 // actual action (place habitat, run scan, ...). Page-navigation and Close actions are handled
 // internally and never broadcast.
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnToolActionDispatched, EToolAction, Action);
+// Fired for EVERY confirmed (enabled) tile — page navigation, close, and gameplay actions alike.
+// Bind this ONE event and switch on the action (activate tool, begin placement, holster, ...). The
+// component still handles page nav / close internally; this is just the public hook.
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHUDAction, EHUDAction, Action);
 
 UCLASS(ClassGroup = (ToolsHUD), meta = (BlueprintSpawnableComponent))
 class ARTEMISOUTPOST_API UToolsHUDComponent : public UActorComponent
@@ -47,15 +50,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Tools HUD")
 	void RefreshGating();
 
+	// Bind this on the COMPONENT (a stable subobject) — NOT on the widget via Get Widget. The widget
+	// is created lazily and swapped onto the WidgetComponent, so a Get Widget binding can land on a
+	// stale instance and never fire.
 	UPROPERTY(BlueprintAssignable, Category = "Tools HUD")
-	FOnToolActionDispatched OnToolActionDispatched;
+	FOnHUDAction OnHUDAction;
 
 protected:
 	// Availability provider. Default returns true (no resource system yet). Override in a BP child of
 	// this component — or replace the C++ body — to gate tiles on real, replicated resources.
 	UFUNCTION(BlueprintNativeEvent, Category = "Tools HUD")
-	bool IsActionAvailable(EToolAction Action, FText& OutReason);
-	virtual bool IsActionAvailable_Implementation(EToolAction Action, FText& OutReason);
+	bool IsActionAvailable(EHUDAction Action, FText& OutReason);
+	virtual bool IsActionAvailable_Implementation(EHUDAction Action, FText& OutReason);
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -87,7 +93,7 @@ protected:
 	// (checked BEFORE IsActionAvailable). Use it to verify greying-out end-to-end today; remove the
 	// entries once real gating exists.
 	UPROPERTY(EditAnywhere, Category = "Tools HUD|Debug")
-	TMap<EToolAction, bool> DebugAvailabilityOverride;
+	TMap<EHUDAction, bool> DebugAvailabilityOverride;
 
 private:
 	// Input handlers.
@@ -96,10 +102,10 @@ private:
 
 	// Widget -> component: the player confirmed an enabled tile.
 	UFUNCTION()
-	void HandleToolActionConfirmed(EToolAction Action);
+	void HandleToolActionConfirmed(EHUDAction Action);
 
 	// Gating bridge given to the widget (widget stays ignorant of resources / debug knobs).
-	bool QueryAvailability(EToolAction Action, FText& OutReason);
+	bool QueryAvailability(EHUDAction Action, FText& OutReason);
 
 	// Lazily create the widget and bind it to the anchor WidgetComponent. Returns false if setup
 	// assets are missing.

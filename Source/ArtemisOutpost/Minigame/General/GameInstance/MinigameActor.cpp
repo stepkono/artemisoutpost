@@ -92,7 +92,7 @@ void AMinigameActor::RequestEnter()
 	{
 		if (UMinigamePlayerController* Controller = PC->GetMinigamePlayerController())
 		{
-			// TODO: this should return false, if server-side failing
+			// TODO: this should return false, if server-side failing to communicate onto player
 			Controller->ServerRequestEnter(this);
 		}
 	}

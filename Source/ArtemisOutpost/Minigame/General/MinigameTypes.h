@@ -5,6 +5,17 @@
 #include "CoreMinimal.h"
 #include "MinigameTypes.generated.h"
 
+// A placeable outpost building. Each maps to a concrete AMinigameActor subclass via the
+// BuildingClasses map on ABuildingTool (Antenna -> ASignalTower today). Named with the Outpost
+// prefix because plain "EBuildingType" collides with an engine/plugin enum.
+UENUM(BlueprintType)
+enum class EOutpostBuildingType : uint8
+{
+	Habitat    UMETA(DisplayName = "Habitat"),
+	SolarPanel UMETA(DisplayName = "Solar Panel"),
+	Antenna    UMETA(DisplayName = "SignalTower")
+};
+
 // Lifecycle state of a minigame instance. Server-authoritative, replicated to all views.
 UENUM(BlueprintType)
 enum class EMinigameState : uint8

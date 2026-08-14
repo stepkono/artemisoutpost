@@ -142,46 +142,45 @@ void UToolsHUDComponent::RefreshGating()
 
 // ---- Dispatch (widget -> component) ----
 
-void UToolsHUDComponent::HandleToolActionConfirmed(EToolAction Action)
+void UToolsHUDComponent::HandleToolActionConfirmed(EHUDAction Action)
 {
+	// Internal navigation / close — the component owns page state and menu visibility.
 	switch (Action)
 	{
-	case EToolAction::OpenBuilding:
+	case EHUDAction::OpenBuilding:
 		if (ActiveWidget) { ActiveWidget->GoToPage(EToolHUDPage::Building); }
 		break;
 
-	case EToolAction::OpenScanning:
+	case EHUDAction::OpenScanning:
 		if (ActiveWidget) { ActiveWidget->GoToPage(EToolHUDPage::Scanning); }
 		break;
 
-	case EToolAction::Back:
+	case EHUDAction::Back:
 		if (ActiveWidget) { ActiveWidget->GoToPage(EToolHUDPage::Main); }
 		break;
 
-	case EToolAction::CloseMenu:
+	// Close on the X tile and on any gameplay action (spec: choosing a build/scan closes the HUD).
+	case EHUDAction::CloseMenu:
+	case EHUDAction::BuildHabitat:
+	case EHUDAction::BuildSolarPanel:
+	case EHUDAction::BuildAntenna:
+	case EHUDAction::ScanEnvironment:
+	case EHUDAction::ScanResource:
 		CloseMenu();
-		break;
-
-	// Gameplay actions: close the HUD, then hand off. The building-placement milestone routes these
-	// to the placement component / server RPC; today they surface on OnToolActionDispatched so BP can
-	// already react.
-	case EToolAction::BuildHabitat:
-	case EToolAction::BuildSolarPanel:
-	case EToolAction::BuildAntenna:
-	case EToolAction::ScanEnvironment:
-	case EToolAction::ScanResource:
-		CloseMenu();
-		OnToolActionDispatched.Broadcast(Action);
 		break;
 
 	default:
 		break;
 	}
+
+	// One public event carrying the raw action. BP switches on it: OpenBuilding -> activate tool,
+	// BuildHabitat -> BeginPlacement, CloseMenu -> holster, etc.
+	OnHUDAction.Broadcast(Action);
 }
 
 // ---- Gating ----
 
-bool UToolsHUDComponent::QueryAvailability(EToolAction Action, FText& OutReason)
+bool UToolsHUDComponent::QueryAvailability(EHUDAction Action, FText& OutReason)
 {
 	// Debug override wins (bring-up: verify greying-out without a resource system).
 	if (const bool* Override = DebugAvailabilityOverride.Find(Action))
@@ -196,7 +195,7 @@ bool UToolsHUDComponent::QueryAvailability(EToolAction Action, FText& OutReason)
 	return IsActionAvailable(Action, OutReason);
 }
 
-bool UToolsHUDComponent::IsActionAvailable_Implementation(EToolAction Action, FText& OutReason)
+bool UToolsHUDComponent::IsActionAvailable_Implementation(EHUDAction Action, FText& OutReason)
 {
 	// No resource system yet — everything is available. Override in a BP child of this component, or
 	// replace this body, to gate on real replicated resources (e.g. regolith for BuildHabitat).
