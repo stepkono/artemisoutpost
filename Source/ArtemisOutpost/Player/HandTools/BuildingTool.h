@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "HandToolBase.h"
+#include "ArtemisOutpost/Minigame/Games/Habitat/Habitat.h"
+#include "ArtemisOutpost/Minigame/Games/SignalTower/SignalTower.h"
+#include "ArtemisOutpost/Minigame/Games/SolarPanel/SolarPanel.h"
 #include "Engine/EngineTypes.h"
 #include "ArtemisOutpost/Minigame/General/MinigameTypes.h"
 #include "BuildingTool.generated.h"
@@ -43,7 +46,7 @@ public:
 	// Confirm: validate + request the server spawn. Returns false (no request) if invalid. Does NOT
 	// holster — the player keeps the tool to place again.
 	UFUNCTION(BlueprintCallable, Category = "Building Tool")
-	bool TryBuildAtPlacement(FTransform PlacementTransform);
+	bool TryBuildAtPlacement(FVector PlacementLocation);
 
 	// Geodetic "up" (moon surface normal) at a world position, via the VR-moon georeference.
 	UFUNCTION(BlueprintPure, Category = "Building Tool")
@@ -109,7 +112,7 @@ protected:
 	// Points the beam is resampled to while inertia is on (so each point can lag independently).
 	UPROPERTY(EditDefaultsOnly, Category = "Building Tool|Inertia", meta = (ClampMin = "2"))
 	int32 InertiaPointCount = 32;
-
+	
 private:
 	// VR-moon georeference source, found in BeginPlay. Used to compute the surface normal.
 	UPROPERTY(Transient)

@@ -13,7 +13,7 @@ enum class EOutpostBuildingType : uint8
 {
 	Habitat    UMETA(DisplayName = "Habitat"),
 	SolarPanel UMETA(DisplayName = "Solar Panel"),
-	Antenna    UMETA(DisplayName = "SignalTower")
+	SignalTower    UMETA(DisplayName = "SignalTower")
 };
 
 // Lifecycle state of a minigame instance. Server-authoritative, replicated to all views.

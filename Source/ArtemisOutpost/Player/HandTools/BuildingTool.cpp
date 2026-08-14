@@ -45,6 +45,145 @@ FVector ABuildingTool::GetSurfaceUp(FVector WorldPos) const
 	return Up.IsNearlyZero() ? FVector::UpVector : Up;
 }
 
+void ABuildingTool::BeginPlacement(EOutpostBuildingType BuildingType)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] BeginPlacement: Type=%s (was %s)"),
+		*UEnum::GetValueAsString(BuildingType), *UEnum::GetValueAsString(CurrentBuildingType));
+
+	CurrentBuildingType = BuildingType;
+	if (!bToolActive)
+	{
+		ActivateTool();
+	}
+	
+	TogglePlacementVisual(true);  
+	bPlacementBegan = true; 
+}
+
+bool ABuildingTool::CanPlaceBuildingAt(FVector Location, FVector SurfaceNormal, FText& OutReason) const
+{
+	OutReason = FText::GetEmpty();
+
+	// Reference "up" = geodetic up at the build spot. Do NOT use the pawn's actor up: the VR capsule
+	// stays WORLD-up aligned (only the view tilts to the surface), so on the moon its up is world-up
+	// and every slope check would wrongly fail.
+	const FVector ReferenceUp = GetSurfaceUp(Location);
+
+	const float CosAngle = FVector::DotProduct(SurfaceNormal.GetSafeNormal(), ReferenceUp.GetSafeNormal());
+	const float SlopeDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(CosAngle, -1.0f, 1.0f)));
+
+	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] CanPlaceBuildingAt: Loc=%s Normal=%s RefUp=%s Slope=%.1f (max %.1f) GeoRefs=%s"),
+		*Location.ToCompactString(), *SurfaceNormal.GetSafeNormal().ToCompactString(),
+		*ReferenceUp.ToCompactString(), SlopeDeg, MaxPlacementSlopeDegrees,
+		GeoRefsManager ? TEXT("OK") : TEXT("NULL"));
+
+	if (SlopeDeg > MaxPlacementSlopeDegrees)
+	{
+		OutReason = LOCTEXT("TooSteep", "Untergrund zu steil");
+		UE_LOG(LogTemp, Warning, TEXT("[BuildingTool]   REJECT: too steep (%.1f > %.1f)"), SlopeDeg, MaxPlacementSlopeDegrees);
+		return false;
+	}
+
+	// Proximity: reject if too close to an existing building. Iterating AMinigameActor is RHI-safe
+	// (no collision query) — all buildings derive from AMinigameActor.
+	if (const UWorld* World = GetWorld())
+	{
+		for (TActorIterator<AMinigameActor> It(World); It; ++It)
+		{
+			const AMinigameActor* Existing = *It;
+			if (!Existing)
+			{
+				continue;
+			}
+			const float Dist = FVector::Dist(Existing->GetActorLocation(), Location);
+			if (Dist < MinBuildingSpacing)
+			{
+				OutReason = LOCTEXT("TooClose", "Zu nah an einem Gebäude");
+				UE_LOG(LogTemp, Warning, TEXT("[BuildingTool]   REJECT: too close to %s (%.0f < %.0f cm)"),
+					*GetNameSafe(Existing), Dist, MinBuildingSpacing);
+				return false;
+			}
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool]   OK: placement allowed"));
+	return true;
+}
+
+bool ABuildingTool::TryBuildAtPlacement(FVector PlacementLocation)
+{
+	// Only build when a placement is actually in progress. This rejects (a) confirms that fire before
+	// BeginPlacement set the type/started the arc, and (b) the extra fires of a single trigger press
+	// (the first success sets bPlacementBegan=false, so the rest are ignored).
+	if (!bPlacementBegan)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] TryBuildAtPlacement ignored: no active placement."));
+		return false;
+	}
+
+	// Client-side gate for immediate feedback; the server re-validates authoritatively anyway.
+	FText Reason;
+	const FVector SurfaceNormal = GetSurfaceUp(PlacementLocation);
+
+	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] TryBuildAtPlacement: Loc=%s Type=%s"),
+		*PlacementLocation.ToCompactString(), *UEnum::GetValueAsString(CurrentBuildingType));
+
+	if (!CanPlaceBuildingAt(PlacementLocation, SurfaceNormal, Reason))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] TryBuildAtPlacement -> FALSE: %s"), *Reason.ToString());
+		return false;
+	}
+
+	const FQuat TargetQuat = FQuat::FindBetweenNormals(FVector::UpVector, SurfaceNormal);
+	FTransform PlacementTransform;
+	PlacementTransform.SetLocation(PlacementLocation);
+	PlacementTransform.SetRotation(TargetQuat);
+
+	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] TryBuildAtPlacement -> TRUE, calling ServerPlaceBuilding"));
+	ServerPlaceBuilding(CurrentBuildingType, PlacementTransform);
+	
+	TogglePlacementVisual(false); 
+	bPlacementBegan = false; 
+	
+	return true;
+}
+
+//TODO: pay attention if this actually does work, since the SetOwner is set on the BP. If this RPC never runs on server, the ownership problem is the first suspsect
+void ABuildingTool::ServerPlaceBuilding_Implementation(EOutpostBuildingType BuildingType, FTransform PlacementTransform)
+{
+	// Authority re-check. The client already validated for feedback, but the server must never trust
+	// it. The transform's Z axis is the surface normal (the client aligned it to the ground).
+	FText Reason;
+	if (!CanPlaceBuildingAt(PlacementTransform.GetLocation(), PlacementTransform.GetUnitAxis(EAxis::Z), Reason))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] ServerPlaceBuilding rejected (%s): %s"),
+			*UEnum::GetValueAsString(BuildingType), *Reason.ToString());
+		return;
+	}
+
+	const TSubclassOf<AMinigameActor>* ClassPtr = BuildingClasses.Find(BuildingType);
+	if (!ClassPtr || !*ClassPtr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[BuildingTool] ServerPlaceBuilding: no class mapped for %s. Fill BuildingClasses."),
+			*UEnum::GetValueAsString(BuildingType));
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = GetOwner();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AMinigameActor* NewBuilding = World->SpawnActor<AMinigameActor>(*ClassPtr, PlacementTransform, SpawnParams);
+	UE_LOG(LogTemp, Log, TEXT("[BuildingTool] Placed building %s -> %s at %s"),
+		*UEnum::GetValueAsString(BuildingType), *GetNameSafe(NewBuilding), *PlacementTransform.GetLocation().ToString());
+}
+
 bool ABuildingTool::PredictArcOnSurface(FVector StartPos, FVector LaunchVelocity,
 	const TArray<TEnumAsByte<EObjectTypeQuery>>& ObjectTypes,
 	const TArray<AActor*>& ActorsToIgnore,
@@ -142,6 +281,9 @@ bool ABuildingTool::PredictArcOnSurface(FVector StartPos, FVector LaunchVelocity
 		CurrentPos = NextPos;
 	}
 
+	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] PredictArc: bHit=%d Impact=%s Pts=%d MaxSteps=%d ObjTypes=%d Radius=%.0f"),
+		bHit, *OutHit.ImpactPoint.ToCompactString(), RawPath.Num(), MaxSteps, ObjectTypes.Num(), ProjectileRadius);
+
 	// --- Inertia: resample to a fixed count and lag each point toward the fresh arc. Far points move
 	// more than near ones, so the curve trails / bends when you swing the controller. ---
 	if (bInertia && RawPath.Num() >= 2 && InertiaPointCount >= 2)
@@ -190,109 +332,6 @@ bool ABuildingTool::PredictArcOnSurface(FVector StartPos, FVector LaunchVelocity
 
 	// bHit reflects the REAL landing (OutHit) — use it for placement even while the visual beam lags.
 	return bHit;
-}
-
-void ABuildingTool::BeginPlacement(EOutpostBuildingType BuildingType)
-{
-	CurrentBuildingType = BuildingType;
-	if (!bToolActive)
-	{
-		ActivateTool();
-	}
-	
-	TogglePlacementVisual(true);  
-	bPlacementBegan = true; 
-}
-
-bool ABuildingTool::CanPlaceBuildingAt(FVector Location, FVector SurfaceNormal, FText& OutReason) const
-{
-	OutReason = FText::GetEmpty();
-
-	// Slope: compare the surface normal to the reference "up". Near the player the pawn is aligned to
-	// the moon surface, so its up vector is a good stand-in for geodetic up (works on client & server).
-	FVector ReferenceUp = FVector::UpVector;
-	if (const APawn* Pawn = Cast<APawn>(GetOwner()))
-	{
-		ReferenceUp = Pawn->GetActorUpVector();
-	}
-
-	const float CosAngle = FVector::DotProduct(SurfaceNormal.GetSafeNormal(), ReferenceUp.GetSafeNormal());
-	const float SlopeDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(CosAngle, -1.0f, 1.0f)));
-	if (SlopeDeg > MaxPlacementSlopeDegrees)
-	{
-		OutReason = LOCTEXT("TooSteep", "Untergrund zu steil");
-		return false;
-	}
-
-	// Proximity: reject if too close to an existing building. Iterating AMinigameActor is RHI-safe
-	// (no collision query) — all buildings derive from AMinigameActor.
-	if (const UWorld* World = GetWorld())
-	{
-		for (TActorIterator<AMinigameActor> It(World); It; ++It)
-		{
-			const AMinigameActor* Existing = *It;
-			if (Existing && FVector::Dist(Existing->GetActorLocation(), Location) < MinBuildingSpacing)
-			{
-				OutReason = LOCTEXT("TooClose", "Zu nah an einem Gebäude");
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
-bool ABuildingTool::TryBuildAtPlacement(FTransform PlacementTransform)
-{
-	// Client-side gate for immediate feedback; the server re-validates authoritatively anyway.
-	FText Reason;
-	if (!CanPlaceBuildingAt(PlacementTransform.GetLocation(), PlacementTransform.GetUnitAxis(EAxis::Z), Reason))
-	{
-		return false;
-	}
-	
-	ServerPlaceBuilding(CurrentBuildingType, PlacementTransform);
-	
-	TogglePlacementVisual(false); 
-	bPlacementBegan = false; 
-	
-	return true;
-}
-
-//TODO: pay attention if this actually does work, since the SetOwner is set on the BP. If this RPC never runs on server, the ownership problem is the first suspsect
-void ABuildingTool::ServerPlaceBuilding_Implementation(EOutpostBuildingType BuildingType, FTransform PlacementTransform)
-{
-	// Authority re-check. The client already validated for feedback, but the server must never trust
-	// it. The transform's Z axis is the surface normal (the client aligned it to the ground).
-	FText Reason;
-	if (!CanPlaceBuildingAt(PlacementTransform.GetLocation(), PlacementTransform.GetUnitAxis(EAxis::Z), Reason))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] ServerPlaceBuilding rejected (%s): %s"),
-			*UEnum::GetValueAsString(BuildingType), *Reason.ToString());
-		return;
-	}
-
-	const TSubclassOf<AMinigameActor>* ClassPtr = BuildingClasses.Find(BuildingType);
-	if (!ClassPtr || !*ClassPtr)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[BuildingTool] ServerPlaceBuilding: no class mapped for %s. Fill BuildingClasses."),
-			*UEnum::GetValueAsString(BuildingType));
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = GetOwner();
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	AMinigameActor* NewBuilding = World->SpawnActor<AMinigameActor>(*ClassPtr, PlacementTransform, SpawnParams);
-	UE_LOG(LogTemp, Log, TEXT("[BuildingTool] Placed building %s -> %s at %s"),
-		*UEnum::GetValueAsString(BuildingType), *GetNameSafe(NewBuilding), *PlacementTransform.GetLocation().ToString());
 }
 
 #undef LOCTEXT_NAMESPACE
