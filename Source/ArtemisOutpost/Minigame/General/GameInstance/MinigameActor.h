@@ -31,15 +31,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	UMinigameLogicComponent* GetLogicComponent() const;
-
-	// Connect flow (called from the world-space Connect-Prompt). The play input runs separately
-	// through the screen-space View -> UMinigamePlayerController, not through this actor.
-	UFUNCTION(BlueprintCallable, Category = "Minigame")
-	void RequestEnter();
-
-	UFUNCTION(BlueprintCallable, Category = "Minigame")
-	void RequestLeave();
-
+	
 	// --- Connect-Prompt read hooks (local) ---
 
 	// Persistent identity of the local player. Match against an axis OwnerUPID.

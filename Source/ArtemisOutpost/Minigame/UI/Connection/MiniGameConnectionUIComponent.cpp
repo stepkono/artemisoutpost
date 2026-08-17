@@ -4,9 +4,9 @@
 #include "MiniGameConnectionUIComponent.h"
 #include "MiniGameConnectionUI.h"
 #include "ArtemisOutpost/Minigame/General/GameInstance/MinigameActor.h"
-#include "ArtemisOutpost/Player/ACharVR.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "ArtemisOutpost/Player/MiniGameInteraction/MinigamePlayerController.h"
 #include "GameFramework/PlayerController.h"
 
 
@@ -47,8 +47,8 @@ void UMiniGameConnectionUIComponent::BeginPlay()
 
 	if (UMiniGameConnectionUI* ConnectionUI = Cast<UMiniGameConnectionUI>(GetWidget()))
 	{
-		ConnectionUI->SetOwner(Owner);
 		ConnectionUI->SetButtonText(ButtonText); 
+		ConnectionUI->OnConnectClicked.AddDynamic(this, &UMiniGameConnectionUIComponent::RequestEnter);
 	}
 	else
 	{
@@ -118,6 +118,11 @@ void UMiniGameConnectionUIComponent::FacePlayer()
 	SetWorldRotation(FRotationMatrix::MakeFromXZ(Forward, Up).Rotator());
 }
 
+void UMiniGameConnectionUIComponent::RequestEnter()
+{
+	GetLocalController()->GetMinigamePlayerController()->ServerRequestEnter(Owner); 
+}
+
 void UMiniGameConnectionUIComponent::MoveToPlayer()
 {
 	if (!Owner)
@@ -165,4 +170,23 @@ void UMiniGameConnectionUIComponent::SetShowConnectionUI(bool ShowConnectionUI)
 {
 	//this->SetHiddenInGame(!ShowConnectionUI); // TODO: this can be optimized and doesnt have to called on every tick
 	bShowConnectionUI = ShowConnectionUI;
+}
+
+void UMiniGameConnectionUIComponent::RequestEnter()
+{
+	if (!Owner)
+	{
+		return;
+	}
+
+	APawnController* Controller = GetLocalController();
+	if (!Controller)
+	{
+		return;
+	}
+
+	if (UMinigamePlayerController* MPC = Controller->GetMinigamePlayerController())
+	{
+		MPC->ServerRequestEnter(Owner);
+	}
 }

@@ -22,14 +22,13 @@ AMinigameActor::AMinigameActor()
 	RootComponent = Root;
 
 	GameConnection = CreateDefaultSubobject<UConnectionComponent>(TEXT("Connection"));
-
 }
 
 void AMinigameActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GameLogic         = FindComponentByClass<UMinigameLogicComponent>();
+	GameLogic          = FindComponentByClass<UMinigameLogicComponent>();
 	ConnectionUIHolder = FindComponentByClass<UMiniGameConnectionUIComponent>();
 }
 
@@ -84,29 +83,6 @@ bool AMinigameActor::CanLocalPlayerConnect() const
 {
 	const bool bFinished = GameLogic && GameLogic->GetState() == EMinigameState::Completed;
 	return !bFinished && HasFreeSlot() && !IsLocalPlayerParticipant();
-}
-
-void AMinigameActor::RequestEnter()
-{
-	if (APawnController* PC = GetLocalController())
-	{
-		if (UMinigamePlayerController* Controller = PC->GetMinigamePlayerController())
-		{
-			// TODO: this should return false, if server-side failing to communicate onto player
-			Controller->ServerRequestEnter(this);
-		}
-	}
-}
-
-void AMinigameActor::RequestLeave()
-{
-	if (APawnController* PC = GetLocalController())
-	{
-		if (UMinigamePlayerController* Controller = PC->GetMinigamePlayerController())
-		{
-			Controller->ServerRequestLeave(this);
-		}
-	}
 }
 
 bool AMinigameActor::IsPlayerNear()

@@ -27,14 +27,14 @@ public:
 	UMinigamePlayerController();
 
 	// --- Transport (client -> server) ---
-	UFUNCTION(Server, Reliable, Category = "Minigame")
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Minigame")
 	void ServerRequestEnter(AMinigameActor* Target);
 
-	UFUNCTION(Server, Reliable, Category = "Minigame")
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Minigame")
 	void ServerRequestLeave(AMinigameActor* Target);
 
 	// Unreliable: input is high-frequency and a dropped step is self-correcting.
-	UFUNCTION(Server, Unreliable, Category = "Minigame")
+	UFUNCTION(BlueprintCallable, Server, Unreliable, Category = "Minigame")
 	void ServerSubmitInput(AMinigameActor* Target, FMinigameInput Input);
 
 	// --- View lifecycle (called by the minigame model on the owning client) ---

@@ -43,6 +43,9 @@ private:
 	UFUNCTION()
 	void MoveToPlayer();
 	
+	UFUNCTION()
+	void RequestEnter(); 
+	
 protected:
 	UPROPERTY()
 	bool bShowConnectionUI;

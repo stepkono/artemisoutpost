@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MiniGameConnectionUIComponent.h"
 class AMinigameActor;
 #include "Blueprint/UserWidget.h"
 #include "Components/TextBlock.h"
@@ -12,20 +13,24 @@ class AMinigameActor;
  * 
  */
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConnectClicked); 
+
 UCLASS()
 class ARTEMISOUTPOST_API UMiniGameConnectionUI : public UUserWidget
 {
 	GENERATED_BODY()
 	
 public: 
-	void SetOwner(AMinigameActor* Owner);
-	
 	void SetButtonText(const FString& Text) const;
 	
-protected:
-	UPROPERTY(BlueprintReadOnly, Category = "Owner")
-	AMinigameActor* MiniGameOwner;
+public:
+	UPROPERTY(BlueprintCallable, Category = "Connection Widget")
+	FOnConnectClicked OnConnectClicked;
 	
-	UPROPERTY(BlueprintReadOnly, meta=(BindWidget), Category = "Widget Content")
+protected:
+	UPROPERTY(BlueprintReadOnly, Category = "Connection Widget")
+	UMiniGameConnectionUIComponent* WidgetComponent;
+	
+	UPROPERTY(BlueprintReadOnly, meta=(BindWidget), Category = "Connection Widget")
 	TObjectPtr<UTextBlock> TextBlock;
 };
