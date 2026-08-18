@@ -146,3 +146,8 @@ ACharVR* APawnController::GetVRPawn() const
 {
 	return VRPawn;
 }
+
+void APawnController::OnRep_VRPawn()
+{
+	VRPawnInitialized();
+}

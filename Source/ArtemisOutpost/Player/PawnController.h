@@ -56,6 +56,13 @@ public:
 protected: 
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "VR Pawn")
+	void VRPawnInitialized();
+	
+private: 
+	UFUNCTION()
+	void OnRep_VRPawn();
 
 protected: 
 	UPROPERTY(BlueprintReadOnly, Category = "Player ID")
@@ -64,7 +71,7 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	APawnAR* ARPawn; 
 	
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite, ReplicatedUsing=OnRep_VRPawn)
 	ACharVR* VRPawn; 
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)

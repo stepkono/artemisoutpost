@@ -118,11 +118,6 @@ void UMiniGameConnectionUIComponent::FacePlayer()
 	SetWorldRotation(FRotationMatrix::MakeFromXZ(Forward, Up).Rotator());
 }
 
-void UMiniGameConnectionUIComponent::RequestEnter()
-{
-	GetLocalController()->GetMinigamePlayerController()->ServerRequestEnter(Owner); 
-}
-
 void UMiniGameConnectionUIComponent::MoveToPlayer()
 {
 	if (!Owner)

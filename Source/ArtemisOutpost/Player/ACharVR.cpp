@@ -9,11 +9,14 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "ArtemisOutpost/Miscellaneous/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "EnhancedInputComponent.h"
 #include "ToolsHUD/ToolsHUDComponent.h"
+#include "ControllerRays/ControllerRayComponent.h"
 
 
 // Sets default values
@@ -33,6 +36,10 @@ ACharVR::ACharVR()
 	// Client-local wrist Tools-HUD. It's a plain ActorComponent (no scene transform); the widget it
 	// hosts renders into a WidgetComponent authored under the right controller in BP_VRChar.
 	ToolsHUDComponent = CreateDefaultSubobject<UToolsHUDComponent>(TEXT("ToolsHUDComponent"));
+
+	// Client-local controller rays (both hands). A plain ActorComponent; it resolves the
+	// WidgetInteractionComponents authored in BP_VRChar and spawns the Niagara visuals at runtime.
+	ControllerRayComponent = CreateDefaultSubobject<UControllerRayComponent>(TEXT("ControllerRayComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -136,6 +143,10 @@ void ACharVR::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		{
 			ToolsHUDComponent->BindInput(EIC);
 		}
+		if (ControllerRayComponent)
+		{
+			ControllerRayComponent->BindInput(EIC);
+		}
 	}
 }
 
@@ -227,6 +238,24 @@ void ACharVR::InitComponentsFromBP()
 		{
 			SkeletalMesh = Cast<USkeletalMeshComponent>(Comp);
 		}
+		if (!CachedMinigameView && Comp->ComponentHasTag(MinigameViewTag))
+		{
+			CachedMinigameView = Cast<UWidgetComponent>(Comp);
+		}
+		if (!CachedMinigameDim && Comp->ComponentHasTag(MinigameDimTag))
+		{
+			CachedMinigameDim = Comp;
+		}
+	}
+
+	// The minigame HUD + dimming start hidden; the controller reveals them on join.
+	if (CachedMinigameView)
+	{
+		CachedMinigameView->SetVisibility(false, true);
+	}
+	if (CachedMinigameDim)
+	{
+		CachedMinigameDim->SetVisibility(false, true);
 	}
 
 	if (!CachedVROrigin)
@@ -263,6 +292,37 @@ void ACharVR::InitComponentsFromBP()
 	{
 		VROriginBaseZ = -Capsule->GetScaledCapsuleHalfHeight();
 	}
+}
+
+void ACharVR::ShowMinigameView(UUserWidget* Widget)
+{
+	if (CachedMinigameView)
+	{
+		CachedMinigameView->SetWidget(Widget);
+		CachedMinigameView->SetVisibility(true, true);
+	}
+
+	if (CachedMinigameDim)
+	{
+		CachedMinigameDim->SetVisibility(true, true);
+	}
+	
+	MiniGameIsOpen();
+}
+
+void ACharVR::HideMinigameView()
+{
+	if (CachedMinigameView)
+	{
+		CachedMinigameView->SetWidget(nullptr);
+		CachedMinigameView->SetVisibility(false, true);
+	}
+	if (CachedMinigameDim)
+	{
+		CachedMinigameDim->SetVisibility(false, true);
+	}
+	
+	MiniGameIsClosed();
 }
 
 void ACharVR::ApplyLocalVRSetup()

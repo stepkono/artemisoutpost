@@ -2,12 +2,16 @@
 
 #include "MinigameActor.h"
 
-#include "ArtemisOutpost/Minigame/General/Logic/MinigameLogicComponent.h"
 #include "ArtemisOutpost/Minigame/Connection/ConnectionComponent.h"
+#include "ArtemisOutpost/Minigame/General/MinigamePuppetManager.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/Player/ACharVR.h"
 #include "ArtemisOutpost/Player/PawnController.h"
 #include "ArtemisOutpost/Player/MiniGameInteraction/MinigamePlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonSerializer.h"
 
 AMinigameActor::AMinigameActor()
 {
@@ -17,25 +21,58 @@ AMinigameActor::AMinigameActor()
 	// proxy need the state, so keep them always relevant rather than distance-culled.
 	bReplicates = true;
 	bAlwaysRelevant = true;
-	
+
 	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
 	RootComponent = Root;
 
 	GameConnection = CreateDefaultSubobject<UConnectionComponent>(TEXT("Connection"));
+	PuppetManager  = CreateDefaultSubobject<UMinigamePuppetManager>(TEXT("PuppetManager"));
+}
+
+void AMinigameActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMinigameActor, State);
 }
 
 void AMinigameActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GameLogic          = FindComponentByClass<UMinigameLogicComponent>();
+	// The concrete subclass adds the prompt component; resolve it once.
 	ConnectionUIHolder = FindComponentByClass<UMiniGameConnectionUIComponent>();
+
+	if (!GameConnection)
+	{
+		return;
+	}
+
+	// Peers with a local player (all clients + listen host, any XR mode; not the dedicated server):
+	// the local screen View reacts to slot changes, and the AR puppet is spawned + initially synced.
+	if (ArtemisNet::IsClientContext(GetNetMode()))
+	{
+		GameConnection->OnSlotsChanged.AddDynamic(this, &AMinigameActor::RefreshLocalUI);
+
+		if (PuppetManager)
+		{
+			PuppetManager->CreateARPuppet();
+			SyncPuppet();
+		}
+	}
+
+	// Server only: authoritative join gating + game reactions.
+	if (HasAuthority())
+	{
+		GameConnection->CanJoinPredicate.BindUObject(this, &AMinigameActor::HandleCanJoin);
+		GameConnection->OnParticipantJoined.AddUObject(this, &AMinigameActor::HandleParticipantJoined);
+		GameConnection->OnParticipantLeft.AddUObject(this, &AMinigameActor::HandleParticipantLeft);
+	}
 }
 
 void AMinigameActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
 	if (ConnectionUIHolder)
 	{
 		ConnectionUIHolder->SetShowConnectionUI(IsPlayerNear() && CanLocalPlayerConnect());
@@ -47,10 +84,206 @@ UConnectionComponent* AMinigameActor::GetConnectionComponent() const
 	return GameConnection;
 }
 
-UMinigameLogicComponent* AMinigameActor::GetLogicComponent() const
+EMinigameState AMinigameActor::GetState() const
 {
-	return GameLogic;
+	return State;
 }
+
+TSubclassOf<UMiniGameUI> AMinigameActor::GetMiniGameUIClass() const
+{
+	return MiniGameUIClass;
+}
+
+// ---- Server-authoritative mechanics ----
+
+void AMinigameActor::ServerHandleInput(const FString& UPID, const FMinigameInput& Input)
+{
+	if (!HasAuthority() || State != EMinigameState::Active)
+	{
+		return;
+	}
+
+	if (!GameConnection || !GameConnection->IsParticipant(UPID))
+	{
+		return;
+	}
+
+	ApplyInput(UPID, Input);
+	PublishSnapshot();
+}
+
+bool AMinigameActor::HandleCanJoin(const FString& UPID, FText& OutReason)
+{
+	// Additional joiners are always fine (slot rules already checked by the connection). Only the
+	// first joiner, which starts the task, must satisfy the game preconditions.
+	if (State != EMinigameState::Idle)
+	{
+		return true;
+	}
+	return CanStart(UPID, OutReason);
+}
+
+void AMinigameActor::HandleParticipantJoined(const FString& UPID)
+{
+	if (State == EMinigameState::Idle)
+	{
+		SetState(EMinigameState::Active);
+		OnStart();
+	}
+
+	OnParticipantJoined(UPID);
+	PublishSnapshot();
+}
+
+void AMinigameActor::HandleParticipantLeft(const FString& UPID)
+{
+	OnParticipantLeft(UPID);
+
+	if (GameConnection && GameConnection->GetParticipantCount() == 0 && State != EMinigameState::Completed)
+	{
+		OnAbort();
+		SetState(EMinigameState::Idle);
+	}
+
+	PublishSnapshot();
+}
+
+// ---- Rules + mechanics hooks (base defaults) ----
+
+bool AMinigameActor::CanStart(const FString& UPID, FText& OutReason) const
+{
+	return true;
+}
+
+void AMinigameActor::OnStart()
+{
+}
+
+void AMinigameActor::OnComplete()
+{
+	SetState(EMinigameState::Completed);
+}
+
+void AMinigameActor::OnAbort()
+{
+}
+
+void AMinigameActor::ApplyInput(const FString& UPID, const FMinigameInput& Input)
+{
+}
+
+void AMinigameActor::OnParticipantJoined(const FString& UPID)
+{
+}
+
+void AMinigameActor::OnParticipantLeft(const FString& UPID)
+{
+}
+
+// ---- State machine ----
+
+void AMinigameActor::SetState(EMinigameState NewState)
+{
+	if (State == NewState)
+	{
+		return;
+	}
+	State = NewState;
+	HandleStateChanged();
+}
+
+void AMinigameActor::OnRep_State()
+{
+	HandleStateChanged();
+}
+
+void AMinigameActor::HandleStateChanged()
+{
+	OnStateChanged.Broadcast();
+	PublishSnapshot();
+
+	// State changes (Active on start, Completed/Idle on finish/abort) also drive the local View...
+	RefreshLocalUI();
+
+	// ...and the AR puppet (no-op where no puppet exists).
+	if (PuppetManager)
+	{
+		PuppetManager->PushState(State);
+	}
+}
+
+// ---- Local screen-View lifecycle ----
+
+void AMinigameActor::RefreshLocalUI()
+{
+	APawnController* PC = Cast<APawnController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+	if (!PC)
+	{
+		return;
+	}
+
+	UMinigamePlayerController* Controller = PC->GetMinigamePlayerController();
+	if (!Controller)
+	{
+		return;
+	}
+
+	const bool bShouldOpen = GameConnection && GameConnection->IsParticipant(PC->GetPlayerUPID());
+
+	if (bShouldOpen && !bLocalUIOpen)
+	{
+		Controller->OpenUI(this);
+		bLocalUIOpen = true;
+	}
+	else if (!bShouldOpen && bLocalUIOpen)
+	{
+		Controller->CloseUI();
+		bLocalUIOpen = false;
+	}
+}
+
+// ---- Snapshot ----
+
+void AMinigameActor::PublishSnapshot()
+{
+	if (!OnSnapshotChanged.IsBound())
+	{
+		return;
+	}
+
+	FString Json;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Json);
+	FJsonSerializer::Serialize(BuildSnapshot(), Writer);
+	OnSnapshotChanged.Broadcast(Json);
+}
+
+void AMinigameActor::SyncPuppet()
+{
+	if (PuppetManager)
+	{
+		PuppetManager->PushState(State);
+	}
+}
+
+TSharedRef<FJsonObject> AMinigameActor::BuildSnapshot() const
+{
+	TSharedRef<FJsonObject> Obj = MakeShared<FJsonObject>();
+	Obj->SetStringField(TEXT("actor"), GetName());
+	Obj->SetNumberField(TEXT("state"), static_cast<int32>(State));
+
+	if (GameConnection)
+	{
+		TArray<TSharedPtr<FJsonValue>> Participants;
+		for (const FString& UPID : GameConnection->GetParticipantUPIDs())
+		{
+			Participants.Add(MakeShared<FJsonValueString>(UPID));
+		}
+		Obj->SetArrayField(TEXT("participants"), Participants);
+	}
+	return Obj;
+}
+
+// ---- Local read hooks ----
 
 APawnController* AMinigameActor::GetLocalController() const
 {
@@ -69,19 +302,17 @@ FString AMinigameActor::GetLocalPlayerUPID() const
 
 bool AMinigameActor::IsLocalPlayerParticipant() const
 {
-	const UConnectionComponent* Conn = GetConnectionComponent();
-	return Conn ? Conn->IsParticipant(GetLocalPlayerUPID()) : false;
+	return GameConnection ? GameConnection->IsParticipant(GetLocalPlayerUPID()) : false;
 }
 
 bool AMinigameActor::HasFreeSlot() const
 {
-	const UConnectionComponent* Conn = GetConnectionComponent();
-	return Conn ? Conn->GetFreeSlotCount() > 0 : false;
+	return GameConnection ? GameConnection->GetFreeSlotCount() > 0 : false;
 }
 
 bool AMinigameActor::CanLocalPlayerConnect() const
 {
-	const bool bFinished = GameLogic && GameLogic->GetState() == EMinigameState::Completed;
+	const bool bFinished = (State == EMinigameState::Completed);
 	return !bFinished && HasFreeSlot() && !IsLocalPlayerParticipant();
 }
 

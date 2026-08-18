@@ -9,16 +9,15 @@
 
 class AMinigameActor;
 class UMiniGameUI;
-class UMinigameLogicComponent;
 
 // The per-player minigame Controller (MVC), attached to APawnController. Two jobs:
-//  1) Transport: routes the local player's intents to the server. A minigame actor is
-//     server-owned (§9), so a client can't RPC it directly; these RPCs live on this
-//     client-owned component and forward to the target's authoritative connection/logic.
-//  2) View lifecycle: on the owning client, opens/closes the screen-space View, wires the
-//     model's replicated updates INTO the View (plain data) and the View's OnInput OUT to the
-//     server. Neither the View nor the model stores a reference to the other.
-UCLASS(ClassGroup = (Minigame), meta = (BlueprintSpawnableComponent))
+//  1) Transport: routes the local player's intents to the server. A minigame actor is server-owned
+//     (§9), so a client can't RPC it directly; these RPCs live on this client-owned component and
+//     forward to the target actor's authoritative connection / input handler.
+//  2) View lifecycle: on the owning client, opens/closes the screen-space View, wires the actor's
+//     replicated updates INTO the View (plain data) and the View's OnInput OUT to the server.
+//     Neither the View nor the actor stores a reference to the other.
+UCLASS(Blueprintable, ClassGroup = (Minigame), meta = (BlueprintSpawnableComponent))
 class ARTEMISOUTPOST_API UMinigamePlayerController : public UActorComponent
 {
 	GENERATED_BODY()
@@ -37,9 +36,12 @@ public:
 	UFUNCTION(BlueprintCallable, Server, Unreliable, Category = "Minigame")
 	void ServerSubmitInput(AMinigameActor* Target, FMinigameInput Input);
 
-	// --- View lifecycle (called by the minigame model on the owning client) ---
+	// --- View lifecycle (called by the minigame actor on the owning client) ---
 	void OpenUI(AMinigameActor* Target);
 	void CloseUI();
+	
+	UFUNCTION(BlueprintPure, Category = "Minigame")	
+	bool IsMiniGameActive(); 
 
 private:
 	FString GetOwnerUPID() const;
@@ -48,19 +50,21 @@ private:
 	UFUNCTION()
 	void HandleUIInput(FMinigameInput Input);
 
-	// Model -> View (plain-data pushes).
+	// Actor -> View (plain-data pushes).
 	UFUNCTION()
 	void HandleModelStateChanged();
 
 	UFUNCTION()
 	void HandleModelAxesUpdated(const TArray<FAxisState>& Axes);
-
+	
+private: 
+	UPROPERTY()
+	bool bMiniGameActive = false; 	
+	
 	UPROPERTY(Transient)
 	UMiniGameUI* ActiveView;
 
+	// The actor is the model: it owns the state and the axes.
 	UPROPERTY(Transient)
 	AMinigameActor* ActiveTarget;
-
-	UPROPERTY(Transient)
-	UMinigameLogicComponent* ActiveModel;
 };

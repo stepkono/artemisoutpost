@@ -4,8 +4,8 @@
 #include "ArtemisOutpost/Player/PawnController.h"
 #include "ArtemisOutpost/Minigame/UI/Game/MiniGameUI.h"
 #include "ArtemisOutpost/Minigame/Connection/ConnectionComponent.h"
-#include "ArtemisOutpost/Minigame/General/Logic/CoupledAxisLogicComponent.h"
 #include "ArtemisOutpost/Minigame/General/GameInstance/MinigameActor.h"
+#include "ArtemisOutpost/Minigame/General/GameInstance/CoupledAxisMinigameActor.h"
 
 UMinigamePlayerController::UMinigamePlayerController()
 {
@@ -48,10 +48,7 @@ void UMinigamePlayerController::ServerSubmitInput_Implementation(AMinigameActor*
 {
 	if (Target)
 	{
-		if (UMinigameLogicComponent* Logic = Target->GetLogicComponent())
-		{
-			Logic->ServerHandleInput(GetOwnerUPID(), Input);
-		}
+		Target->ServerHandleInput(GetOwnerUPID(), Input);
 	}
 }
 
@@ -69,10 +66,9 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 	}
 
 	ActiveTarget = Target;
-	ActiveModel = Target->GetLogicComponent();
 
 	APlayerController* PC = Cast<APlayerController>(GetOwner());
-	const TSubclassOf<UMiniGameUI> WidgetClass = ActiveModel ? ActiveModel->GetMiniGameUIClass() : nullptr;
+	const TSubclassOf<UMiniGameUI> WidgetClass = Target->GetMiniGameUIClass();
 	if (!PC || !WidgetClass)
 	{
 		return;
@@ -85,7 +81,7 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 	}
 
 	ActiveView->LocalUPID = GetOwnerUPID();
-	if (const UCoupledAxisLogicComponent* Coupled = Cast<UCoupledAxisLogicComponent>(ActiveModel))
+	if (const ACoupledAxisMinigameActor* Coupled = Cast<ACoupledAxisMinigameActor>(Target))
 	{
 		ActiveView->DwellSeconds = Coupled->GetDwellSeconds();
 	}
@@ -93,18 +89,39 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 	// View -> server.
 	ActiveView->OnInput.AddDynamic(this, &UMinigamePlayerController::HandleUIInput);
 
-	// Model -> View. Bind the replicated update events, then push the current state once.
-	ActiveModel->OnStateChanged.AddDynamic(this, &UMinigamePlayerController::HandleModelStateChanged);
-	if (UCoupledAxisLogicComponent* Coupled = Cast<UCoupledAxisLogicComponent>(ActiveModel))
+	// Actor -> View. Bind the replicated update events, then push the current state once.
+	Target->OnStateChanged.AddDynamic(this, &UMinigamePlayerController::HandleModelStateChanged);
+	if (ACoupledAxisMinigameActor* Coupled = Cast<ACoupledAxisMinigameActor>(Target))
 	{
 		Coupled->OnAxesUpdated.AddDynamic(this, &UMinigamePlayerController::HandleModelAxesUpdated);
 	}
 
-	ActiveView->AddToViewport();
+	// World-space: hand the View to the VR pawn's holder in front of the HMD (+ dim), instead of a
+	// screen-space AddToViewport (which does not render in the HMD). Falls back to the viewport if
+	// there is no VR pawn (e.g. desktop/AR without the VR rig).
+	ACharVR* VRPawn = nullptr;
+	if (const APawnController* OwningPC = Cast<APawnController>(GetOwner()))
+	{
+		VRPawn = OwningPC->GetVRPawn();
+	}
+	if (VRPawn)
+	{
+		VRPawn->ShowMinigameView(ActiveView);
+		bMiniGameActive = true; 
+	}
+	else
+	{
+		// No VR pawn resolved -> screen-space fallback (glued to the view, ignores the world-space
+		// holder). If you see the HUD stuck to your face and moving the Minigame_View component does
+		// nothing, THIS is why: GetVRPawn() returned null.
+		UE_LOG(LogTemp, Warning, TEXT("[Minigame] OpenUI: GetVRPawn() is null -> screen-space fallback (world-space HUD holder not used)."));
+		ActiveView->AddToViewport();
+	}
+
 	ActiveView->OnOpened();
 
 	HandleModelStateChanged();
-	if (const UCoupledAxisLogicComponent* Coupled = Cast<UCoupledAxisLogicComponent>(ActiveModel))
+	if (const ACoupledAxisMinigameActor* Coupled = Cast<ACoupledAxisMinigameActor>(Target))
 	{
 		ActiveView->OnAxesUpdated(Coupled->GetAxes());
 	}
@@ -112,10 +129,10 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 
 void UMinigamePlayerController::CloseUI()
 {
-	if (ActiveModel)
+	if (ActiveTarget)
 	{
-		ActiveModel->OnStateChanged.RemoveDynamic(this, &UMinigamePlayerController::HandleModelStateChanged);
-		if (UCoupledAxisLogicComponent* Coupled = Cast<UCoupledAxisLogicComponent>(ActiveModel))
+		ActiveTarget->OnStateChanged.RemoveDynamic(this, &UMinigamePlayerController::HandleModelStateChanged);
+		if (ACoupledAxisMinigameActor* Coupled = Cast<ACoupledAxisMinigameActor>(ActiveTarget))
 		{
 			Coupled->OnAxesUpdated.RemoveDynamic(this, &UMinigamePlayerController::HandleModelAxesUpdated);
 		}
@@ -125,11 +142,25 @@ void UMinigamePlayerController::CloseUI()
 	{
 		ActiveView->OnInput.RemoveDynamic(this, &UMinigamePlayerController::HandleUIInput);
 		ActiveView->OnClosed();
-		ActiveView->RemoveFromParent();
+
+		ACharVR* VRPawn = nullptr;
+		if (const APawnController* OwningPC = Cast<APawnController>(GetOwner()))
+		{
+			VRPawn = OwningPC->GetVRPawn();
+		}
+		if (VRPawn)
+		{
+			VRPawn->HideMinigameView();
+			bMiniGameActive = false; 
+		}
+		else
+		{
+			ActiveView->RemoveFromParent();
+		}
+
 		ActiveView = nullptr;
 	}
 
-	ActiveModel = nullptr;
 	ActiveTarget = nullptr;
 }
 
@@ -145,9 +176,9 @@ void UMinigamePlayerController::HandleUIInput(FMinigameInput Input)
 
 void UMinigamePlayerController::HandleModelStateChanged()
 {
-	if (ActiveView && ActiveModel)
+	if (ActiveView && ActiveTarget)
 	{
-		ActiveView->OnMinigameStateChanged(ActiveModel->GetState());
+		ActiveView->OnMinigameStateChanged(ActiveTarget->GetState());
 	}
 }
 
@@ -157,4 +188,9 @@ void UMinigamePlayerController::HandleModelAxesUpdated(const TArray<FAxisState>&
 	{
 		ActiveView->OnAxesUpdated(Axes);
 	}
+}
+
+bool UMinigamePlayerController::IsMiniGameActive()
+{
+	return bMiniGameActive;
 }
