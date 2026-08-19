@@ -148,6 +148,13 @@ bool ABuildingTool::TryBuildAtPlacement(FVector PlacementLocation)
 	return true;
 }
 
+void ABuildingTool::ExecuteAction()
+{
+	// Trigger DOWN while this is the active tool -> build at the arc's current landing point (written
+	// by the BP arc into ProposedBuildLocation each tick).
+	TryBuildAtPlacement(ProposedBuildLocation);
+}
+
 //TODO: pay attention if this actually does work, since the SetOwner is set on the BP. If this RPC never runs on server, the ownership problem is the first suspsect
 void ABuildingTool::ServerPlaceBuilding_Implementation(EOutpostBuildingType BuildingType, FTransform PlacementTransform)
 {

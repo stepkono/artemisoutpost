@@ -13,7 +13,7 @@ TArray<EHUDAction> UToolsHUDWidget::GetActionsForPage(EToolHUDPage Page)
 	case EToolHUDPage::Building:
 		return { EHUDAction::BuildHabitat, EHUDAction::BuildSolarPanel, EHUDAction::BuildAntenna, EHUDAction::Back };
 	case EToolHUDPage::Scanning:
-		return { EHUDAction::ScanEnvironment, EHUDAction::ScanResource, EHUDAction::Back };
+		return { EHUDAction::SurfaceScan, EHUDAction::AreaScan, EHUDAction::Back };
 	case EToolHUDPage::Main:
 	default:
 		return { EHUDAction::OpenBuilding, EHUDAction::OpenScanning, EHUDAction::CloseMenu };
@@ -30,8 +30,8 @@ FText UToolsHUDWidget::DefaultLabelFor(EHUDAction Action)
 	case EHUDAction::BuildHabitat:    return LOCTEXT("Habitat",       "Habitat");
 	case EHUDAction::BuildSolarPanel: return LOCTEXT("SolarPanel",    "Solar Panel");
 	case EHUDAction::BuildAntenna:    return LOCTEXT("Antenna",       "Funkmast");
-	case EHUDAction::ScanEnvironment: return LOCTEXT("Environment",   "Umgebung");
-	case EHUDAction::ScanResource:    return LOCTEXT("Resource",      "Ressource");
+	case EHUDAction::SurfaceScan:     return LOCTEXT("SurfaceScan",   "Surface Scan");
+	case EHUDAction::AreaScan:        return LOCTEXT("AreaScan",      "Area Scan");
 	case EHUDAction::Back:            return LOCTEXT("Back",          "Zurück");
 	default:                           return FText::GetEmpty();
 	}
@@ -177,11 +177,11 @@ void UToolsHUDWidget::SetHighlight(int32 NewIndex)
 
 // ---- Confirm ----
 
-void UToolsHUDWidget::HandleConfirm()
+bool UToolsHUDWidget::ConfirmHighlighted(EHUDAction& OutAction)
 {
 	if (!CurrentTiles.IsValidIndex(HighlightIndex))
 	{
-		return;
+		return false;
 	}
 
 	const FToolTile& Tile = CurrentTiles[HighlightIndex];
@@ -191,8 +191,10 @@ void UToolsHUDWidget::HandleConfirm()
 
 	if (Tile.bEnabled)
 	{
-		OnToolActionConfirmed.Broadcast(Tile.Action);
+		OutAction = Tile.Action;
+		return true;
 	}
+	return false;
 }
 
 // ---- Gating ----

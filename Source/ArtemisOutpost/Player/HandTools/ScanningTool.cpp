@@ -17,11 +17,18 @@ AScanningTool::AScanningTool()
 void AScanningTool::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	Muzzle = Cast<USceneComponent>(FindComponentByTag<UActorComponent>(FName("ScanningTool")));
+
+	Muzzle = Cast<USceneComponent>(FindComponentByTag<UActorComponent>(FName("Muzzle")));
 	if (!Muzzle)
 	{
 		UE_LOG(LogTemp, Error, TEXT("ScanningTool: Failed to get Muzzle."));
+		return; 
+	}
+
+	if (!SurfaceScannerCollection)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ScanningTool: SurfaceScannerCollection is not initialized."));
+		return; 
 	}
 	
 	UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), SurfaceScannerCollection, FName("ScanningRadius"), ScanningRadius);
@@ -31,12 +38,12 @@ void AScanningTool::BeginPlay()
 void AScanningTool::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
 	if (!(Muzzle && SurfaceScannerCollection))
 	{
-		return; 
+		return;
 	}
-	
+
 	ScanSurface();
 }
 
@@ -45,32 +52,68 @@ void AScanningTool::SetScannerOn(bool bScannerOn)
 	bIsScannerOn = bScannerOn;
 }
 
+void AScanningTool::BeginScan(EScanMode Mode)
+{
+	CurrentScanMode = Mode;
+	if (!bToolActive)
+	{
+		ActivateTool();
+	}
+}
+
+void AScanningTool::ExecuteAction()
+{
+	// Trigger held -> scan.
+	SetScannerOn(true);
+}
+
+void AScanningTool::EndAction()
+{
+	// Trigger released -> stop.
+	SetScannerOn(false);
+}
+
+void AScanningTool::DeactivateTool()
+{
+	// Holstering must stop the scan and clear the material, even if the trigger is still held (Tick is
+	// disabled on deactivate, so ScanSurface won't run to reset it on its own).
+	SetScannerOn(false);
+	if (SurfaceScannerCollection)
+	{
+		ResetScanningArea();
+	}
+
+	Super::DeactivateTool();
+}
+
 void AScanningTool::ScanSurface()
 {
 	if (!bIsScannerOn)
 	{
-		ResetScanningArea(); 
+		ResetScanningArea();
 		return;
 	}
-	
-	const FVector BeginTrace = Muzzle->GetComponentLocation(); 
+
+	const FVector BeginTrace = Muzzle->GetComponentLocation();
 	const FVector Direction = Muzzle->GetForwardVector();
 	const FVector EndTrace = BeginTrace + Direction * ScanningDistance;
-	
+
 	FHitResult Hit;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ScanTrace), /*bTraceComplex=*/true, this);
-	
+
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, BeginTrace, EndTrace, ECollisionChannel::ECC_WorldStatic, Params);
 	if (bHit)
 	{
-		const FVector Location = Hit.Location; 
+		UE_LOG(LogTemp, Warning, TEXT("ScanningTool: Found Hit."));
+		const FVector Location = Hit.Location;
 		const FLinearColor ScanAreaCenter(Location);
 		UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), SurfaceScannerCollection, FName("ScannerFlag"), 1);
 		UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), SurfaceScannerCollection, FName("ScanAreaCenter"), ScanAreaCenter);
 	}
 	else
 	{
-		ResetScanningArea(); 
+		UE_LOG(LogTemp, Error, TEXT("ScanningTool: Found no Hit."));
+		ResetScanningArea();
 	}
 }
 

@@ -31,7 +31,6 @@ void UToolsHUDComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	if (ActiveWidget)
 	{
-		ActiveWidget->OnToolActionConfirmed.RemoveDynamic(this, &UToolsHUDComponent::HandleToolActionConfirmed);
 		ActiveWidget->AvailabilityDelegate.Unbind();
 	}
 	if (AnchorWidgetComp)
@@ -53,16 +52,11 @@ void UToolsHUDComponent::BindInput(UEnhancedInputComponent* EnhancedInputCompone
 		return;
 	}
 
-	// Navigate + confirm only. Mapping contexts + the toggle button are managed in Blueprint
-	// (BP_PawnController). The stick fires continuously (Triggered) and is debounced inside the
-	// widget; the trigger fires once per press (Started).
+	// Only the thumbstick navigation is bound in C++ (fires continuously; debounced in the widget).
+	// The trigger is routed in Blueprint and calls ConfirmSelection() while the menu is open.
 	if (NavigateAction)
 	{
 		EnhancedInputComponent->BindAction(NavigateAction, ETriggerEvent::Triggered, this, &UToolsHUDComponent::HandleNavigateInput);
-	}
-	if (ConfirmAction)
-	{
-		EnhancedInputComponent->BindAction(ConfirmAction, ETriggerEvent::Started, this, &UToolsHUDComponent::HandleConfirmInput);
 	}
 }
 
@@ -74,11 +68,17 @@ void UToolsHUDComponent::HandleNavigateInput(const FInputActionValue& Value)
 	}
 }
 
-void UToolsHUDComponent::HandleConfirmInput()
+void UToolsHUDComponent::ConfirmSelection()
 {
-	if (bIsOpen && ActiveWidget)
+	if (!bIsOpen || !ActiveWidget)
 	{
-		ActiveWidget->HandleConfirm();
+		return;
+	}
+
+	EHUDAction Action;
+	if (ActiveWidget->ConfirmHighlighted(Action))
+	{
+		HandleToolActionConfirmed(Action);
 	}
 }
 
@@ -164,8 +164,8 @@ void UToolsHUDComponent::HandleToolActionConfirmed(EHUDAction Action)
 	case EHUDAction::BuildHabitat:
 	case EHUDAction::BuildSolarPanel:
 	case EHUDAction::BuildAntenna:
-	case EHUDAction::ScanEnvironment:
-	case EHUDAction::ScanResource:
+	case EHUDAction::SurfaceScan:
+	case EHUDAction::AreaScan:
 		CloseMenu();
 		break;
 
@@ -241,7 +241,6 @@ bool UToolsHUDComponent::EnsureWidget()
 		return false;
 	}
 
-	ActiveWidget->OnToolActionConfirmed.AddDynamic(this, &UToolsHUDComponent::HandleToolActionConfirmed);
 	ActiveWidget->AvailabilityDelegate.BindUObject(this, &UToolsHUDComponent::QueryAvailability);
 
 	AnchorWidgetComp->SetWidget(ActiveWidget);

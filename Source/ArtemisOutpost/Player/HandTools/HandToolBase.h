@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "HandToolBase.generated.h"
 
+class APawn;
+
 /**
  * Base for the tool held in the player's right hand (Building / Scanning). One instance of each
  * lives permanently on the pawn as a Child Actor Component under the right controller; modes are
@@ -32,6 +34,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Hand Tool")
 	bool IsToolActive() const { return bToolActive; }
 
+	// Trigger DOWN, routed from BP_VRChar when this tool is the active one (ACharVR::GetActiveTool()).
+	// Override per tool in C++: BuildingTool = place; ScanningTool = start scan (hold). Plain virtual +
+	// BlueprintCallable — BP calls it on the base pointer and it dispatches to the C++ override.
+	UFUNCTION(BlueprintCallable, Category = "Hand Tool")
+	virtual void ExecuteAction();
+
+	// Trigger UP. Override for hold-style tools (ScanningTool = stop scan). Default: does nothing.
+	UFUNCTION(BlueprintCallable, Category = "Hand Tool")
+	virtual void EndAction();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -41,6 +53,9 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Hand Tool")
 	void OnToolDeactivated();
+
+	// The pawn holding this tool (owner, or the ChildActorComponent's parent actor).
+	APawn* GetOwningPawn() const;
 
 	// True only on the client whose pawn holds this tool. The aiming/trace logic must run only there.
 	bool IsOwnerLocallyControlled() const;

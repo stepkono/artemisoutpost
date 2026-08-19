@@ -36,8 +36,8 @@ enum class EHUDAction : uint8
 	BuildAntenna    UMETA(DisplayName = "Build Antenna"),
 
 	// --- Scanning page ---
-	ScanEnvironment UMETA(DisplayName = "Scan Environment"),
-	ScanResource    UMETA(DisplayName = "Scan Resource"),
+	SurfaceScan     UMETA(DisplayName = "Surface Scan"),
+	AreaScan        UMETA(DisplayName = "Area Scan"),
 
 	// --- Shared (sub-pages) ---
 	Back            UMETA(DisplayName = "Back")

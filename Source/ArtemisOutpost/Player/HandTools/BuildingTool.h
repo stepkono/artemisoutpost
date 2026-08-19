@@ -48,6 +48,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Building Tool")
 	bool TryBuildAtPlacement(FVector PlacementLocation);
 
+	// AHandToolBase — trigger DOWN while this is the active tool: build at the current aim point.
+	// The BP arc writes ProposedBuildLocation each tick; this just confirms there.
+	virtual void ExecuteAction() override;
+
 	// Geodetic "up" (moon surface normal) at a world position, via the VR-moon georeference.
 	UFUNCTION(BlueprintPure, Category = "Building Tool")
 	FVector GetSurfaceUp(FVector WorldPos) const;
@@ -82,6 +86,11 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Building Tool")
 	EOutpostBuildingType CurrentBuildingType = EOutpostBuildingType::Habitat;
+
+	// Current aim/landing point, written by the BP arc each tick (Out Hit -> Impact Point). ExecuteAction
+	// (trigger) builds here — so the confirm logic lives in C++ while the arc stays in BP.
+	UPROPERTY(BlueprintReadWrite, Category = "Building Tool")
+	FVector ProposedBuildLocation = FVector::ZeroVector;
 
 	// Building type -> spawned actor class. Assign in BP_BuildingTool (Antenna -> BP_SignalTower;
 	// Habitat / SolarPanel -> new AMinigameActor children). Adding a building = one row here.

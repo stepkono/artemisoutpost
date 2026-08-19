@@ -3,6 +3,7 @@
 #include "HandToolBase.h"
 
 #include "GameFramework/Pawn.h"
+#include "ArtemisOutpost/Player/ACharVR.h"
 
 AHandToolBase::AHandToolBase()
 {
@@ -30,17 +31,13 @@ void AHandToolBase::ActivateTool()
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(IsOwnerLocallyControlled());
 
-	OnToolActivated();
-}
-
-bool AHandToolBase::IsOwnerLocallyControlled() const
-{
-	const APawn* Pawn = Cast<APawn>(GetOwner());
-	if (!Pawn)
+	// Register as the pawn's active tool so BP_VRChar can route the trigger to us (GetActiveTool()).
+	if (ACharVR* VR = Cast<ACharVR>(GetOwningPawn()))
 	{
-		Pawn = Cast<APawn>(GetParentActor());
+		VR->SetActiveHandTool(this);
 	}
-	return Pawn && Pawn->IsLocallyControlled();
+
+	OnToolActivated();
 }
 
 void AHandToolBase::DeactivateTool()
@@ -48,5 +45,42 @@ void AHandToolBase::DeactivateTool()
 	bToolActive = false;
 	SetActorHiddenInGame(true);
 	SetActorTickEnabled(false);
+
+	// Clear ourselves as the active tool — but only if we still are (a tool activated afterwards may
+	// already have taken over).
+	if (ACharVR* VR = Cast<ACharVR>(GetOwningPawn()))
+	{
+		if (VR->GetActiveTool() == this)
+		{
+			VR->SetActiveHandTool(nullptr);
+		}
+	}
+
 	OnToolDeactivated();
+}
+
+APawn* AHandToolBase::GetOwningPawn() const
+{
+	APawn* Pawn = Cast<APawn>(GetOwner());
+	if (!Pawn)
+	{
+		Pawn = Cast<APawn>(GetParentActor());
+	}
+	return Pawn;
+}
+
+bool AHandToolBase::IsOwnerLocallyControlled() const
+{
+	const APawn* Pawn = GetOwningPawn();
+	return Pawn && Pawn->IsLocallyControlled();
+}
+
+void AHandToolBase::ExecuteAction()
+{
+	// Base does nothing — override per tool in C++.
+}
+
+void AHandToolBase::EndAction()
+{
+	// Base does nothing — override for hold-style tools (e.g. stop scan on release).
 }

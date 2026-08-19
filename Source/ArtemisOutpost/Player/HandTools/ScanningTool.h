@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "HandToolBase.h"
+#include "ArtemisOutpost/Minigame/General/MinigameTypes.h"
 #include "ScanningTool.generated.h"
 
 UCLASS()
@@ -14,36 +15,57 @@ class ARTEMISOUTPOST_API AScanningTool : public AHandToolBase
 public:
 	// Sets default values for this actor's properties
 	AScanningTool();
-	
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Scanning Tool")
-	void SetScannerOn(bool bScannerOn); 
+	void SetScannerOn(bool bScannerOn);
+
+	// Enter scanning for a mode (called from the HUD's Scanning tiles). Activates the tool; the scanner
+	// itself is turned on/off with the trigger (ExecuteAction / EndAction = hold-to-scan).
+	UFUNCTION(BlueprintCallable, Category = "Scanning Tool")
+	void BeginScan(EScanMode Mode);
+
+	UFUNCTION(BlueprintPure, Category = "Scanning Tool")
+	EScanMode GetCurrentScanMode() const { return CurrentScanMode; }
+
+	UFUNCTION(BlueprintPure, Category = "Scanning Tool")
+	bool IsScanning() const { return bIsScannerOn; }
+
+	// AHandToolBase — trigger down/up (hold-to-scan), + holster safety.
+	virtual void ExecuteAction() override;
+	virtual void EndAction() override;
+	virtual void DeactivateTool() override;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-private: 
-	void ScanSurface(); 
-	
+private:
+	void ScanSurface();
+
 	void ResetScanningArea();
-	
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
-	float ScanningRadius = 100; 
-	
+	float ScanningRadius = 100;
+
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
 	float ScanningDistance = 200;
-	
+
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
 	UMaterialParameterCollection* SurfaceScannerCollection;
-	
-private: 
+
+	// Which scan the trigger runs (set by BeginScan from the HUD). Surface uses the aim trace below;
+	// Area (environment around the player) is a future addition to ScanSurface / a new pass.
+	UPROPERTY(BlueprintReadOnly, Category = "Scanning Tool")
+	EScanMode CurrentScanMode = EScanMode::Surface;
+
+private:
 	UPROPERTY()
-	bool bIsScannerOn; 
-	
+	bool bIsScannerOn;
+
 	UPROPERTY()
-	USceneComponent* Muzzle; 
+	USceneComponent* Muzzle;
 };

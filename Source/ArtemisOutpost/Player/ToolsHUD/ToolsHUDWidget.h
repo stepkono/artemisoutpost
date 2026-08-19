@@ -7,11 +7,6 @@
 #include "ToolsHUDTypes.h"
 #include "ToolsHUDWidget.generated.h"
 
-// Fired when the player confirms a tile (trigger) that is ENABLED. The owning component listens and
-// decides what the action does (page nav, close, or dispatch a gameplay intent). BlueprintAssignable
-// so gameplay BP can also react directly.
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnToolActionConfirmed, EHUDAction, Action);
-
 // Gating hook. The widget does NOT know about resources; it asks this delegate whether an action is
 // currently allowed and, if not, for a reason string. Bound in C++ by UToolsHUDComponent so the
 // resource system stays fully decoupled. If unbound, everything is enabled.
@@ -22,8 +17,8 @@ DECLARE_DELEGATE_RetVal_TwoParams(bool, FToolAvailabilityDelegate, EHUDAction /*
  * the highlight index, joystick-flick navigation and resource gating — and drives the BP view via
  * BlueprintImplementableEvents. The view only draws; it never decides state or order.
  *
- * The HUD is client-local: nothing here replicates. Only the confirmed action (broadcast via
- * OnToolActionConfirmed) may cross to the server, and that happens outside this widget.
+ * The HUD is client-local: nothing here replicates. The component reads the confirmed action via
+ * ConfirmHighlighted() and dispatches it (see UToolsHUDComponent::ConfirmSelection).
  */
 UCLASS(Abstract, BlueprintType, Blueprintable)
 class ARTEMISOUTPOST_API UToolsHUDWidget : public UUserWidget
@@ -44,9 +39,9 @@ public:
 	// order: right/down = next, left/up = previous).
 	void HandleNavigate(FVector2D Axis);
 
-	// Trigger. Confirms the highlighted tile if enabled (fires OnToolActionConfirmed); on a disabled
-	// tile it plays the reject feedback only.
-	void HandleConfirm();
+	// Confirm the highlighted tile. Plays the press/deny feedback; returns true + OutAction only if the
+	// tile is enabled. Called by UToolsHUDComponent::ConfirmSelection (no delegate round-trip).
+	bool ConfirmHighlighted(EHUDAction& OutAction);
 
 	// Re-evaluate every tile's enabled-state (call when resources change while the menu is open).
 	UFUNCTION(BlueprintCallable, Category = "Tools HUD")
@@ -57,10 +52,6 @@ public:
 
 	// The gating hook. UToolsHUDComponent assigns this right after creating the widget.
 	FToolAvailabilityDelegate AvailabilityDelegate;
-
-	// ---- Output ----
-	UPROPERTY(BlueprintAssignable, Category = "Tools HUD")
-	FOnToolActionConfirmed OnToolActionConfirmed;
 
 	// ---- Read access for the view / debug ----
 	UFUNCTION(BlueprintPure, Category = "Tools HUD")

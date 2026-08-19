@@ -16,6 +16,15 @@ enum class EOutpostBuildingType : uint8
 	SignalTower    UMETA(DisplayName = "SignalTower")
 };
 
+// What the scanning tool scans. Surface = the ground at the aim point; Area = the environment around
+// the player (a radius, no aiming). Both are hold-to-scan.
+UENUM(BlueprintType)
+enum class EScanMode : uint8
+{
+	Surface UMETA(DisplayName = "Surface Scan"),
+	Area    UMETA(DisplayName = "Area Scan")
+};
+
 // Lifecycle state of a minigame instance. Server-authoritative, replicated to all views.
 UENUM(BlueprintType)
 enum class EMinigameState : uint8

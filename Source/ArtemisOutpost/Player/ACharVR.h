@@ -13,6 +13,7 @@ class UToolsHUDComponent;
 class UControllerRayComponent;
 class UWidgetComponent;
 class UUserWidget;
+class AHandToolBase;
 
 UCLASS()
 class ARTEMISOUTPOST_API ACharVR : public ACharacter
@@ -40,6 +41,13 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Replication")
 	void SetShouldReplicateTransform(bool bReplicateTransform);
+
+	// The hand tool the trigger currently drives (set by AHandToolBase::ActivateTool/DeactivateTool).
+	// BP_VRChar routes IA_Trigger to GetActiveTool()->ExecuteAction()/EndAction().
+	UFUNCTION(BlueprintPure, Category = "Hand Tools")
+	AHandToolBase* GetActiveTool() const { return ActiveHandTool; }
+
+	void SetActiveHandTool(AHandToolBase* Tool) { ActiveHandTool = Tool; }
 
 	// World-space minigame HUD in front of the HMD (a WidgetComponent authored on BP_VRChar under
 	// the camera). The minigame controller hands over the created View here on join; a dark sphere
@@ -169,7 +177,12 @@ protected:
 	// WidgetInteractionComponents it drives are authored/tagged in BP_VRChar. See UControllerRayComponent.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Controller Rays")
 	TObjectPtr<UControllerRayComponent> ControllerRayComponent;
-	
+
+	// The hand tool the trigger currently drives (Building/Scanning). Maintained by AHandToolBase's
+	// Activate/DeactivateTool; read via GetActiveTool() from BP_VRChar's trigger routing.
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Hand Tools", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<AHandToolBase> ActiveHandTool;
+
 private:
 	// One-shot guard so the local floor/origin setup is applied exactly once.
 	bool bLocalVRSetupApplied = false;

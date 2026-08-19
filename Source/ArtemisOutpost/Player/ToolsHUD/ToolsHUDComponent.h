@@ -30,8 +30,9 @@ class ARTEMISOUTPOST_API UToolsHUDComponent : public UActorComponent
 public:
 	UToolsHUDComponent();
 
-	// Called from ACharVR::SetupPlayerInputComponent (local player only). Binds navigate + confirm.
-	// The toggle button and the mapping-context swap are handled in Blueprint (BP_PawnController).
+	// Called from ACharVR::SetupPlayerInputComponent (local player only). Binds ONLY the thumbstick
+	// navigation. The toggle + trigger are routed in Blueprint (one trigger, state-based); the trigger
+	// calls ConfirmSelection() when the menu is open.
 	void BindInput(UEnhancedInputComponent* EnhancedInputComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "Tools HUD")
@@ -49,6 +50,11 @@ public:
 	// Re-evaluate tile gating while the menu is open (call when resources change).
 	UFUNCTION(BlueprintCallable, Category = "Tools HUD")
 	void RefreshGating();
+
+	// Confirm the currently highlighted tile. Call from BP_VRChar's IA_Trigger while IsMenuOpen() is
+	// true. Handles page nav / close internally and fires OnHUDAction. No-op if the menu is closed.
+	UFUNCTION(BlueprintCallable, Category = "Tools HUD")
+	void ConfirmSelection();
 
 	// Bind this on the COMPONENT (a stable subobject) — NOT on the widget via Get Widget. The widget
 	// is created lazily and swapped onto the WidgetComponent, so a Get Widget binding can land on a
@@ -77,15 +83,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tools HUD|Setup")
 	FName WidgetAnchorTag = TEXT("ToolsHUD_Anchor");
 
-	// Right thumbstick (2D axis). Steps the highlight while the menu is open. The mapping contexts and
-	// the toggle button are managed in Blueprint (BP_PawnController); this component only binds
-	// navigate + confirm.
+	// Right thumbstick (2D axis). Steps the highlight while the menu is open. Contexts + toggle + the
+	// trigger are managed in Blueprint; this component only binds the thumbstick navigation.
 	UPROPERTY(EditDefaultsOnly, Category = "Tools HUD|Input")
 	TObjectPtr<UInputAction> NavigateAction;
-
-	// Trigger. Confirms the highlighted tile.
-	UPROPERTY(EditDefaultsOnly, Category = "Tools HUD|Input")
-	TObjectPtr<UInputAction> ConfirmAction;
 
 	// ---- Bring-up test knob ----
 
@@ -96,12 +97,10 @@ protected:
 	TMap<EHUDAction, bool> DebugAvailabilityOverride;
 
 private:
-	// Input handlers.
+	// Input handler (thumbstick navigation only).
 	void HandleNavigateInput(const FInputActionValue& Value);
-	void HandleConfirmInput();
 
-	// Widget -> component: the player confirmed an enabled tile.
-	UFUNCTION()
+	// Runs the confirmed action: page nav / close internally, then fires OnHUDAction for BP.
 	void HandleToolActionConfirmed(EHUDAction Action);
 
 	// Gating bridge given to the widget (widget stays ignorant of resources / debug knobs).
