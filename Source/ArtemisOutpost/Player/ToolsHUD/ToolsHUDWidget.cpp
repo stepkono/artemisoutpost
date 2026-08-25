@@ -10,13 +10,13 @@ TArray<EHUDAction> UToolsHUDWidget::GetActionsForPage(EToolHUDPage Page)
 {
 	switch (Page)
 	{
-	case EToolHUDPage::Building:
-		return { EHUDAction::BuildHabitat, EHUDAction::BuildSolarPanel, EHUDAction::BuildAntenna, EHUDAction::Back };
-	case EToolHUDPage::Scanning:
-		return { EHUDAction::SurfaceScan, EHUDAction::AreaScan, EHUDAction::Back };
-	case EToolHUDPage::Main:
-	default:
-		return { EHUDAction::OpenBuilding, EHUDAction::OpenScanning, EHUDAction::CloseMenu };
+		case EToolHUDPage::Building:
+			return { EHUDAction::BuildHabitat, EHUDAction::BuildSolarPanel, EHUDAction::BuildAntenna, EHUDAction::Back };
+		case EToolHUDPage::Scanning:
+			return { EHUDAction::SurfaceScan, EHUDAction::ResourceMiner, EHUDAction::AreaScan, EHUDAction::Back };
+		case EToolHUDPage::Main:
+		default:
+			return { EHUDAction::OpenBuilding, EHUDAction::OpenScanning, EHUDAction::CloseMenu };
 	}
 }
 
@@ -24,16 +24,17 @@ FText UToolsHUDWidget::DefaultLabelFor(EHUDAction Action)
 {
 	switch (Action)
 	{
-	case EHUDAction::OpenBuilding:    return LOCTEXT("BuildingMode",  "Building Mode");
-	case EHUDAction::OpenScanning:    return LOCTEXT("ScanningMode",  "Scanning Mode");
-	case EHUDAction::CloseMenu:       return LOCTEXT("CloseMenu",     "Schließen");
-	case EHUDAction::BuildHabitat:    return LOCTEXT("Habitat",       "Habitat");
-	case EHUDAction::BuildSolarPanel: return LOCTEXT("SolarPanel",    "Solar Panel");
-	case EHUDAction::BuildAntenna:    return LOCTEXT("Antenna",       "Funkmast");
-	case EHUDAction::SurfaceScan:     return LOCTEXT("SurfaceScan",   "Surface Scan");
-	case EHUDAction::AreaScan:        return LOCTEXT("AreaScan",      "Area Scan");
-	case EHUDAction::Back:            return LOCTEXT("Back",          "Zurück");
-	default:                           return FText::GetEmpty();
+		case EHUDAction::OpenBuilding:    return LOCTEXT("BuildingMode",  "Building Mode");
+		case EHUDAction::OpenScanning:    return LOCTEXT("ScanningMode",  "Scanning Mode");
+		case EHUDAction::CloseMenu:       return LOCTEXT("CloseMenu",     "Schließen");
+		case EHUDAction::BuildHabitat:    return LOCTEXT("Habitat",       "Habitat");
+		case EHUDAction::BuildSolarPanel: return LOCTEXT("SolarPanel",    "Solar Panel");
+		case EHUDAction::BuildAntenna:    return LOCTEXT("Antenna",       "Funkmast");
+		case EHUDAction::SurfaceScan:     return LOCTEXT("SurfaceScan",   "Surface Scan");
+		case EHUDAction::ResourceMiner:   return LOCTEXT("ResourceMiner",  "Resource Miner");
+		case EHUDAction::AreaScan:        return LOCTEXT("AreaScan",      "Area Scan");
+		case EHUDAction::Back:            return LOCTEXT("Back",          "Zurück");
+		default:                          return FText::GetEmpty();
 	}
 }
 

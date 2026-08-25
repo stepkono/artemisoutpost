@@ -37,6 +37,7 @@ enum class EHUDAction : uint8
 
 	// --- Scanning page ---
 	SurfaceScan     UMETA(DisplayName = "Surface Scan"),
+	ResourceMiner   UMETA(DIsplayName = "Ressource Miner"),
 	AreaScan        UMETA(DisplayName = "Area Scan"),
 
 	// --- Shared (sub-pages) ---

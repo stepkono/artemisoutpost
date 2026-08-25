@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "HandToolBase.h"
-#include "ArtemisOutpost/Minigame/Games/Habitat/Habitat.h"
-#include "ArtemisOutpost/Minigame/Games/SignalTower/SignalTower.h"
 #include "ArtemisOutpost/Minigame/Games/SolarPanel/SolarPanel.h"
 #include "Engine/EngineTypes.h"
 #include "ArtemisOutpost/Minigame/General/MinigameTypes.h"

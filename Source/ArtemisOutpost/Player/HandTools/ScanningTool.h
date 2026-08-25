@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "HandToolBase.h"
 #include "ArtemisOutpost/Minigame/General/MinigameTypes.h"
+#include "ArtemisOutpost/Moon/MoonResources/ResourceVeinSubsystem.h"
 #include "ScanningTool.generated.h"
 
 UCLASS()
@@ -21,6 +22,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Scanning Tool")
 	void SetScannerOn(bool bScannerOn);
+	
+	UFUNCTION(BlueprintCallable, Category = "Scanning Tool")
+	void SetScannerMode(EScanMode ScanMode); 
 
 	// Enter scanning for a mode (called from the HUD's Scanning tiles). Activates the tool; the scanner
 	// itself is turned on/off with the trigger (ExecuteAction / EndAction = hold-to-scan).
@@ -43,9 +47,10 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	void ScanSurface();
-
+	void SeeThroughSurface(FVector& OutHitLocation);
 	void ResetScanningArea();
+	void DiscoverResource(FVector& HitLocation);
+	void MineResource(FVector& HitLocation, float DeltaSeconds);
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
@@ -53,6 +58,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
 	float ScanningDistance = 200;
+
+	// Mining speed: fraction (0..1) of a vein sample mined per second while under the scan circle.
+	// 1.0 => a sample takes ~1 s of full coverage to disappear.
+	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
+	float MiningRatePerSecond = 1.f;
 
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
 	UMaterialParameterCollection* SurfaceScannerCollection;
@@ -63,6 +73,9 @@ protected:
 	EScanMode CurrentScanMode = EScanMode::Surface;
 
 private:
+	UPROPERTY()
+	UResourceVeinSubsystem* VeinSubsystem;
+	
 	UPROPERTY()
 	bool bIsScannerOn;
 

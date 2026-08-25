@@ -17,6 +17,15 @@ AScanningTool::AScanningTool()
 void AScanningTool::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (UResourceVeinSubsystem* RVS = GetWorld()->GetSubsystem<UResourceVeinSubsystem>())
+	{
+		VeinSubsystem = RVS;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ScanningTool: Failed to get ResourceVeinSubsystem."))
+	}
 
 	Muzzle = Cast<USceneComponent>(FindComponentByTag<UActorComponent>(FName("Muzzle")));
 	if (!Muzzle)
@@ -44,7 +53,21 @@ void AScanningTool::Tick(float DeltaTime)
 		return;
 	}
 
-	ScanSurface();
+	FVector HitLocation = FVector::ZeroVector;
+	SeeThroughSurface(HitLocation);
+	if (HitLocation == FVector::ZeroVector)
+	{
+		return; 
+	}
+	
+	if (CurrentScanMode == EScanMode::Surface)
+	{
+		DiscoverResource(HitLocation);
+	}
+	if (CurrentScanMode == EScanMode::Mining)
+	{
+		MineResource(HitLocation, DeltaTime);
+	}
 }
 
 void AScanningTool::SetScannerOn(bool bScannerOn)
@@ -86,7 +109,7 @@ void AScanningTool::DeactivateTool()
 	Super::DeactivateTool();
 }
 
-void AScanningTool::ScanSurface()
+void AScanningTool::SeeThroughSurface(FVector& OutHitLocation)
 {
 	if (!bIsScannerOn)
 	{
@@ -104,16 +127,35 @@ void AScanningTool::ScanSurface()
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, BeginTrace, EndTrace, ECollisionChannel::ECC_WorldStatic, Params);
 	if (bHit)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ScanningTool: Found Hit."));
-		const FVector Location = Hit.Location;
-		const FLinearColor ScanAreaCenter(Location);
+		// UE_LOG(LogTemp, Warning, TEXT("ScanningTool: Found Hit."));
+		OutHitLocation = Hit.Location;
+		const FLinearColor ScanAreaCenter(OutHitLocation);
 		UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), SurfaceScannerCollection, FName("ScannerFlag"), 1);
 		UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), SurfaceScannerCollection, FName("ScanAreaCenter"), ScanAreaCenter);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("ScanningTool: Found no Hit."));
+		// UE_LOG(LogTemp, Error, TEXT("ScanningTool: Found no Hit."));
 		ResetScanningArea();
+	}
+}
+
+void AScanningTool::DiscoverResource(FVector& HitLocation)
+{
+	// Client-local detection + event-gated reporting: the subsystem detects newly-covered vein
+	// samples against the local samples and RPCs each flip to the server. No per-tick stream.
+	if (VeinSubsystem)
+	{
+		VeinSubsystem->ClientReportScan(HitLocation, ScanningRadius);
+	}
+}
+
+void AScanningTool::MineResource(FVector& HitLocation, float DeltaSeconds)
+{
+	// Client-local mining prediction (smooth thinning) + one report per sample completed.
+	if (VeinSubsystem)
+	{
+		VeinSubsystem->ClientReportMining(HitLocation, ScanningRadius, DeltaSeconds, MiningRatePerSecond);
 	}
 }
 
@@ -122,4 +164,9 @@ void AScanningTool::ResetScanningArea()
 	const FLinearColor NoScan(0, 0, 0);
 	UKismetMaterialLibrary::SetVectorParameterValue(GetWorld(), SurfaceScannerCollection, FName("ScanAreaCenter"), NoScan);
 	UKismetMaterialLibrary::SetScalarParameterValue(GetWorld(), SurfaceScannerCollection, FName("ScannerFlag"), 0);
+}
+
+void AScanningTool::SetScannerMode(EScanMode ScanMode)
+{
+	CurrentScanMode = ScanMode;
 }

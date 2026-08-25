@@ -8,6 +8,7 @@
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "ArtemisOutpost/Player/MiniGameInteraction/MinigamePlayerController.h"
+#include "ArtemisOutpost/Moon/MoonResources/ResourceVeinSubsystem.h"
 
 APawnController::APawnController()
 {
@@ -140,6 +141,23 @@ void APawnController::ServerAddAreaScan_Implementation(FAreaScan Scan)
 	}
 
 	MDM->AddNewAreaScan(Scan);
+}
+
+void APawnController::ServerReportVeinDiscovered_Implementation(UResourceVeinSpline* Vein, const TArray<int32>& Indices)
+{
+	// Runs on the server. Route to the authoritative resource subsystem.
+	if (UResourceVeinSubsystem* Subsys = GetWorld() ? GetWorld()->GetSubsystem<UResourceVeinSubsystem>() : nullptr)
+	{
+		Subsys->ServerReportDiscovered(Vein, Indices);
+	}
+}
+
+void APawnController::ServerReportVeinMined_Implementation(UResourceVeinSpline* Vein, const TArray<int32>& Indices)
+{
+	if (UResourceVeinSubsystem* Subsys = GetWorld() ? GetWorld()->GetSubsystem<UResourceVeinSubsystem>() : nullptr)
+	{
+		Subsys->ServerReportMined(Vein, Indices);
+	}
 }
 
 ACharVR* APawnController::GetVRPawn() const

@@ -22,6 +22,7 @@ UENUM(BlueprintType)
 enum class EScanMode : uint8
 {
 	Surface UMETA(DisplayName = "Surface Scan"),
+	Mining  UMETA(DisplayName = "Ressource Mining"),
 	Area    UMETA(DisplayName = "Area Scan")
 };
 

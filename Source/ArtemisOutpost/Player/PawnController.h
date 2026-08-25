@@ -10,6 +10,7 @@
 #include "PawnController.generated.h"
 
 class UMinigamePlayerController;
+class UResourceVeinSpline;
 
 /**
  *
@@ -43,6 +44,15 @@ public:
 	// is server-owned, so a client Server RPC must originate on this client-owned PlayerController.
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Area Scan")
 	void ServerAddAreaScan(FAreaScan Scan);
+
+	// Client -> server: report vein samples the client detected locally. Same reason as above —
+	// the resource state lives on server-owned objects, so client reports must originate on this
+	// client-owned controller. These fire only on per-sample flips (event-gated), not per tick.
+	UFUNCTION(Server, Reliable, Category = "Resource Vein")
+	void ServerReportVeinDiscovered(UResourceVeinSpline* Vein, const TArray<int32>& Indices);
+
+	UFUNCTION(Server, Reliable, Category = "Resource Vein")
+	void ServerReportVeinMined(UResourceVeinSpline* Vein, const TArray<int32>& Indices);
 
 	// The per-player minigame controller (transport + screen-UI lifecycle). Its own component
 	// (§9) so this controller stays lean.

@@ -165,6 +165,7 @@ void UToolsHUDComponent::HandleToolActionConfirmed(EHUDAction Action)
 	case EHUDAction::BuildSolarPanel:
 	case EHUDAction::BuildAntenna:
 	case EHUDAction::SurfaceScan:
+	case EHUDAction::ResourceMiner:
 	case EHUDAction::AreaScan:
 		CloseMenu();
 		break;
