@@ -3,9 +3,9 @@
 
 #include "ResourceVeinSpline.h"
 
-#include "ResourceVeinSubsystem.h"
+#include "MoonResourcesManager.h"
 #include "EngineUtils.h"
-#include "ArtemisOutpost/Cesium/GeoRefsManager.h"
+#include "ArtemisOutpost/Moon/Cesium/GeoRefsManager.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -44,7 +44,7 @@ void UResourceVeinSpline::BeginPlay()
 	BakeSamples();
 
 	// Self-register so the subsystem can route reports/queries to us.
-	if (UResourceVeinSubsystem* Subsys = GetWorld()->GetSubsystem<UResourceVeinSubsystem>())
+	if (UMoonResourcesManager* Subsys = GetWorld()->GetSubsystem<UMoonResourcesManager>())
 	{
 		Subsys->RegisterVein(this);
 	}
@@ -54,7 +54,7 @@ void UResourceVeinSpline::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UWorld* World = GetWorld())
 	{
-		if (UResourceVeinSubsystem* Subsys = World->GetSubsystem<UResourceVeinSubsystem>())
+		if (UMoonResourcesManager* Subsys = World->GetSubsystem<UMoonResourcesManager>())
 		{
 			Subsys->UnregisterVein(this);
 		}
@@ -137,6 +137,7 @@ void UResourceVeinSpline::BakeSamples()
 	RefreshVeinVisual();
 }
 
+// Called on client 
 void UResourceVeinSpline::DetectNewDiscovered(const FVector& HitWorld, float RadiusWorld, TArray<int32>& OutNewIndices)
 {
 	OutNewIndices.Reset();

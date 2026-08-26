@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"
-#include "ArtemisOutpost/Player/PawnController.h"
+#include "ArtemisOutpost/Player/PlayerController/PawnController.h"
 #include "GameFramework/GameModeBase.h"
 #include "ServerGameMode.generated.h"
 

@@ -9,7 +9,7 @@
 #include "GameFramework/GameState.h"
 #include "ArtemisGameState.generated.h"
 
-class UMoonDataManager;
+class UMoonScannedAreaManager;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnchorsUpdated, const FOrderedAnchors&, RawAnchors); 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FControlCommandReceived, FControlCommand&, Command);
@@ -42,7 +42,7 @@ public:
 	void WriteControlCommand(const FControlCommand& Command);
 	
 	UFUNCTION(BlueprintCallable, Category = "Moon Data")
-	UMoonDataManager* GetMoonDataManager() const { return MoonDataManager; }
+	UMoonScannedAreaManager* GetMoonDataManager() const { return MoonDataManager; }
 
 	/**
 	 * Attempts to load anchor UUIDs saved from a previous session.
@@ -71,7 +71,7 @@ public:
 	
 private: 
 	UPROPERTY()
-	UMoonDataManager* MoonDataManager;
+	UMoonScannedAreaManager* MoonDataManager;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_RawAnchors)
 	FOrderedAnchors RawAnchors;

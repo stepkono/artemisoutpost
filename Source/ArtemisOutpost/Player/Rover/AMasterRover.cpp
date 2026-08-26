@@ -5,8 +5,8 @@
 
 #include "EngineUtils.h"
 #include "PuppetRover.h"
-#include "ArtemisOutpost/Cesium/GeoRefsManager.h"
-#include "ArtemisOutpost/Miscellaneous/GeoUtils.h"
+#include "ArtemisOutpost/Moon/Cesium/GeoRefsManager.h"
+#include "ArtemisOutpost/Moon/Cesium/GeoTools/GeoUtils.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "WheeledVehiclePawn.h"
-#include "ArtemisOutpost/Cesium/GeoRefsManager.h"
+#include "ArtemisOutpost/Moon/Cesium/GeoRefsManager.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "AMasterRover.generated.h"
 

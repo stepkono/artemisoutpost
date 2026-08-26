@@ -4,7 +4,7 @@
 #include "ServerGameMode.h"
 
 #include "ArtemisOutpost/Networking/Data/WebsocketManager.h"
-#include "ArtemisOutpost/Player/PawnController.h"
+#include "ArtemisOutpost/Player/PlayerController/PawnController.h"
 #include "GameFramework/OnlineReplStructs.h"
 #include "Kismet/GameplayStatics.h"
 

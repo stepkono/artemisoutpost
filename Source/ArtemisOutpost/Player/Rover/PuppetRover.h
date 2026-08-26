@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ArtemisOutpost/Cesium/GeoRefsManager.h"
+#include "ArtemisOutpost/Moon/Cesium/GeoRefsManager.h"
 #include "GameFramework/Actor.h"
 #include "PuppetRover.generated.h"
 
