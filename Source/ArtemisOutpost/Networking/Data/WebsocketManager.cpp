@@ -91,7 +91,15 @@ void AWebsocketManager::InitializeWebsocket()
 	Websocket->Connect();
 }
 
-void AWebsocketManager::HandleConnection() const 
+void AWebsocketManager::SendMessage(const FString& Message) const
+{
+	if (Websocket.IsValid() && Websocket->IsConnected())
+	{
+		Websocket->Send(Message);
+	}
+}
+
+void AWebsocketManager::HandleConnection() const
 {
 	//const FString HandshakeMessage = TEXT("{\"messageType\":\"identify\",\"clientName\":\"unreal\"}");
 	const FString HandshakeMessage = TEXT("{\"type\":\"unreal\"}");

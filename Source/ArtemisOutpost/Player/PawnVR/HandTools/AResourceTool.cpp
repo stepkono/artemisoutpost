@@ -153,9 +153,10 @@ void AResourceTool::DiscoverResource(FVector& HitLocation)
 void AResourceTool::MineResource(FVector& HitLocation, float DeltaSeconds)
 {
 	// Client-local mining prediction (smooth thinning) + one report per sample completed.
+	// Uses a wider radius than discovery so mining is forgiving to aim.
 	if (VeinSubsystem)
 	{
-		VeinSubsystem->ClientReportMining(HitLocation, ScanningRadius, DeltaSeconds, MiningRatePerSecond);
+		VeinSubsystem->ClientReportMining(HitLocation, ScanningRadius * MiningRadiusFactor, DeltaSeconds, MiningRatePerSecond);
 	}
 }
 

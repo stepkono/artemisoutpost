@@ -64,6 +64,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
 	float MiningRatePerSecond = 1.f;
 
+	// Mining detection radius = ScanningRadius * this factor. Larger than the visual scan hole so
+	// you don't have to aim exactly at the vein — anything within the (bigger) circle is mined.
+	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
+	float MiningRadiusFactor = 2.f;
+
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
 	UMaterialParameterCollection* SurfaceScannerCollection;
 

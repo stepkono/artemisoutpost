@@ -48,6 +48,24 @@ struct FConnectionSlot
 	FString OwnerUPID;
 };
 
+USTRUCT(BlueprintType)
+struct FPuppetData
+{
+	GENERATED_BODY()
+};
+
+USTRUCT(BlueprintType)
+struct FPuppetDataSignalTower : public FPuppetData
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Signal Tower")
+	int AxisIndex = -1; 
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Signal Tower")
+	float AxisValue = 0.0f;
+};
+
 // One controllable degree of freedom of a coupled task (Signal Tower: [0]=Earth, [1]=Habitat).
 // The server mutates Value from input; clients render beams / UI from the replicated copy.
 USTRUCT(BlueprintType)

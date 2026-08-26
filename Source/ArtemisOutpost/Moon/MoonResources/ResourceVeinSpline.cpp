@@ -23,6 +23,7 @@ void UResourceVeinSpline::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(UResourceVeinSpline, Discovered);
 	DOREPLIFETIME(UResourceVeinSpline, MinedOut);
 }
 
@@ -125,8 +126,17 @@ void UResourceVeinSpline::BakeSamples()
 	}
 
 	const int32 N = Samples.Num();
-	Discovered.Init(0, N);
-	MinedOut.Init(0, N);
+
+	// Discovered + MinedOut are replicated. Initialize them ONLY on the authority; on clients
+	// they arrive via replication, and initializing here could clobber a value that replicated
+	// before this BeginPlay ran.
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		Discovered.Init(0, N);
+		MinedOut.Init(0, N);
+	}
+
+	// Client-local, always sized here.
 	MinedLocal.Init(0.f, N);
 	LocallyReportedDiscovered.Init(0, N);
 
@@ -178,8 +188,14 @@ void UResourceVeinSpline::PredictMining(const FVector& HitWorld, float RadiusWor
 
 	for (int32 i = 0; i < SamplesSurfaceWorld.Num(); ++i)
 	{
+		// Only DISCOVERED vein is mineable (Discovered is replicated; empty until it arrives).
+		if (!Discovered.IsValidIndex(i) || !Discovered[i])
+		{
+			continue;
+		}
 		// Skip what is already locally done or authoritatively mined out.
-		if (MinedLocal[i] >= 1.f || MinedOut[i])
+		const bool bAlreadyOut = MinedOut.IsValidIndex(i) && MinedOut[i] != 0;
+		if (MinedLocal[i] >= 1.f || bAlreadyOut)
 		{
 			continue;
 		}
@@ -219,6 +235,11 @@ void UResourceVeinSpline::ServerMarkMinedOut(const TArray<int32>& Indices)
 	TArray<FVector> NewlyGeo;
 	for (const int32 i : Indices)
 	{
+		// Authority double-check: only discovered vein can be mined out.
+		if (!Discovered.IsValidIndex(i) || !Discovered[i])
+		{
+			continue;
+		}
 		if (MinedOut.IsValidIndex(i) && !MinedOut[i])
 		{
 			MinedOut[i] = 1;                   // replicated -> OnRep on clients

@@ -21,6 +21,10 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	// Server -> web outbound. Sends the JSON string if the socket is connected (no-op otherwise).
+	// Used by the network relay to forward authoritative state deltas.
+	void SendMessage(const FString& Message) const;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

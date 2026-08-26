@@ -25,4 +25,10 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame Puppet")
 	void ApplyAxes(const TArray<FAxisState>& Axes);
+	
+	UFUNCTION(BlueprintNativeEvent, Category = "Minigame Puppet")
+	void SetData(const FPuppetData ParentData); 
+	
+protected:
+	FPuppetData PuppetData;
 };

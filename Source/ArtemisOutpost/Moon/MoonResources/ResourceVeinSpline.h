@@ -139,9 +139,10 @@ private:
 	UPROPERTY(Transient)
 	TArray<FVector> SamplesSurfaceWorld;
 
-	// SERVER-authoritative discovery, index-aligned with Samples. Monotonic. NOT replicated
-	// to UE clients (consumed server-side by the query + bridge; VR mesh is visible anyway).
-	UPROPERTY(Transient)
+	// SERVER-authoritative discovery, index-aligned with Samples. Monotonic. REPLICATED: the
+	// mining client needs it to gate mining locally (only discovered vein is mineable) without
+	// prediction divergence. Also feeds the server-side query + bridge.
+	UPROPERTY(Replicated)
 	TArray<uint8> Discovered;
 
 	// SERVER-authoritative, REPLICATED: per-sample "mined out" flag. Monotonic. Drives the

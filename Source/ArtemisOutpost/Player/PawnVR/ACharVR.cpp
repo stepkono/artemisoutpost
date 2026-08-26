@@ -47,7 +47,7 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	//SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
+	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
