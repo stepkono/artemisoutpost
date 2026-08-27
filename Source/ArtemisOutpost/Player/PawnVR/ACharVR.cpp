@@ -17,6 +17,7 @@
 #include "EnhancedInputComponent.h"
 #include "ToolsHUD/ToolsHUDComponent.h"
 #include "ControllerRays/ControllerRayComponent.h"
+#include "Net/UnrealNetwork.h"
 
 
 // Sets default values
@@ -40,6 +41,13 @@ ACharVR::ACharVR()
 	// Client-local controller rays (both hands). A plain ActorComponent; it resolves the
 	// WidgetInteractionComponents authored in BP_VRChar and spawns the Niagara visuals at runtime.
 	ControllerRayComponent = CreateDefaultSubobject<UControllerRayComponent>(TEXT("ControllerRayComponent"));
+}
+
+void ACharVR::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ACharVR, GeoRefsManager);
 }
 
 // Called when the game starts or when spawned
