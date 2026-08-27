@@ -481,26 +481,20 @@ void ACharVR::LogVRTransforms(float DeltaTime)
 	// 0) Which instance is this and which branch of Tick is it taking? Tells us whether the C++ VR
 	//    logic is even active here (bIsPossessed / bLocalVRSetupApplied) vs. everything being driven
 	//    by the Blueprint OffsetActorToHMD / ScaleCapsuleToHMD instead.
-	UE_LOG(LogTemp, Warning, TEXT("[VRXform] STATE %s  bIsPossessed=%d  bLocalVRSetupApplied=%d  IsLocallyControlled=%d  LocalRole=%d  NetMode=%d"),
-		*GetName(), bIsPossessed ? 1 : 0, bLocalVRSetupApplied ? 1 : 0, IsLocallyControlled() ? 1 : 0,
-		(int32)GetLocalRole(), (int32)GetNetMode());
+	//UE_LOG(LogTemp, Warning, TEXT("[VRXform] STATE %s  bIsPossessed=%d  bLocalVRSetupApplied=%d  IsLocallyControlled=%d  LocalRole=%d  NetMode=%d"), *GetName(), bIsPossessed ? 1 : 0, bLocalVRSetupApplied ? 1 : 0, IsLocallyControlled() ? 1 : 0, (int32)GetLocalRole(), (int32)GetNetMode());
 
 	// 1) The actor (capsule root). If the rig were rotated to the surface normal, ActorUp would be
 	//    the diagonal moon-up vector — NOT (0,0,1). If it prints (0,0,1) the actor is NOT rotated.
-	UE_LOG(LogTemp, Warning, TEXT("[VRXform] ActorRot[%s]  ActorUp=%s"),
-		*R(GetActorRotation()), *V(GetActorUpVector()));
+	//UE_LOG(LogTemp, Warning, TEXT("[VRXform] ActorRot[%s]  ActorUp=%s"), *R(GetActorRotation()), *V(GetActorUpVector()));
 
 	// 2) VROrigin — should inherit the actor rotation (its Up should match ActorUp).
 	if (CachedVROrigin)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VROrigin  WorldRot[%s]  WorldUp=%s  RelLoc=%s"),
-			*R(CachedVROrigin->GetComponentRotation()),
-			*V(CachedVROrigin->GetUpVector()),
-			*V(CachedVROrigin->GetRelativeLocation()));
+		//UE_LOG(LogTemp, Warning, TEXT("[VRXform] VROrigin  WorldRot[%s]  WorldUp=%s  RelLoc=%s"), *R(CachedVROrigin->GetComponentRotation()), *V(CachedVROrigin->GetUpVector()), *V(CachedVROrigin->GetRelativeLocation()));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VROrigin = NULL (tag not resolved)"));
+		//UE_LOG(LogTemp, Warning, TEXT("[VRXform] VROrigin = NULL (tag not resolved)"));
 	}
 
 	// 3) VRCamera — this is what you actually see through. If its WorldUp stays ~(0,0,1) while the
@@ -508,15 +502,11 @@ void ACharVR::LogVRTransforms(float DeltaTime)
 	//    (the real bug). If its WorldUp matches ActorUp, orientation is being inherited correctly.
 	if (CachedVRCamera)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VRCamera  WorldRot[%s]  WorldUp=%s  RelRot[%s]  LockToHmd=%d"),
-			*R(CachedVRCamera->GetComponentRotation()),
-			*V(CachedVRCamera->GetUpVector()),
-			*R(CachedVRCamera->GetRelativeRotation()),
-			CachedVRCamera->bLockToHmd ? 1 : 0);
+		//UE_LOG(LogTemp, Warning, TEXT("[VRXform] VRCamera  WorldRot[%s]  WorldUp=%s  RelRot[%s]  LockToHmd=%d"), *R(CachedVRCamera->GetComponentRotation()), *V(CachedVRCamera->GetUpVector()),*R(CachedVRCamera->GetRelativeRotation()),CachedVRCamera->bLockToHmd ? 1 : 0);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[VRXform] VRCamera = NULL (tag not resolved)"));
+		//UE_LOG(LogTemp, Warning, TEXT("[VRXform] VRCamera = NULL (tag not resolved)"));
 	}
 
 	// 3b) WORLD POSITIONS. The camera should sit ~real-head-height ABOVE the feet ALONG the surface
@@ -530,8 +520,7 @@ void ACharVR::LogVRTransforms(float DeltaTime)
 		const FVector CamLoc    = CachedVRCamera->GetComponentLocation();
 		const FVector SurfUp    = GetActorUpVector();
 		const float   HeightAlongUp = FVector::DotProduct(CamLoc - OriginLoc, SurfUp);
-		UE_LOG(LogTemp, Warning, TEXT("[VRXform] Pos  Actor=%s  VROrigin(feet)=%s  VRCamera=%s  HeightAlongUp=%.1f"),
-			*V(ActorLoc), *V(OriginLoc), *V(CamLoc), HeightAlongUp);
+		// UE_LOG(LogTemp, Warning, TEXT("[VRXform] Pos  Actor=%s  VROrigin(feet)=%s  VRCamera=%s  HeightAlongUp=%.1f"), *V(ActorLoc), *V(OriginLoc), *V(CamLoc), HeightAlongUp);
 
 		// Mannequin scale check: how far the mesh's 'head' bone sits ABOVE the feet, along the surface
 		// normal. Compare to HeightAlongUp (your real eye height). If the mesh head is much larger
@@ -541,8 +530,7 @@ void ACharVR::LogVRTransforms(float DeltaTime)
 			const FVector FeetW    = OriginLoc; // VROrigin is at the feet
 			const FVector HeadBoneW = BodyMesh->GetSocketLocation(TEXT("head"));
 			const float   MeshHeadAboveFeet = FVector::DotProduct(HeadBoneW - FeetW, SurfUp);
-			UE_LOG(LogTemp, Warning, TEXT("[VRXform] MeshHeadAboveFeet=%.1f  (compare to your HeightAlongUp=%.1f; capsuleHalfHeight=%.1f)"),
-				MeshHeadAboveFeet, HeightAlongUp, GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f);
+			//UE_LOG(LogTemp, Warning, TEXT("[VRXform] MeshHeadAboveFeet=%.1f  (compare to your HeightAlongUp=%.1f; capsuleHalfHeight=%.1f)"), MeshHeadAboveFeet, HeightAlongUp, GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f);
 		}
 	}
 
@@ -553,12 +541,11 @@ void ACharVR::LogVRTransforms(float DeltaTime)
 		FRotator HmdRot;
 		FVector  HmdPos;
 		UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HmdRot, HmdPos);
-		UE_LOG(LogTemp, Warning, TEXT("[VRXform] HMD raw   Rot[%s]  Pos=%s  LocalSetupApplied=%d"),
-			*R(HmdRot), *V(HmdPos), bLocalVRSetupApplied ? 1 : 0);
+		//UE_LOG(LogTemp, Warning, TEXT("[VRXform] HMD raw   Rot[%s]  Pos=%s  LocalSetupApplied=%d"), *R(HmdRot), *V(HmdPos), bLocalVRSetupApplied ? 1 : 0);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[VRXform] HMD not enabled  LocalSetupApplied=%d"), bLocalVRSetupApplied ? 1 : 0);
+		//UE_LOG(LogTemp, Warning, TEXT("[VRXform] HMD not enabled  LocalSetupApplied=%d"), bLocalVRSetupApplied ? 1 : 0);
 	}
 }
 

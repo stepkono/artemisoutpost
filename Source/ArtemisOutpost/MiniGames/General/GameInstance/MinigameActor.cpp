@@ -44,11 +44,10 @@ void AMinigameActor::BeginPlay()
 
 	if (!GameConnection)
 	{
+		UE_LOG(LogTemp, Error, TEXT("MiniGameActor: Missing GameConnection component. Aborting further initialization."));
 		return;
 	}
-
-	// Peers with a local player (all clients + listen host, any XR mode; not the dedicated server):
-	// the local screen View reacts to slot changes, and the AR puppet is spawned + initially synced.
+	
 	if (ArtemisNet::IsClientContext(GetNetMode()))
 	{
 		GameConnection->OnSlotsChanged.AddDynamic(this, &AMinigameActor::RefreshLocalUI);
@@ -57,6 +56,10 @@ void AMinigameActor::BeginPlay()
 		{
 			PuppetManager->CreateARPuppet();
 			SyncPuppet();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("MiniGameActor: PuppetManager is null."))
 		}
 	}
 
