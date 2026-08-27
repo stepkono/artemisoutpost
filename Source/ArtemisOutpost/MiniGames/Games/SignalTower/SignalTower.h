@@ -21,7 +21,7 @@ public:
 
 protected:
 	virtual int32 GetAxisCount() const override;
-	virtual void InitAxisTargets(TArray<FAxisState>& InAxes) const override;
+	virtual void InitAxisTargets(TArray<FAxisData>& InAxes) const override;
 	virtual bool CanStart(const FString& UPID, FText& OutReason) const override;
 	virtual void OnComplete() override;
 

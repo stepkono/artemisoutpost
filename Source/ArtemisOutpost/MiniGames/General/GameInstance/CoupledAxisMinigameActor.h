@@ -10,7 +10,7 @@
 // Broadcast on every peer whenever the axes change (value, target, or ownership). Subscribers: the
 // per-player controller (forwards to the screen UI) and the actor BP (meshes/beams). Fires on the
 // server directly from the mechanics and on remote clients from OnRep.
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAxesUpdated, const TArray<FAxisState>&, Axes);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAxesUpdated, const TArray<FAxisData>&, Axes);
 
 // Reusable "two people, two locked degrees of freedom" minigame actor. Signal Tower (Earth +
 // Habitat) and Habitat (Pitch + Roll) both derive from this. It OWNS the replicated Axes, runs the
@@ -35,7 +35,7 @@ public:
 	FOnAxesUpdated OnAxesUpdated;
 
 	UFUNCTION(BlueprintPure, Category = "Minigame")
-	const TArray<FAxisState>& GetAxes() const;
+	const TArray<FAxisData>& GetAxes() const;
 
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	int32 GetNumAxes() const;
@@ -70,7 +70,7 @@ protected:
 	virtual int32 GetAxisCount() const;
 
 	// Fills TargetValue for each axis (server-side, on start). Axes is already sized to GetAxisCount.
-	virtual void InitAxisTargets(TArray<FAxisState>& InAxes) const;
+	virtual void InitAxisTargets(TArray<FAxisData>& InAxes) const;
 
 	// --- Designer tuning (§10) ---
 
@@ -85,7 +85,7 @@ protected:
 	float MaxStepPerInputDeg = 45.0f;
 
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateAxes, BlueprintReadOnly, Category = "Minigame")
-	TArray<FAxisState> Axes;
+	TArray<FAxisData> Axes;
 
 	UFUNCTION()
 	void OnRep_UpdateAxes();

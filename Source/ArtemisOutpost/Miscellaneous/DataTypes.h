@@ -124,6 +124,9 @@ struct FArtemisPlayer
 
 	UPROPERTY(BlueprintReadOnly)
 	APawnController* PawnController;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FString UPID; 
 
 	UPROPERTY(BlueprintReadOnly)
 	int PlayerNumber = -1;

@@ -18,7 +18,7 @@ void ACoupledAxisMinigameActor::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME(ACoupledAxisMinigameActor, Axes);
 }
 
-const TArray<FAxisState>& ACoupledAxisMinigameActor::GetAxes() const
+const TArray<FAxisData>& ACoupledAxisMinigameActor::GetAxes() const
 {
 	return Axes;
 }
@@ -35,7 +35,7 @@ int32 ACoupledAxisMinigameActor::GetAxisCount() const
 	return 2;
 }
 
-void ACoupledAxisMinigameActor::InitAxisTargets(TArray<FAxisState>& InAxes) const
+void ACoupledAxisMinigameActor::InitAxisTargets(TArray<FAxisData>& InAxes) const
 {
 }
 
@@ -107,7 +107,7 @@ void ACoupledAxisMinigameActor::ReleaseAxis(const FString& UPID, int32 AxisIndex
 
 void ACoupledAxisMinigameActor::ReleaseAxesOf(const FString& UPID)
 {
-	for (FAxisState& Axis : Axes)
+	for (FAxisData& Axis : Axes)
 	{
 		if (Axis.OwnerUPID == UPID)
 		{
@@ -124,7 +124,7 @@ void ACoupledAxisMinigameActor::RotateAxis(const FString& UPID, int32 AxisIndex,
 	}
 
 	const float Step = FMath::Clamp(DeltaDegrees, -MaxStepPerInputDeg, MaxStepPerInputDeg);
-	FAxisState& Axis = Axes[AxisIndex];
+	FAxisData& Axis = Axes[AxisIndex];
 	Axis.Value = NormalizeDeg(Axis.Value + Step);
 }
 
@@ -144,7 +144,7 @@ void ACoupledAxisMinigameActor::EvaluateCompletion(float DeltaTime)
 {
 	bool bAllInTolerance = Axes.Num() > 0;
 
-	for (FAxisState& Axis : Axes)
+	for (FAxisData& Axis : Axes)
 	{
 		const bool bInTol = AngularDistanceDeg(Axis.Value, Axis.TargetValue) <= AxisToleranceDeg;
 		Axis.InToleranceTime = bInTol ? Axis.InToleranceTime + DeltaTime : 0.0f;
@@ -194,7 +194,10 @@ void ACoupledAxisMinigameActor::NotifyAxesUpdated()
 
 	if (PuppetManager)
 	{
-		PuppetManager->PushAxes(Axes);
+		for (auto Axis : Axes)
+		{
+			PuppetManager->PushData(Axis);
+		}
 	}
 }
 
@@ -204,7 +207,10 @@ void ACoupledAxisMinigameActor::SyncPuppet()
 
 	if (PuppetManager)
 	{
-		PuppetManager->PushAxes(Axes);
+		for (auto Axis : Axes)
+		{
+			PuppetManager->PushData(Axis);
+		}
 	}
 }
 
@@ -213,7 +219,7 @@ TSharedRef<FJsonObject> ACoupledAxisMinigameActor::BuildSnapshot() const
 	TSharedRef<FJsonObject> Obj = Super::BuildSnapshot();
 
 	TArray<TSharedPtr<FJsonValue>> AxisArray;
-	for (const FAxisState& Axis : Axes)
+	for (const FAxisData& Axis : Axes)
 	{
 		TSharedRef<FJsonObject> A = MakeShared<FJsonObject>();
 		A->SetNumberField(TEXT("value"), Axis.Value);

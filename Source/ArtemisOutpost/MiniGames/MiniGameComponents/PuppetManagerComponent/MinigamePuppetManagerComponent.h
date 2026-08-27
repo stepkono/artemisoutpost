@@ -29,7 +29,7 @@ public:
 
 	// Forward the master's data to the puppet. No-op where no puppet exists (e.g. dedicated server).
 	void PushState(EMinigameState NewState);
-	void PushAxes(const TArray<FAxisState>& Axes);
+	void PushData(const FMiniGameData& GameData);
 
 protected:
 	virtual void BeginPlay() override;

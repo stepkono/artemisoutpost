@@ -46,5 +46,5 @@ public:
 	void OnMinigameStateChanged(EMinigameState NewState);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame")
-	void OnAxesUpdated(const TArray<FAxisState>& Axes);
+	void OnAxesUpdated(const TArray<FAxisData>& Axes);
 };

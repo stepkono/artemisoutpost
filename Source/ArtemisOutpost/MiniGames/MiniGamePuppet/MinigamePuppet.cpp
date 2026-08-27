@@ -8,7 +8,7 @@ AMinigamePuppet::AMinigamePuppet()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
-void AMinigamePuppet::SetData_Implementation(const FPuppetData ParentData)
+void AMinigamePuppet::ApplyData_Implementation(const FMiniGameData& ParentData)
 {
 	PuppetData = ParentData;
 }

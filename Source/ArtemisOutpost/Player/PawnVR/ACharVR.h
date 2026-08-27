@@ -115,8 +115,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "VR Moon")
 	ACesium3DTileset* VRTileSet;
 	
-	
-	UPROPERTY(BlueprintReadOnly, Category = "GeoRefsManager")
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "GeoRefsManager")
 	AGeoRefsManager* GeoRefsManager;
 	
 	// ---- VR component tags (must match the tags set on the components in BP_VRChar) ----

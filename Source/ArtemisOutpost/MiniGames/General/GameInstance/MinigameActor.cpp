@@ -63,9 +63,9 @@ void AMinigameActor::BeginPlay()
 	// Server only: authoritative join gating + game reactions.
 	if (HasAuthority())
 	{
-		GameConnection->CanJoinPredicate.BindUObject(this, &AMinigameActor::HandleCanJoin);
-		GameConnection->OnParticipantJoined.AddUObject(this, &AMinigameActor::HandleParticipantJoined);
-		GameConnection->OnParticipantLeft.AddUObject(this, &AMinigameActor::HandleParticipantLeft);
+		GameConnection->CanJoinPredicate.BindUObject(this, &AMinigameActor::ServerHandleCanJoin);
+		GameConnection->OnParticipantJoined.AddUObject(this, &AMinigameActor::ServerHandleParticipantJoined);
+		GameConnection->OnParticipantLeft.AddUObject(this, &AMinigameActor::ServerHandleParticipantLeft);
 	}
 }
 
@@ -112,7 +112,7 @@ void AMinigameActor::ServerHandleInput(const FString& UPID, const FMinigameInput
 	PublishSnapshot();
 }
 
-bool AMinigameActor::HandleCanJoin(const FString& UPID, FText& OutReason)
+bool AMinigameActor::ServerHandleCanJoin(const FString& UPID, FText& OutReason)
 {
 	// Additional joiners are always fine (slot rules already checked by the connection). Only the
 	// first joiner, which starts the task, must satisfy the game preconditions.
@@ -123,22 +123,26 @@ bool AMinigameActor::HandleCanJoin(const FString& UPID, FText& OutReason)
 	return CanStart(UPID, OutReason);
 }
 
-void AMinigameActor::HandleParticipantJoined(const FString& UPID)
+void AMinigameActor::ServerHandleParticipantJoined(const FString& UPID)
 {
 	if (State == EMinigameState::Idle)
 	{
 		SetState(EMinigameState::Active);
 		OnStart();
 	}
+	
+	ActivePlayers.Add(UPID); 
 
 	OnParticipantJoined(UPID);
 	PublishSnapshot();
 }
 
-void AMinigameActor::HandleParticipantLeft(const FString& UPID)
+void AMinigameActor::ServerHandleParticipantLeft(const FString& UPID)
 {
 	OnParticipantLeft(UPID);
 
+	ActivePlayers.Remove(UPID);
+		
 	if (GameConnection && GameConnection->GetParticipantCount() == 0 && State != EMinigameState::Completed)
 	{
 		OnAbort();
@@ -200,11 +204,16 @@ void AMinigameActor::OnRep_State()
 void AMinigameActor::HandleStateChanged()
 {
 	OnStateChanged.Broadcast();
-	PublishSnapshot();
+	// TODO: check what should be server side and what should be client side only
+	
+	if (HasAuthority())
+	{
+		PublishSnapshot();	
+	}
 
 	// State changes (Active on start, Completed/Idle on finish/abort) also drive the local View...
 	RefreshLocalUI();
-
+	
 	// ...and the AR puppet (no-op where no puppet exists).
 	if (PuppetManager)
 	{
@@ -325,4 +334,9 @@ bool AMinigameActor::IsPlayerNear()
 		return false;
 	}
 	return FVector::Dist(Pawn->GetActorLocation(), GetActorLocation()) < 300.0f;
+}
+
+TArray<FString> AMinigameActor::GetActivePlayers()
+{
+	return ActivePlayers;
 }

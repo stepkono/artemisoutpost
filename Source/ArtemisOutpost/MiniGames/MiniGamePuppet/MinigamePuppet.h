@@ -21,14 +21,11 @@ public:
 
 	// Pushed by the master (via the puppet manager). Implement in the BP child to drive visuals.
 	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame Puppet")
-	void ApplyState(EMinigameState NewState);
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame Puppet")
-	void ApplyAxes(const TArray<FAxisState>& Axes);
+	void ApplyState(const EMinigameState NewState);
 	
 	UFUNCTION(BlueprintNativeEvent, Category = "Minigame Puppet")
-	void SetData(const FPuppetData ParentData); 
+	void ApplyData(const FMiniGameData& ParentData); 
 	
 protected:
-	FPuppetData PuppetData;
+	FMiniGameData PuppetData;
 };

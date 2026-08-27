@@ -68,6 +68,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	bool CanLocalPlayerConnect() const;
+	
+	UFUNCTION()
+	TArray<FString> GetActivePlayers(); 
 
 protected:
 	virtual void BeginPlay() override;
@@ -111,16 +114,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minigame UI")
 	UMiniGameConnectionUIComponent* ConnectionUIHolder;
-
+	
 private:
 	UFUNCTION()
 	void OnRep_State();
 	void HandleStateChanged();
 
 	// Server: bound to the connection's join gate + participant delegates.
-	bool HandleCanJoin(const FString& UPID, FText& OutReason);
-	void HandleParticipantJoined(const FString& UPID);
-	void HandleParticipantLeft(const FString& UPID);
+	bool ServerHandleCanJoin(const FString& UPID, FText& OutReason);
+	void ServerHandleParticipantJoined(const FString& UPID);
+	void ServerHandleParticipantLeft(const FString& UPID);
 
 	// Client: opens/closes the local player's screen View on membership / state changes.
 	UFUNCTION()
@@ -134,4 +137,7 @@ private:
 
 	UPROPERTY(Transient)
 	mutable APawnController* CachedController = nullptr;
+	
+	UPROPERTY()
+	TArray<FString> ActivePlayers; 
 };

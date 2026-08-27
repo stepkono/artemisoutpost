@@ -182,7 +182,7 @@ void UMinigamePlayerController::HandleModelStateChanged()
 	}
 }
 
-void UMinigamePlayerController::HandleModelAxesUpdated(const TArray<FAxisState>& Axes)
+void UMinigamePlayerController::HandleModelAxesUpdated(const TArray<FAxisData>& Axes)
 {
 	if (ActiveView)
 	{

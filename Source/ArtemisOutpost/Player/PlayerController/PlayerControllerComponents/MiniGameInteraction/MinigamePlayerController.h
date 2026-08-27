@@ -55,7 +55,7 @@ private:
 	void HandleModelStateChanged();
 
 	UFUNCTION()
-	void HandleModelAxesUpdated(const TArray<FAxisState>& Axes);
+	void HandleModelAxesUpdated(const TArray<FAxisData>& Axes);
 	
 private: 
 	UPROPERTY()

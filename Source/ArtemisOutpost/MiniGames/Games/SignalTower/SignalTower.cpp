@@ -7,7 +7,7 @@ int32 ASignalTower::GetAxisCount() const
 	return 2;
 }
 
-void ASignalTower::InitAxisTargets(TArray<FAxisState>& InAxes) const
+void ASignalTower::InitAxisTargets(TArray<FAxisData>& InAxes) const
 {
 	// Server-authoritative random targets, written into the replicated Axes array. Earth is always
 	// arbitrary; Habitat is a placeholder until a habitat data model exists (then derive the bearing

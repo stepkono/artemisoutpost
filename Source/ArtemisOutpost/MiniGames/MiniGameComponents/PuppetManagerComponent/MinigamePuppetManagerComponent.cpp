@@ -69,7 +69,7 @@ void UMinigamePuppetManagerComponent::CreateARPuppet()
 		FAttachmentTransformRules(EAttachmentRule::KeepWorld, false));
 }
 
-void UMinigamePuppetManagerComponent::PushState(EMinigameState NewState)
+void UMinigamePuppetManagerComponent::PushState(const EMinigameState NewState)
 {
 	if (ARPuppet)
 	{
@@ -77,10 +77,10 @@ void UMinigamePuppetManagerComponent::PushState(EMinigameState NewState)
 	}
 }
 
-void UMinigamePuppetManagerComponent::PushAxes(const TArray<FAxisState>& Axes)
+void UMinigamePuppetManagerComponent::PushData(const FMiniGameData& GameData)
 {
 	if (ARPuppet)
 	{
-		ARPuppet->ApplyAxes(Axes);
+		ARPuppet->ApplyData(GameData);
 	}
 }
