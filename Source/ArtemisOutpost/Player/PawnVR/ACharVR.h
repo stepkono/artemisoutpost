@@ -37,6 +37,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "GeoRefsManager")
 	void SetGeoRefsManager(AGeoRefsManager* InManager);
+
+	// Orients the capsule so its up axis points along the moon surface normal at the current
+	// location (normal = direction from the VR-moon georeference centre to this actor). Call it
+	// wherever the pawn's surface tilt needs refreshing (on possess, and per-move if it roams).
+	UFUNCTION(BlueprintCallable, Category = "Surface Alignment")
+	void AlignNormalWithSurface();
 	
 	UFUNCTION(BlueprintCallable, Category = "Possession")
 	void SetIsPossessed(const bool InIsPossessed);

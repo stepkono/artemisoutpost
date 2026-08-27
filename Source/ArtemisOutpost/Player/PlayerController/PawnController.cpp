@@ -3,10 +3,12 @@
 
 #include "PawnController.h"
 
+#include "EngineUtils.h"
 #include "ArtemisOutpost/Moon/MoonScannedArea/MoonScannedAreaManager.h"
 #include "Net/UnrealNetwork.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
+#include "ArtemisOutpost/Moon/Cesium/CustomCesiumCameraManager.h"
 #include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/MiniGameInteraction/MinigamePlayerController.h"
 #include "ArtemisOutpost/Moon/MoonResources/MoonResourcesManager.h"
 
@@ -168,4 +170,25 @@ ACharVR* APawnController::GetVRPawn() const
 void APawnController::OnRep_VRPawn()
 {
 	VRPawnInitialized();
+}
+
+void APawnController::OnRep_MasterRover()
+{
+	RegisterProxyCam();
+}
+
+void APawnController::RegisterProxyCam() const
+{
+	if (UWorld* World = GetWorld())
+	{
+		for (TActorIterator<ACustomCesiumCameraManager> It(World); It; ++It)
+		{
+			ACustomCesiumCameraManager* CameraManager = *It;
+			CameraManager->AddNewMasterRover(MasterRover);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("PawnController: Failed to get world on RegisterProxyCam."));
+	}
 }

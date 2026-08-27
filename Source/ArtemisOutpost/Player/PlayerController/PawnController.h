@@ -73,6 +73,12 @@ protected:
 private: 
 	UFUNCTION()
 	void OnRep_VRPawn();
+	
+	UFUNCTION()
+	void OnRep_MasterRover(); 
+	
+	UFUNCTION()
+	void RegisterProxyCam() const; 
 
 protected: 
 	UPROPERTY(BlueprintReadOnly, Category = "Player ID")
@@ -81,10 +87,10 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	APawnAR* ARPawn; 
 	
-	UPROPERTY(BlueprintReadWrite, ReplicatedUsing=OnRep_VRPawn)
+	UPROPERTY( ReplicatedUsing=OnRep_VRPawn, BlueprintReadWrite)
 	ACharVR* VRPawn; 
 	
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing=OnRep_MasterRover, BlueprintReadOnly)
 	AMasterRover* MasterRover;
 	
 	UPROPERTY(BlueprintReadWrite, Category = "VR Position")

@@ -55,7 +55,7 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
+	//SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
@@ -221,6 +221,30 @@ ACesium3DTileset* ACharVR::GetVRTileset()
 void ACharVR::SetGeoRefsManager(AGeoRefsManager* InManager)
 {
 	GeoRefsManager = InManager;
+}
+
+void ACharVR::AlignNormalWithSurface()
+{
+	// The GeoRefsManager gives us the VR-moon georeference; its actor location is the centre we
+	// measure the surface normal from. (Direct C++ port of the BP_VRChar AlignNormalWithSurface.)
+	if (!GeoRefsManager)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BP_VRChar: GeoRefsManager not valid on AlignNormalWithSurface."));
+		return;
+	}
+
+	const ACesiumGeoreference* VRMoon = GeoRefsManager->GetVRMoon();
+	if (!VRMoon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ACharVR: GetVRMoon() returned null on AlignNormalWithSurface."));
+		return;
+	}
+
+	// Surface normal = direction from the moon centre out to us. Build a rotation whose Z (up) is
+	// that normal so the capsule stands upright on the tilted surface, then apply it to the actor.
+	const FVector SurfaceUp = (GetActorLocation() - VRMoon->GetActorLocation()).GetSafeNormal();
+	const FRotator NewRotation = FRotationMatrix::MakeFromZ(SurfaceUp).Rotator();
+	SetActorRotation(NewRotation);
 }
 
 void ACharVR::InitComponentsFromBP()
