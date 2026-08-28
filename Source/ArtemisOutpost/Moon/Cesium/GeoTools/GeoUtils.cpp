@@ -114,3 +114,20 @@ FCalibratedData UGeoUtils::CalibrateAnchors(const FVector& AAnchorPos, const FVe
 	
 	return CalibratedData;
 }
+
+void UGeoUtils::AlignNormalWithSurface(AActor* ActorToAlign, ACesiumGeoreference* ReferenceMoon)
+{
+	// The GeoRefsManager gives us the VR-moon georeference; its actor location is the centre we
+	// measure the surface normal from. (Direct C++ port of the BP_VRChar AlignNormalWithSurface.)
+	if (!ReferenceMoon)
+	{
+		UE_LOG(LogTemp, Error, TEXT("GeoUtils: ReferenceMoon not valid on AlignNormalWithSurface."));
+		return;
+	}
+
+	// Surface normal = direction from the moon centre out to us. Build a rotation whose Z (up) is
+	// that normal so the capsule stands upright on the tilted surface, then apply it to the actor.
+	const FVector SurfaceUp = (ActorToAlign->GetActorLocation() - ReferenceMoon->GetActorLocation()).GetSafeNormal();
+	const FRotator NewRotation = FRotationMatrix::MakeFromZ(SurfaceUp).Rotator();
+	ActorToAlign->SetActorRotation(NewRotation);
+}

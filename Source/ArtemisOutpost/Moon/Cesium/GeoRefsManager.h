@@ -18,10 +18,10 @@ public:
 	
 	virtual void Tick(float DeltaTime) override;
 	
-	UFUNCTION(BlueprintCallable, Category="AR Mooon")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AR Mooon")
 	ACesiumGeoreference* GetARMoon(); 
 	
-	UFUNCTION(BlueprintCallable, Category="VR Mooon")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="VR Mooon")
 	ACesiumGeoreference* GetVRMoon();
 	
 	UFUNCTION(BlueprintCallable, Category="VR Moon")

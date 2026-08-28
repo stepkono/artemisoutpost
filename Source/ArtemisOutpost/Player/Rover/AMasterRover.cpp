@@ -41,6 +41,7 @@ void AMasterRover::BeginPlay()
 
 	if (!GeoRefsManager)
 	{
+		Super::BeginPlay();
 		UE_LOG(LogTemp, Error, TEXT("[Master] BeginPlay: Failed to get GeoRefsManager."));
 		return;
 	}
@@ -97,8 +98,7 @@ void AMasterRover::Tick(float DeltaTime)
 			const FVector CurLoc = GetActorLocation();
 			const FQuat   CurRot = GetActorQuat();
 			const FQuat   TgtRot = LastRepMoveRotation.Quaternion();
-			const bool bSnap = !bClientSmoothingInit
-				|| FVector::Dist(CurLoc, LastRepMoveLocation) > ClientSnapDistance;
+			const bool bSnap = !bClientSmoothingInit || FVector::Dist(CurLoc, LastRepMoveLocation) > ClientSnapDistance;
 
 			const FVector NewLoc = bSnap
 				? LastRepMoveLocation

@@ -25,15 +25,18 @@ public:
 	
 	static FMatrix GetLocalSpatialReferenceFrame(const FVector &LonLatHeightPos, ACesiumGeoreference* CesiumGeoreference);
 	
-	UFUNCTION(BlueprintCallable, Category = "Quat erion Util")
+	UFUNCTION(BlueprintCallable, Category = "Geo Utils")
 	static FQuat BuildQuatFromMatrix(FMatrix RotationMatrix);
 	
-	UFUNCTION(BlueprintCallable, Category = "Matrix Helper Tools")
+	UFUNCTION(BlueprintCallable, Category = "Geo Utilss")
 	static FMatrix BuildMatrixFromVectors(FVector AxisX, FVector AxisY); 
 	
-	UFUNCTION(BlueprintCallable, Category = "Matrix Helper Tools")
+	UFUNCTION(BlueprintCallable, Category = "Geo Utils")
 	static FMatrix CalculateRotationMatrix(FMatrix SourceMatrix, FMatrix TargetMatrix);
 	
 	UFUNCTION()
-	static FCalibratedData CalibrateAnchors(const FVector& AAnchorPos, const FVector& BAnchorPos, const FVector& DAnchorPos); 
+	static FCalibratedData CalibrateAnchors(const FVector& AAnchorPos, const FVector& BAnchorPos, const FVector& DAnchorPos);
+	
+	UFUNCTION(BlueprintCallable, Category = "Geo Utils")
+	static void AlignNormalWithSurface(AActor* ActorToAlign, ACesiumGeoreference* ReferenceMoon);
 };
