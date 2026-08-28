@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "StructUtils/InstancedStruct.h"
 #include "MinigameTypes.generated.h"
 
 // A placeable outpost building. Each maps to a concrete AMinigameActor subclass via the
@@ -48,16 +49,10 @@ struct FConnectionSlot
 	FString OwnerUPID;
 };
 
-USTRUCT(BlueprintType)
-struct FMiniGameData
-{
-	GENERATED_BODY()
-};
-
 // One controllable degree of freedom of a coupled task (Signal Tower: [0]=Earth, [1]=Habitat).
 // The server mutates Value from input; clients render beams / UI from the replicated copy.
 USTRUCT(BlueprintType)
-struct FAxisData : public FMiniGameData
+struct FAxisData
 {
 	GENERATED_BODY()
 
@@ -68,10 +63,6 @@ struct FAxisData : public FMiniGameData
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
 	float Value = 0.0f;
 
-	// Target angle the participant rotates to. Set server-side on start.
-	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
-	float TargetValue = 0.0f;
-
 	// Seconds this axis has continuously been within tolerance (server-driven dwell).
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
 	float InToleranceTime = 0.0f;
@@ -79,6 +70,21 @@ struct FAxisData : public FMiniGameData
 	// UPID that exclusively controls this axis. Empty = any participant may (the solo case).
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
 	FString OwnerUPID;
+};
+
+// One-time target packet for the puppet (sent via the generic ApplyData channel, separate from the
+// per-rotation FAxisData). The target is a fixed per-game property, transmitted once — not part of
+// the live axis stream.
+USTRUCT(BlueprintType)
+struct FAxisTargetData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
+	int32 AxisIndex = -1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
+	float TargetDeg = 0.0f;
 };
 
 // What an input intent does. Claim/Release manage which participant owns an axis (the
@@ -107,4 +113,50 @@ struct FMinigameInput
 
 	UPROPERTY(BlueprintReadWrite, Category = "Minigame")
 	float Delta = 0.0f;
+};
+
+// Server-side registry record for ONE placed minigame/building, held by UMoonBuildingsManager keyed
+// on MGID. Common fields for every type; the type-specific payload rides in MiniGameData (e.g. a
+// FHabitatData for habitats), so a single map covers all minigames.
+USTRUCT(BlueprintType)
+struct FMiniGameRecord
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
+	FGuid MGID;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
+	FVector BuildLocation = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
+	FString BuiltByUPID;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
+	EMinigameState State = EMinigameState::Idle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
+	EOutpostBuildingType Type = EOutpostBuildingType::SignalTower;
+
+	// Type-specific data (e.g. FHabitatData). Empty for types without extra data.
+	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
+	FInstancedStruct MiniGameData;
+};
+
+// Type-specific data for a Habitat building (lives inside FMiniGameRecord::MiniGameData). A habitat
+// is a one-way street: built once, claimed by exactly one Signal Tower (permanent), activated once.
+USTRUCT(BlueprintType)
+struct FHabitatData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Habitat")
+	bool bActivated = false;
+
+	// Permanently reserved by a Signal Tower once claimed; never freed, never re-assigned.
+	UPROPERTY(BlueprintReadOnly, Category = "Habitat")
+	bool bAssignedToSignalTower = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Habitat")
+	FGuid AssignedTowerMGID;
 };

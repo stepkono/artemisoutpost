@@ -20,13 +20,54 @@ public:
 	static constexpr int32 AxisHabitat = 1;
 
 protected:
+	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	virtual int32 GetAxisCount() const override;
-	virtual void InitAxisTargets(TArray<FAxisData>& InAxes) const override;
+	virtual float GetAxisTarget(int32 AxisIndex) const override;
 	virtual bool CanStart(const FString& UPID, FText& OutReason) const override;
 	virtual void OnComplete() override;
+	virtual void SyncPuppet() override;
+	virtual EOutpostBuildingType GetBuildingType() const override { return EOutpostBuildingType::SignalTower; }
 
 	// Fired server-side when both axes are aligned. BP hooks habitat activation, score,
 	// influence-radius growth, VFX.
 	UFUNCTION(BlueprintImplementableEvent, Category = "Signal Tower")
 	void OnTowerActivated();
+
+	// Max distance (cm) to a habitat this tower may point at. Editable per BP/instance.
+	UPROPERTY(EditDefaultsOnly, Category = "Signal Tower")
+	float SignalRadius = 5000.0f;
+
+private:
+	// Server: try to claim the nearest free habitat in range and derive the habitat target bearing.
+	// Sets bHasTarget + HabitatTargetDeg on success. Called at BeginPlay and when a new habitat
+	// registers (in case the habitat is built after this tower).
+	void TryClaimTargetHabitat();
+
+	// Server: reaction to a newly registered building (bound only while we have no target yet).
+	void HandleMinigameRegistered(const FMiniGameRecord& Record);
+
+	// Bearing (deg, 0 = local forward, CW around up) from this tower to a world location, projected
+	// onto the surface tangent plane.
+	float BearingToDeg(const FVector& WorldLocation) const;
+
+	// Pushes the (one-time) habitat target to the AR puppet via the generic ApplyData channel.
+	void PushHabitatTargetToPuppet();
+
+	UFUNCTION()
+	void OnRep_HabitatTarget();
+
+	// Server-only bookkeeping.
+	bool bHasTarget = false;
+	FGuid TargetHabitatMGID;
+
+	// Fixed target bearings (deg), set once server-side, replicated for client display. Earth is
+	// arbitrary; Habitat points at the claimed habitat. Targets deliberately live here, NOT in the
+	// per-rotation FAxisData stream.
+	UPROPERTY(Replicated)
+	float EarthTargetDeg = 0.0f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_HabitatTarget)
+	float HabitatTargetDeg = 0.0f;
 };

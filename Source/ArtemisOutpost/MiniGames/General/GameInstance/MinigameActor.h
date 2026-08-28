@@ -38,6 +38,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	EMinigameState GetState() const;
 
+	// Persistent, globally-unique id assigned server-side and replicated. Registry key.
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	FGuid GetMGID() const { return MGID; }
+
 	// The screen-space View class this minigame opens for a connected local player. Set per game in
 	// the actor BP defaults (Signal Tower -> WBP_SignalTowerUI).
 	UFUNCTION(BlueprintPure, Category = "Minigame")
@@ -80,6 +84,13 @@ protected:
 	// Precondition for the FIRST participant to start the task (cost/buildability/proximity).
 	virtual bool CanStart(const FString& UPID, FText& OutReason) const;
 
+	// Building type for the registry. Concrete subclasses MUST override.
+	virtual EOutpostBuildingType GetBuildingType() const
+		PURE_VIRTUAL(AMinigameActor::GetBuildingType, return EOutpostBuildingType::SignalTower;);
+
+	// Type-specific registry payload (e.g. a FHabitatData for habitats). Empty by default.
+	virtual FInstancedStruct MakeInitialTypeData() const;
+
 	// Lifecycle reactions. Base OnComplete sets State=Completed; subclasses add side effects
 	// (score, habitat activation, VFX) and call Super. OnStart/OnAbort are empty by default.
 	virtual void OnStart();
@@ -120,6 +131,9 @@ private:
 	void OnRep_State();
 	void HandleStateChanged();
 
+	// Server: builds this actor's registry record and registers it with the buildings manager.
+	void RegisterWithBuildingsManager();
+
 	// Server: bound to the connection's join gate + participant delegates.
 	bool ServerHandleCanJoin(const FString& UPID, FText& OutReason);
 	void ServerHandleParticipantJoined(const FString& UPID);
@@ -137,7 +151,11 @@ private:
 
 	UPROPERTY(Transient)
 	mutable APawnController* CachedController = nullptr;
-	
+
 	UPROPERTY()
-	TArray<FString> ActivePlayers; 
+	TArray<FString> ActivePlayers;
+
+	// Globally-unique id, assigned server-side in BeginPlay, replicated. Registry key.
+	UPROPERTY(Replicated)
+	FGuid MGID;
 };

@@ -15,7 +15,13 @@ AHabitat::AHabitat()
 void AHabitat::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+}
+
+FInstancedStruct AHabitat::MakeInitialTypeData() const
+{
+	// A fresh habitat: not yet activated, not yet assigned to a Signal Tower.
+	return FInstancedStruct::Make(FHabitatData());
 }
 
 // Called every frame

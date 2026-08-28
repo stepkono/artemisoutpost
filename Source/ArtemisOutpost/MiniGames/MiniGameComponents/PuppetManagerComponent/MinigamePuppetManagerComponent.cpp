@@ -82,10 +82,18 @@ void UMinigamePuppetManagerComponent::PushState(const EMinigameState NewState)
 	}
 }
 
-void UMinigamePuppetManagerComponent::PushData(const FMiniGameData& GameData)
+void UMinigamePuppetManagerComponent::PushData(const FInstancedStruct& Data)
 {
 	if (ARPuppet)
 	{
-		ARPuppet->ApplyData(GameData);
+		ARPuppet->ApplyData(Data);
+	}
+}
+
+void UMinigamePuppetManagerComponent::PushStartData(const FInstancedStruct& Data)
+{
+	if (ARPuppet)
+	{
+		ARPuppet->InitializeStartData(Data);
 	}
 }

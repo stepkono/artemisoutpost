@@ -19,6 +19,10 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// Registers as a Habitat carrying FHabitatData so Signal Towers can find and claim it.
+	virtual EOutpostBuildingType GetBuildingType() const override { return EOutpostBuildingType::Habitat; }
+	virtual FInstancedStruct MakeInitialTypeData() const override;
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

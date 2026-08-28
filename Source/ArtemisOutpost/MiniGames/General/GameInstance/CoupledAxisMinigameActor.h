@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAxesUpdated, const TArray<FAxisDa
 // Reusable "two people, two locked degrees of freedom" minigame actor. Signal Tower (Earth +
 // Habitat) and Habitat (Pitch + Roll) both derive from this. It OWNS the replicated Axes, runs the
 // mechanics (claim/release/rotate + dwell/completion) and holds the coupled-axis rules itself as
-// config properties + overridable GetAxisCount/InitAxisTargets — no separate rules component.
+// config properties + overridable GetAxisCount/GetAxisTarget — no separate rules component.
 //
 // Ownership is EXPLICIT: a participant claims an axis (the selection screen), owns exactly one at a
 // time, and only the owner may rotate it. A second participant can only claim a still-free axis, so
@@ -56,6 +56,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	float GetDwellSeconds() const { return DwellSeconds; }
 
+	// Target angle (deg) an axis must reach. NOT stored in FAxisData — it is a fixed per-game
+	// property (e.g. a SignalTower's Earth/Habitat targets), so subclasses provide it here. Used by
+	// completion + alignment, and readable by UI. Base returns 0.
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	virtual float GetAxisTarget(int32 AxisIndex) const;
+
 protected:
 	virtual void OnStart() override;
 	virtual void OnAbort() override;
@@ -68,9 +74,6 @@ protected:
 
 	// Number of controllable degrees of freedom.
 	virtual int32 GetAxisCount() const;
-
-	// Fills TargetValue for each axis (server-side, on start). Axes is already sized to GetAxisCount.
-	virtual void InitAxisTargets(TArray<FAxisData>& InAxes) const;
 
 	// --- Designer tuning (§10) ---
 

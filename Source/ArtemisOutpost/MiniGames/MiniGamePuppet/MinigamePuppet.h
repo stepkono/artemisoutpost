@@ -23,9 +23,14 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame Puppet")
 	void ApplyState(const EMinigameState NewState);
 	
+	// Generic data channel: the master pushes different packet types per minigame (e.g. FAxisData for
+	// the live current, FAxisTargetData for the one-time target). Cast to the concrete struct in BP.
 	UFUNCTION(BlueprintNativeEvent, Category = "Minigame Puppet")
-	void ApplyData(const FMiniGameData& ParentData); 
+	void ApplyData(const FInstancedStruct& Data);
 	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame Puppet")
+	void InitializeStartData(const FInstancedStruct& StartData); 
+
 protected:
-	FMiniGameData PuppetData;
+	FInstancedStruct PuppetData;
 };

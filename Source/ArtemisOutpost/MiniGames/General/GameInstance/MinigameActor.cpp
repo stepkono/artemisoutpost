@@ -4,6 +4,7 @@
 
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/ConnectionComponent/ConnectionComponent.h"
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/PuppetManagerComponent/MinigamePuppetManagerComponent.h"
+#include "ArtemisOutpost/Moon/MoonBuildings/MoonBuildingsManager.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/Player/PawnVR/ACharVR.h"
 #include "ArtemisOutpost/Player/PlayerController/PawnController.h"
@@ -33,6 +34,7 @@ void AMinigameActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMinigameActor, State);
+	DOREPLIFETIME(AMinigameActor, MGID);
 }
 
 void AMinigameActor::BeginPlay()
@@ -63,13 +65,41 @@ void AMinigameActor::BeginPlay()
 		}
 	}
 
-	// Server only: authoritative join gating + game reactions.
+	// Server only: identity, registry, authoritative join gating + game reactions.
 	if (HasAuthority())
 	{
+		MGID = FGuid::NewGuid();
+		RegisterWithBuildingsManager();
+
 		GameConnection->CanJoinPredicate.BindUObject(this, &AMinigameActor::ServerHandleCanJoin);
 		GameConnection->OnParticipantJoined.AddUObject(this, &AMinigameActor::ServerHandleParticipantJoined);
 		GameConnection->OnParticipantLeft.AddUObject(this, &AMinigameActor::ServerHandleParticipantLeft);
 	}
+}
+
+FInstancedStruct AMinigameActor::MakeInitialTypeData() const
+{
+	return FInstancedStruct();
+}
+
+void AMinigameActor::RegisterWithBuildingsManager()
+{
+	UMoonBuildingsManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonBuildingsManager>() : nullptr;
+	if (!Manager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("MiniGameActor: MoonBuildingsManager subsystem not found; not registered."));
+		return;
+	}
+
+	FMiniGameRecord Record;
+	Record.MGID          = MGID;
+	Record.BuildLocation = GetActorLocation();
+	Record.State         = State;
+	Record.Type          = GetBuildingType();
+	Record.MiniGameData  = MakeInitialTypeData();
+	// BuiltByUPID: the placing player is not tracked here yet; fill in once the build tool passes it.
+
+	Manager->RegisterMinigame(Record);
 }
 
 void AMinigameActor::Tick(float DeltaTime)
@@ -211,7 +241,12 @@ void AMinigameActor::HandleStateChanged()
 	
 	if (HasAuthority())
 	{
-		PublishSnapshot();	
+		PublishSnapshot();
+
+		if (UMoonBuildingsManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonBuildingsManager>() : nullptr)
+		{
+			Manager->UpdateState(MGID, State);
+		}
 	}
 
 	// State changes (Active on start, Completed/Idle on finish/abort) also drive the local View...

@@ -35,8 +35,9 @@ int32 ACoupledAxisMinigameActor::GetAxisCount() const
 	return 2;
 }
 
-void ACoupledAxisMinigameActor::InitAxisTargets(TArray<FAxisData>& InAxes) const
+float ACoupledAxisMinigameActor::GetAxisTarget(int32 AxisIndex) const
 {
+	return 0.0f;
 }
 
 // ---- Lifecycle mechanics ----
@@ -47,7 +48,10 @@ void ACoupledAxisMinigameActor::OnStart()
 
 	Axes.Reset();
 	Axes.SetNum(FMath::Max(1, GetAxisCount()));
-	InitAxisTargets(Axes);
+	for (int32 i = 0; i < Axes.Num(); ++i)
+	{
+		Axes[i].AxisIndex = i; // so puppets/UI can branch on which axis this is (Earth vs Habitat)
+	}
 
 	NotifyAxesUpdated();
 }
@@ -144,9 +148,10 @@ void ACoupledAxisMinigameActor::EvaluateCompletion(float DeltaTime)
 {
 	bool bAllInTolerance = Axes.Num() > 0;
 
-	for (FAxisData& Axis : Axes)
+	for (int32 i = 0; i < Axes.Num(); ++i)
 	{
-		const bool bInTol = AngularDistanceDeg(Axis.Value, Axis.TargetValue) <= AxisToleranceDeg;
+		FAxisData& Axis = Axes[i];
+		const bool bInTol = AngularDistanceDeg(Axis.Value, GetAxisTarget(i)) <= AxisToleranceDeg;
 		Axis.InToleranceTime = bInTol ? Axis.InToleranceTime + DeltaTime : 0.0f;
 		bAllInTolerance &= (Axis.InToleranceTime >= DwellSeconds);
 	}
@@ -180,7 +185,7 @@ bool ACoupledAxisMinigameActor::IsAxisAligned(int32 AxisIndex) const
 	{
 		return false;
 	}
-	return AngularDistanceDeg(Axes[AxisIndex].Value, Axes[AxisIndex].TargetValue) <= AxisToleranceDeg;
+	return AngularDistanceDeg(Axes[AxisIndex].Value, GetAxisTarget(AxisIndex)) <= AxisToleranceDeg;
 }
 
 void ACoupledAxisMinigameActor::OnRep_UpdateAxes()
@@ -194,9 +199,9 @@ void ACoupledAxisMinigameActor::NotifyAxesUpdated()
 
 	if (PuppetManager)
 	{
-		for (auto Axis : Axes)
+		for (const FAxisData& Axis : Axes)
 		{
-			PuppetManager->PushData(Axis);
+			PuppetManager->PushData(FInstancedStruct::Make(Axis));
 		}
 	}
 }
@@ -207,9 +212,9 @@ void ACoupledAxisMinigameActor::SyncPuppet()
 
 	if (PuppetManager)
 	{
-		for (auto Axis : Axes)
+		for (const FAxisData& Axis : Axes)
 		{
-			PuppetManager->PushData(Axis);
+			PuppetManager->PushData(FInstancedStruct::Make(Axis));
 		}
 	}
 }
@@ -219,11 +224,12 @@ TSharedRef<FJsonObject> ACoupledAxisMinigameActor::BuildSnapshot() const
 	TSharedRef<FJsonObject> Obj = Super::BuildSnapshot();
 
 	TArray<TSharedPtr<FJsonValue>> AxisArray;
-	for (const FAxisData& Axis : Axes)
+	for (int32 i = 0; i < Axes.Num(); ++i)
 	{
+		const FAxisData& Axis = Axes[i];
 		TSharedRef<FJsonObject> A = MakeShared<FJsonObject>();
 		A->SetNumberField(TEXT("value"), Axis.Value);
-		A->SetNumberField(TEXT("target"), Axis.TargetValue);
+		A->SetNumberField(TEXT("target"), GetAxisTarget(i));
 		A->SetStringField(TEXT("owner"), Axis.OwnerUPID);
 		AxisArray.Add(MakeShared<FJsonValueObject>(A));
 	}
