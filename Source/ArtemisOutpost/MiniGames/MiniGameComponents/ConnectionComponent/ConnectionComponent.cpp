@@ -3,12 +3,23 @@
 #include "ConnectionComponent.h"
 
 #include "ArtemisOutpost/MiniGames/General/MinigameTypes.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 UConnectionComponent::UConnectionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+}
+
+void UConnectionComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (AServerGameMode* ServerGameMode = Cast<AServerGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
+	{
+		GameMode = ServerGameMode;	
+	}
 }
 
 void UConnectionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -43,7 +54,12 @@ void UConnectionComponent::ServerRequestJoin(const FString& UPID)
 	FConnectionSlot NewSlot;
 	NewSlot.OwnerUPID = UPID;
 	ActiveSlots.Add(NewSlot);
-
+	
+	if (GameMode)
+	{
+		const FArtemisPlayer* ArtemisPLayer = GameMode->GetPlayersInGame().Find(UPID);
+		ArtemisPLayer->PawnController->SetIsInGame(true); 
+	}
 	OnParticipantJoined.Broadcast(UPID);
 }
 
@@ -61,7 +77,11 @@ void UConnectionComponent::ServerRequestLeave(const FString& UPID)
 	}
 
 	ActiveSlots.RemoveAt(Index);
-	
+	if (GameMode)
+	{
+		const FArtemisPlayer* ArtemisPLayer = GameMode->GetPlayersInGame().Find(UPID);
+		ArtemisPLayer->PawnController->SetIsInGame(false); 
+	}
 	OnParticipantLeft.Broadcast(UPID);
 }
 

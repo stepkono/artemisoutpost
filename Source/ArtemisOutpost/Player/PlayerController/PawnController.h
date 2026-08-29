@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArtemisOutpost/MiniGames/General/MinigameTypes.h"
 #include "ArtemisOutpost/Player/PawnAR/PawnAR.h"
 #include "ArtemisOutpost/Player/PawnVR/ACharVR.h"
 #include "GameFramework/PlayerController.h"
@@ -63,12 +64,23 @@ public:
 	// sets its own UPID from the save/GameInstance in BeginPlay.
 	void SetUPID(const FString& InUPID);
 	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame")
+	void ActivateMiniGameInput(EMiniGameType MiniGameType);
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame")
+	void DeactivateMiniGameInput();
+	
+	void SetIsInGame(const bool IsInGame);
+	
 protected: 
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = "VR Pawn")
 	void VRPawnInitialized();
+	
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mini Game")
+	bool bIsInGame; 
 	
 private: 
 	UFUNCTION()

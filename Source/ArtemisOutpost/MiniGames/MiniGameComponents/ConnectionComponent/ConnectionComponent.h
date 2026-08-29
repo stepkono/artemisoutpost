@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArtemisOutpost/GameData/ServerGameMode.h"
 #include "ArtemisOutpost/MiniGames/General/MinigameTypes.h"
 #include "Components/ActorComponent.h"
 #include "ConnectionComponent.generated.h"
@@ -62,6 +63,8 @@ public:
 	FOnSlotsChangedBP OnSlotsChanged;
 
 protected:
+	virtual void BeginPlay() override;
+	
 	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly, Category = "Connection")
 	int32 MaxSlots = 1;
 
@@ -71,4 +74,7 @@ protected:
 
 	UFUNCTION()
 	void OnRep_ActiveSlots();
+	
+private: 
+	AServerGameMode* GameMode; 
 };

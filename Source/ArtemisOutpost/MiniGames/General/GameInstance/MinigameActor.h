@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputAction.h"
 #include "GameFramework/Actor.h"
 #include "ArtemisOutpost/MiniGames/General/Interactable.h"
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/PuppetManagerComponent/MinigamePuppetManagerComponent.h"
@@ -75,6 +76,14 @@ public:
 	
 	UFUNCTION()
 	TArray<FString> GetActivePlayers(); 
+	
+	// Client-side input entry point, routed here by the transport (VRChar -> MinigameController ->
+	// ActiveTarget). The concrete minigame maps the InputAction to an intent and interprets it; the
+	// analog value is read on demand from the local player's Enhanced Input (see GetLocalActionValue).
+	// Base is a no-op.
+	virtual void ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent);
+
+	EMiniGameType GetType();
 
 protected:
 	virtual void BeginPlay() override;
@@ -85,8 +94,8 @@ protected:
 	virtual bool CanStart(const FString& UPID, FText& OutReason) const;
 
 	// Building type for the registry. Concrete subclasses MUST override.
-	virtual EOutpostBuildingType GetBuildingType() const
-		PURE_VIRTUAL(AMinigameActor::GetBuildingType, return EOutpostBuildingType::SignalTower;);
+	virtual EMiniGameType GetBuildingType() const
+		PURE_VIRTUAL(AMinigameActor::GetBuildingType, return EMiniGameType::SignalTower;);
 
 	// Type-specific registry payload (e.g. a FHabitatData for habitats). Empty by default.
 	virtual FInstancedStruct MakeInitialTypeData() const;
@@ -111,6 +120,19 @@ protected:
 	void SetState(EMinigameState NewState);
 	void PublishSnapshot();
 
+	// Builds + sends an input intent to the server via the local player's transport controller.
+	// Client-side helper for ProcessInput; server applies it in ApplyInput (no client-side authority).
+	void SubmitInput(const FMinigameInput& Input);
+
+	// Reads the current value of an InputAction from the LOCAL player's Enhanced Input (as a 2D
+	// vector; 1D/button actions come back as {X,0}). Used by ProcessInput to interpret analog input.
+	FVector2D GetLocalActionValue(const UInputAction* Action) const;
+
+	// Maps each concrete InputAction (set per game in the BP child) to the intent it produces. The
+	// interpretation itself (which value, which trigger event) lives in the subclass's ProcessInput.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Minigame Input")
+	TMap<TObjectPtr<UInputAction>, EMinigameInputType> InputActionMap;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minigame UI")
 	TSubclassOf<UMiniGameUI> MiniGameUIClass;
 
@@ -125,6 +147,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Minigame UI")
 	UMiniGameConnectionUIComponent* ConnectionUIHolder;
+		
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Minigame")
+	EMiniGameType MiniGameType;
 	
 private:
 	UFUNCTION()

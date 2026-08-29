@@ -20,7 +20,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	// Registers as a Habitat carrying FHabitatData so Signal Towers can find and claim it.
-	virtual EOutpostBuildingType GetBuildingType() const override { return EOutpostBuildingType::Habitat; }
+	virtual EMiniGameType GetBuildingType() const override { return EMiniGameType::Habitat; }
 	virtual FInstancedStruct MakeInitialTypeData() const override;
 
 public:

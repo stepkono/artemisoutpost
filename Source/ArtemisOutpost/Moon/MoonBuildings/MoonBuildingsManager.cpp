@@ -34,7 +34,7 @@ bool UMoonBuildingsManager::TryClaimHabitatFor(const FGuid& TowerMGID, const FVe
 	for (const TPair<FGuid, FMiniGameRecord>& Pair : Buildings)
 	{
 		const FMiniGameRecord& Record = Pair.Value;
-		if (Record.Type != EOutpostBuildingType::Habitat)
+		if (Record.Type != EMiniGameType::Habitat)
 		{
 			continue;
 		}

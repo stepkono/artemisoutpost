@@ -6,6 +6,8 @@
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/PuppetManagerComponent/MinigamePuppetManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 
+
+
 void ASignalTower::BeginPlay()
 {
 	Super::BeginPlay();
@@ -67,7 +69,7 @@ void ASignalTower::TryClaimTargetHabitat()
 void ASignalTower::HandleMinigameRegistered(const FMiniGameRecord& Record)
 {
 	// Only newly built habitats can give an untargeted tower a target.
-	if (bHasTarget || Record.Type != EOutpostBuildingType::Habitat)
+	if (bHasTarget || Record.Type != EMiniGameType::Habitat)
 	{
 		return;
 	}
@@ -148,4 +150,93 @@ void ASignalTower::OnComplete()
 	Super::OnComplete();
 
 	OnTowerActivated();
+}
+
+void ASignalTower::ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent)
+{
+	// Data-driven dispatch: the BP child maps each concrete InputAction asset to an intent type.
+	const EMinigameInputType* Intent = InputActionMap.Find(InputAction);
+	if (!Intent)
+	{
+		return;
+	}
+
+	const FString LocalUPID = GetLocalPlayerUPID();
+
+	switch (*Intent)
+	{
+	case EMinigameInputType::Rotate:
+	{
+		// Rotate the axis THIS player owns (resolved from ownership, so the input layer needs no
+		// axis knowledge). No owned axis -> nothing to turn.
+		const int32 Axis = GetAxisOwnedBy(LocalUPID);
+		if (Axis == INDEX_NONE)
+		{
+			return;
+		}
+
+		// Gesture end (stick released): reset so the next grab starts fresh, no delta jump.
+		if (TriggerEvent == EInputActionType::Completed || TriggerEvent == EInputActionType::Canceled)
+		{
+			bHasLastStickAngle = false;
+			return;
+		}
+		if (TriggerEvent != EInputActionType::Triggered)
+		{
+			return;
+		}
+
+		// Read the current stick from the local player's Enhanced Input. Deadzone is already applied
+		// by the action's EnhancedInput modifier -> a centered stick reads ~zero.
+		const FVector2D Stick = GetLocalActionValue(InputAction);
+		if (Stick.IsNearlyZero())
+		{
+			bHasLastStickAngle = false;
+			return;
+		}
+
+		// Dial model: delta = change in the stick's angle since last frame (circle the stick to turn).
+		const float CurrentAngle = FMath::RadiansToDegrees(FMath::Atan2(Stick.Y, Stick.X));
+		if (!bHasLastStickAngle)
+		{
+			LastStickAngleDeg = CurrentAngle;
+			bHasLastStickAngle = true;
+			return; // first frame of the gesture: set the reference, emit no delta yet
+		}
+
+		const float Delta = FMath::FindDeltaAngleDegrees(LastStickAngleDeg, CurrentAngle);
+		LastStickAngleDeg = CurrentAngle;
+
+		FMinigameInput In;
+		In.Type = EMinigameInputType::Rotate;
+		In.AxisIndex = Axis;
+		In.Delta = Delta;
+		SubmitInput(In);
+		break;
+	}
+
+	case EMinigameInputType::ReleaseAxis:
+	{
+		if (TriggerEvent != EInputActionType::Started)
+		{
+			return;
+		}
+		const int32 Axis = GetAxisOwnedBy(LocalUPID);
+		if (Axis == INDEX_NONE)
+		{
+			return;
+		}
+		FMinigameInput In;
+		In.Type = EMinigameInputType::ReleaseAxis;
+		In.AxisIndex = Axis;
+		SubmitInput(In);
+		break;
+	}
+
+	case EMinigameInputType::ClaimAxis:
+		// Claim needs an explicit TARGET axis (which one to grab) -> that comes from the axis-selection
+		// screen (widget), which calls SubmitInput with the chosen index. A generic input action can't
+		// carry "which axis", so it is not handled here.
+		break;
+	}
 }

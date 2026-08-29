@@ -19,6 +19,8 @@ public:
 	static constexpr int32 AxisEarth = 0;
 	static constexpr int32 AxisHabitat = 1;
 
+	ASignalTower(); 
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -28,7 +30,12 @@ protected:
 	virtual bool CanStart(const FString& UPID, FText& OutReason) const override;
 	virtual void OnComplete() override;
 	virtual void SyncPuppet() override;
-	virtual EOutpostBuildingType GetBuildingType() const override { return EOutpostBuildingType::SignalTower; }
+	virtual EMiniGameType GetBuildingType() const override { return EMiniGameType::SignalTower; }
+
+	// Client-side: maps the fired InputAction to an intent (via InputActionMap) and interprets it —
+	// Rotate turns the axis this player owns (joystick angle -> delta degrees), Release lets it go.
+	// The analog value is read on demand via GetLocalActionValue.
+	virtual void ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent) override;
 
 	// Fired server-side when both axes are aligned. BP hooks habitat activation, score,
 	// influence-radius growth, VFX.
@@ -70,4 +77,10 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_HabitatTarget)
 	float HabitatTargetDeg = 0.0f;
+
+	// --- Client-side rotate gesture state (per local player; one per client) ---
+	// The joystick "dial" model: delta = change in stick angle since last frame. Reset on release so
+	// the next grab doesn't produce a huge jump.
+	float LastStickAngleDeg = 0.0f;
+	bool bHasLastStickAngle = false;
 };

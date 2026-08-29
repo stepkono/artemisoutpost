@@ -6,6 +6,8 @@
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/ConnectionComponent/ConnectionComponent.h"
 #include "ArtemisOutpost/MiniGames/General/GameInstance/MinigameActor.h"
 #include "ArtemisOutpost/MiniGames/General/GameInstance/CoupledAxisMinigameActor.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedPlayerInput.h"
 
 UMinigamePlayerController::UMinigamePlayerController()
 {
@@ -14,7 +16,7 @@ UMinigamePlayerController::UMinigamePlayerController()
 	SetIsReplicatedByDefault(true);
 }
 
-FString UMinigamePlayerController::GetOwnerUPID() const
+FString UMinigamePlayerController::GetPlayerUPID() const
 {
 	const APawnController* PC = Cast<APawnController>(GetOwner());
 	return PC ? PC->GetPlayerUPID() : FString();
@@ -28,7 +30,7 @@ void UMinigamePlayerController::ServerRequestEnter_Implementation(AMinigameActor
 	{
 		if (UConnectionComponent* Connection = Target->GetConnectionComponent())
 		{
-			Connection->ServerRequestJoin(GetOwnerUPID());
+			Connection->ServerRequestJoin(GetPlayerUPID());
 		}
 	}
 }
@@ -39,7 +41,7 @@ void UMinigamePlayerController::ServerRequestLeave_Implementation(AMinigameActor
 	{
 		if (UConnectionComponent* Connection = Target->GetConnectionComponent())
 		{
-			Connection->ServerRequestLeave(GetOwnerUPID());
+			Connection->ServerRequestLeave(GetPlayerUPID());
 		}
 	}
 }
@@ -48,7 +50,7 @@ void UMinigamePlayerController::ServerSubmitInput_Implementation(AMinigameActor*
 {
 	if (Target)
 	{
-		Target->ServerHandleInput(GetOwnerUPID(), Input);
+		Target->ServerHandleInput(GetPlayerUPID(), Input);
 	}
 }
 
@@ -80,7 +82,7 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 		return;
 	}
 
-	ActiveView->LocalUPID = GetOwnerUPID();
+	ActiveView->LocalUPID = GetPlayerUPID();
 	if (const ACoupledAxisMinigameActor* Coupled = Cast<ACoupledAxisMinigameActor>(Target))
 	{
 		ActiveView->DwellSeconds = Coupled->GetDwellSeconds();
@@ -123,7 +125,9 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 	HandleModelStateChanged();
 	if (const ACoupledAxisMinigameActor* Coupled = Cast<ACoupledAxisMinigameActor>(Target))
 	{
-		ActiveView->OnAxesUpdated(Coupled->GetAxes());
+		// May legitimately be empty here: Axes are filled on the server in OnStart and can arrive a
+		// frame later on the client. The View rebuilds on the next OnAxesUpdated either way.
+		ActiveView->PushAxes(Coupled->GetAxes());
 	}
 }
 
@@ -178,7 +182,7 @@ void UMinigamePlayerController::HandleModelStateChanged()
 {
 	if (ActiveView && ActiveTarget)
 	{
-		ActiveView->OnMinigameStateChanged(ActiveTarget->GetState());
+		ActiveView->PushState(ActiveTarget->GetState());
 	}
 }
 
@@ -186,11 +190,63 @@ void UMinigamePlayerController::HandleModelAxesUpdated(const TArray<FAxisData>& 
 {
 	if (ActiveView)
 	{
-		ActiveView->OnAxesUpdated(Axes);
+		ActiveView->PushAxes(Axes);
 	}
 }
 
 bool UMinigamePlayerController::IsMiniGameActive()
 {
 	return bMiniGameActive;
+}
+
+void UMinigamePlayerController::SubmitInputAction(UInputAction* InputAction, EInputActionType InputActionType)
+{
+	// While the View shows a menu screen it owns the thumbstick (highlight navigation), so ONE stick
+	// action drives both the axis-selection screen and the rotation gameplay. Withhold it from the
+	// actor in that case — otherwise the rotate handler would run against a not-yet-claimed axis and
+	// silently do nothing. Note this withholds EVERY action of the minigame context while the menu is
+	// up; that is intended (nothing else is meaningful before an axis is claimed).
+	if (ActiveView && ActiveView->WantsNavigationInput())
+	{
+		if (InputActionType == EInputActionType::Triggered)
+		{
+			ActiveView->HandleNavigate(GetLocalActionValue(InputAction));
+		}
+		return;
+	}
+
+	if (!ActiveTarget)
+	{
+		return;
+	}
+
+	ActiveTarget->ProcessInput(InputAction, InputActionType);
+}
+
+void UMinigamePlayerController::SubmitEnterAction()
+{
+	if (ActiveView)
+	{
+		ActiveView->ConfirmHighlighted();
+	}
+}
+
+FVector2D UMinigamePlayerController::GetLocalActionValue(const UInputAction* Action) const
+{
+	if (!Action)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	const APlayerController* PC = Cast<APlayerController>(GetOwner());
+	ULocalPlayer* LP = PC ? PC->GetLocalPlayer() : nullptr;
+	if (!LP)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+	UEnhancedPlayerInput* PlayerInput = Subsystem ? Subsystem->GetPlayerInput() : nullptr;
+
+	return PlayerInput ? PlayerInput->GetActionValue(Action).Get<FVector2D>() : FVector2D::ZeroVector;
 }

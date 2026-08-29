@@ -152,3 +152,9 @@ void AServerGameMode::RegisterPlayerPawns(APawnController* PlayerController, AMa
 	UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Registered pawns for UPID %s — Master=%s VRChar=%s."),
 		*PlayerController->GetPlayerUPID(), *GetNameSafe(InMasterRover), *GetNameSafe(InVRChar));
 }
+
+TMap<FString, FArtemisPlayer> AServerGameMode::GetPlayersInGame()
+{
+	return PlayersInGame;
+}
+

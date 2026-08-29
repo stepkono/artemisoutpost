@@ -45,7 +45,7 @@ FVector ABuildingTool::GetSurfaceUp(FVector WorldPos) const
 	return Up.IsNearlyZero() ? FVector::UpVector : Up;
 }
 
-void ABuildingTool::BeginPlacement(EOutpostBuildingType BuildingType)
+void ABuildingTool::BeginPlacement(EMiniGameType BuildingType)
 {
 	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] BeginPlacement: Type=%s (was %s)"),
 		*UEnum::GetValueAsString(BuildingType), *UEnum::GetValueAsString(CurrentBuildingType));
@@ -156,7 +156,7 @@ void ABuildingTool::ExecuteAction()
 }
 
 //TODO: pay attention if this actually does work, since the SetOwner is set on the BP. If this RPC never runs on server, the ownership problem is the first suspsect
-void ABuildingTool::ServerPlaceBuilding_Implementation(EOutpostBuildingType BuildingType, FTransform PlacementTransform)
+void ABuildingTool::ServerPlaceBuilding_Implementation(EMiniGameType BuildingType, FTransform PlacementTransform)
 {
 	// Authority re-check. The client already validated for feedback, but the server must never trust
 	// it. The transform's Z axis is the surface normal (the client aligned it to the ground).

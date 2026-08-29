@@ -192,3 +192,8 @@ void APawnController::RegisterProxyCam() const
 		UE_LOG(LogTemp, Error, TEXT("PawnController: Failed to get world on RegisterProxyCam."));
 	}
 }
+
+void APawnController::SetIsInGame(const bool IsInGame)
+{
+	bIsInGame = IsInGame;
+}

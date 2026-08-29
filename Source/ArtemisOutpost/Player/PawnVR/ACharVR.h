@@ -183,6 +183,9 @@ protected:
 	// Activate/DeactivateTool; read via GetActiveTool() from BP_VRChar's trigger routing.
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Hand Tools", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<AHandToolBase> ActiveHandTool;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Minigame")
+	bool bIsInMiniGame = false;
 
 private:
 	// One-shot guard so the local floor/origin setup is applied exactly once.

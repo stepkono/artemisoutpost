@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputAction.h"
 #include "Components/ActorComponent.h"
 #include "ArtemisOutpost/MiniGames/General/MinigameTypes.h"
 #include "MinigamePlayerController.generated.h"
@@ -17,6 +18,7 @@ class UMiniGameUI;
 //  2) View lifecycle: on the owning client, opens/closes the screen-space View, wires the actor's
 //     replicated updates INTO the View (plain data) and the View's OnInput OUT to the server.
 //     Neither the View nor the actor stores a reference to the other.
+
 UCLASS(Blueprintable, ClassGroup = (Minigame), meta = (BlueprintSpawnableComponent))
 class ARTEMISOUTPOST_API UMinigamePlayerController : public UActorComponent
 {
@@ -42,9 +44,23 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category = "Minigame")	
 	bool IsMiniGameActive(); 
+	
+	UFUNCTION(BlueprintCallable, Category = "Minigame")
+	void SubmitInputAction(UInputAction* InputAction, EInputActionType InputActionType);
+
+	// Trigger / "enter" while a minigame View is open. Routed from BP_VRChar's E_TriggerMode switch
+	// (MiniGameMode case). Deliberately takes NO intent: Blueprint does not know which screen the
+	// View is on, the View does, so it decides what the press means (axis selection screen -> claim
+	// the highlighted axis). Keeps one trigger binding correct as more screens are added.
+	UFUNCTION(BlueprintCallable, Category = "Minigame")
+	void SubmitEnterAction();
 
 private:
-	FString GetOwnerUPID() const;
+	FString GetPlayerUPID() const;
+
+	// Current value of an InputAction from the LOCAL player's Enhanced Input, as a 2D vector. Used to
+	// feed the View's menu navigation, which needs the analog value the BP call site does not carry.
+	FVector2D GetLocalActionValue(const UInputAction* Action) const;
 
 	// View -> server.
 	UFUNCTION()
@@ -57,7 +73,6 @@ private:
 	UFUNCTION()
 	void HandleModelAxesUpdated(const TArray<FAxisData>& Axes);
 	
-private: 
 	UPROPERTY()
 	bool bMiniGameActive = false; 	
 	

@@ -48,6 +48,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	bool CanControlAxis(const FString& UPID, int32 AxisIndex) const;
 
+	// Index of the axis UPID currently owns, or INDEX_NONE. Used client-side to resolve which axis a
+	// rotate/release intent targets without the input layer having to know axis indices.
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	int32 GetAxisOwnedBy(const FString& UPID) const;
+
 	// Whether an axis is currently within tolerance (green "levelled" feedback).
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	bool IsAxisAligned(int32 AxisIndex) const;

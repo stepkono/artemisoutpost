@@ -2,9 +2,15 @@
 
 #include "CoupledAxisMinigameActor.h"
 
+#include "ArtemisOutpost/MiniGames/Games/SignalTower/SignalTower.h"
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/PuppetManagerComponent/MinigamePuppetManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Dom/JsonObject.h"
+
+ASignalTower::ASignalTower()
+{
+	MiniGameType = EMiniGameType::SignalTower; 
+}
 
 ACoupledAxisMinigameActor::ACoupledAxisMinigameActor()
 {
@@ -168,6 +174,18 @@ void ACoupledAxisMinigameActor::EvaluateCompletion(float DeltaTime)
 bool ACoupledAxisMinigameActor::CanControlAxis(const FString& UPID, int32 AxisIndex) const
 {
 	return Axes.IsValidIndex(AxisIndex) && Axes[AxisIndex].OwnerUPID == UPID;
+}
+
+int32 ACoupledAxisMinigameActor::GetAxisOwnedBy(const FString& UPID) const
+{
+	for (int32 i = 0; i < Axes.Num(); ++i)
+	{
+		if (Axes[i].OwnerUPID == UPID)
+		{
+			return i;
+		}
+	}
+	return INDEX_NONE;
 }
 
 float ACoupledAxisMinigameActor::GetAxisProgress(int32 AxisIndex) const

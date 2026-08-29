@@ -19,7 +19,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	virtual EOutpostBuildingType GetBuildingType() const override { return EOutpostBuildingType::SolarPanel; }
+	virtual EMiniGameType GetBuildingType() const override { return EMiniGameType::SolarPanel; }
 
 public:
 	// Called every frame

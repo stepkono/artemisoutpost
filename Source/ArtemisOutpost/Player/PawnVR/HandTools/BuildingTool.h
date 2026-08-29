@@ -30,10 +30,10 @@ public:
 	// Enter placement for a building type (called when a Build* tile is chosen). Activates the tool
 	// (if needed) and fires OnPlacementBegan so the BP starts the arc.
 	UFUNCTION(BlueprintCallable, Category = "Building Tool")
-	void BeginPlacement(EOutpostBuildingType BuildingType);
+	void BeginPlacement(EMiniGameType BuildingType);
 
 	UFUNCTION(BlueprintPure, Category = "Building Tool")
-	EOutpostBuildingType GetCurrentBuildingType() const { return CurrentBuildingType; }
+	EMiniGameType GetCurrentBuildingType() const { return CurrentBuildingType; }
 
 	// Local validity check for feedback while aiming (call on trigger, NOT every tick). Deliberately
 	// does NOT line-trace Cesium tiles — that crashes on a null-RHI server (project memory); it only
@@ -77,13 +77,13 @@ protected:
 	// Client -> server spawn request. The server re-validates (authority) and spawns the mapped
 	// AMinigameActor subclass at the transform.
 	UFUNCTION(Server, Reliable, Category = "Building Tool")
-	void ServerPlaceBuilding(EOutpostBuildingType BuildingType, FTransform PlacementTransform);
+	void ServerPlaceBuilding(EMiniGameType BuildingType, FTransform PlacementTransform);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Building Tool")
 	bool bPlacementBegan = false; 
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Building Tool")
-	EOutpostBuildingType CurrentBuildingType = EOutpostBuildingType::Habitat;
+	EMiniGameType CurrentBuildingType = EMiniGameType::Habitat;
 
 	// Current aim/landing point, written by the BP arc each tick (Out Hit -> Impact Point). ExecuteAction
 	// (trigger) builds here — so the confirm logic lives in C++ while the arc stays in BP.
@@ -93,7 +93,7 @@ protected:
 	// Building type -> spawned actor class. Assign in BP_BuildingTool (Antenna -> BP_SignalTower;
 	// Habitat / SolarPanel -> new AMinigameActor children). Adding a building = one row here.
 	UPROPERTY(EditDefaultsOnly, Category = "Building Tool")
-	TMap<EOutpostBuildingType, TSubclassOf<AMinigameActor>> BuildingClasses;
+	TMap<EMiniGameType, TSubclassOf<AMinigameActor>> BuildingClasses;
 
 	// Max ground slope (deg, surface normal vs. the pawn's up / geodetic up) a building tolerates.
 	UPROPERTY(EditDefaultsOnly, Category = "Building Tool", meta = (ClampMin = "0.0", ClampMax = "89.0"))

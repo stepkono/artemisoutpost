@@ -10,11 +10,11 @@
 // BuildingClasses map on ABuildingTool (Antenna -> ASignalTower today). Named with the Outpost
 // prefix because plain "EBuildingType" collides with an engine/plugin enum.
 UENUM(BlueprintType)
-enum class EOutpostBuildingType : uint8
+enum class EMiniGameType : uint8
 {
-	Habitat    UMETA(DisplayName = "Habitat"),
-	SolarPanel UMETA(DisplayName = "Solar Panel"),
-	SignalTower    UMETA(DisplayName = "SignalTower")
+	SignalTower  UMETA(DisplayName = "SignalTower"),
+	Habitat      UMETA(DisplayName = "Habitat"),
+	SolarPanel   UMETA(DisplayName = "Solar Panel"),
 };
 
 // What the scanning tool scans. Surface = the ground at the aim point; Area = the environment around
@@ -36,6 +36,16 @@ enum class EMinigameState : uint8
 	Committing UMETA(DisplayName = "Committing"),
 	Completed  UMETA(DisplayName = "Completed"),
 	Failed     UMETA(DisplayName = "Failed")
+};
+
+UENUM(BlueprintType)
+enum class EInputActionType : uint8
+{
+	Triggered    UMETA(DisplayName = "Triggered"),
+	Started      UMETA(DisplayName = "Started"),
+	Ongoing      UMETA(DisplayName = "Ongoing"),
+	Canceled     UMETA(DisplayName = "Canceled"),
+	Completed    UMETA(DisplayName = "Completed"),
 };
 
 // One occupied VR manipulation slot. Array position is the slot index. Kept as a struct (not a
@@ -136,7 +146,7 @@ struct FMiniGameRecord
 	EMinigameState State = EMinigameState::Idle;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
-	EOutpostBuildingType Type = EOutpostBuildingType::SignalTower;
+	EMiniGameType Type = EMiniGameType::SignalTower;
 
 	// Type-specific data (e.g. FHabitatData). Empty for types without extra data.
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")

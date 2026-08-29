@@ -32,6 +32,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Players Management")
 	void RegisterPlayerPawns(APawnController* PlayerController, AMasterRover* InMasterRover, ACharVR* InVRChar);
 
+	UFUNCTION(BlueprintCallable, Category="Players Management")
+	TMap<FString, FArtemisPlayer> GetPlayersInGame();
+	
 protected:
 	virtual void OnPostLogin(AController* NewPlayer) override;
 

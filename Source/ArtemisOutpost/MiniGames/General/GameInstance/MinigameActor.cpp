@@ -13,6 +13,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedPlayerInput.h"
 
 AMinigameActor::AMinigameActor()
 {
@@ -143,6 +145,48 @@ void AMinigameActor::ServerHandleInput(const FString& UPID, const FMinigameInput
 
 	ApplyInput(UPID, Input);
 	PublishSnapshot();
+}
+
+void AMinigameActor::ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent)
+{
+	// Base does nothing; concrete minigames interpret their own input.
+}
+
+void AMinigameActor::SubmitInput(const FMinigameInput& Input)
+{
+	APawnController* PC = GetLocalController();
+	if (!PC)
+	{
+		return;
+	}
+	if (UMinigamePlayerController* Controller = PC->GetMinigamePlayerController())
+	{
+		Controller->ServerSubmitInput(this, Input);
+	}
+}
+
+FVector2D AMinigameActor::GetLocalActionValue(const UInputAction* Action) const
+{
+	if (!Action)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	const APawnController* PC = GetLocalController();
+	ULocalPlayer* LP = PC ? PC->GetLocalPlayer() : nullptr;
+	if (!LP)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+	UEnhancedPlayerInput* PlayerInput = Subsystem ? Subsystem->GetPlayerInput() : nullptr;
+	if (!PlayerInput)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	return PlayerInput->GetActionValue(Action).Get<FVector2D>();
 }
 
 bool AMinigameActor::ServerHandleCanJoin(const FString& UPID, FText& OutReason)
@@ -279,11 +323,13 @@ void AMinigameActor::RefreshLocalUI()
 
 	if (bShouldOpen && !bLocalUIOpen)
 	{
+		PC->ActivateMiniGameInput(MiniGameType);
 		Controller->OpenUI(this);
 		bLocalUIOpen = true;
 	}
 	else if (!bShouldOpen && bLocalUIOpen)
 	{
+		PC->DeactivateMiniGameInput();
 		Controller->CloseUI();
 		bLocalUIOpen = false;
 	}
@@ -377,4 +423,9 @@ bool AMinigameActor::IsPlayerNear()
 TArray<FString> AMinigameActor::GetActivePlayers()
 {
 	return ActivePlayers;
+}
+
+EMiniGameType AMinigameActor::GetType()
+{
+	return MiniGameType;
 }
