@@ -57,8 +57,8 @@ void UConnectionComponent::ServerRequestJoin(const FString& UPID)
 	
 	if (GameMode)
 	{
-		const FArtemisPlayer* ArtemisPLayer = GameMode->GetPlayersInGame().Find(UPID);
-		ArtemisPLayer->PawnController->SetIsInGame(true); 
+		//const FArtemisPlayer* ArtemisPLayer = GameMode->GetPlayersInGame().Find(UPID);
+		//ArtemisPLayer->PawnController->SetIsInGame(true); 
 	}
 	OnParticipantJoined.Broadcast(UPID);
 }
