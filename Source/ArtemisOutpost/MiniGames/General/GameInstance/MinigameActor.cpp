@@ -1,10 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MinigameActor.h"
-
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/ConnectionComponent/ConnectionComponent.h"
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/PuppetManagerComponent/MinigamePuppetManagerComponent.h"
-#include "ArtemisOutpost/Moon/MoonBuildings/MoonBuildingsManager.h"
+#include "ArtemisOutpost/Moon/MoonBuildings/MoonMiniGamesManager.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/Player/PawnVR/ACharVR.h"
 #include "ArtemisOutpost/Player/PlayerController/PawnController.h"
@@ -14,6 +13,7 @@
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonSerializer.h"
 #include "EnhancedInputSubsystems.h"
+#include "EngineUtils.h"
 #include "EnhancedPlayerInput.h"
 
 AMinigameActor::AMinigameActor()
@@ -71,7 +71,7 @@ void AMinigameActor::BeginPlay()
 	if (HasAuthority())
 	{
 		MGID = FGuid::NewGuid();
-		RegisterWithBuildingsManager();
+		RegisterWithMiniGamesManager();
 
 		GameConnection->CanJoinPredicate.BindUObject(this, &AMinigameActor::ServerHandleCanJoin);
 		GameConnection->OnParticipantJoined.AddUObject(this, &AMinigameActor::ServerHandleParticipantJoined);
@@ -84,18 +84,26 @@ FInstancedStruct AMinigameActor::MakeInitialTypeData() const
 	return FInstancedStruct();
 }
 
-void AMinigameActor::RegisterWithBuildingsManager()
+void AMinigameActor::RegisterWithMiniGamesManager()
 {
-	UMoonBuildingsManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonBuildingsManager>() : nullptr;
+	UMoonMiniGamesManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonMiniGamesManager>() : nullptr;
 	if (!Manager)
 	{
 		UE_LOG(LogTemp, Error, TEXT("MiniGameActor: MoonBuildingsManager subsystem not found; not registered."));
 		return;
 	}
 
+	AGeoRefsManager* GeoRefsManager = nullptr;
+	for (TActorIterator<AGeoRefsManager> It(GetWorld()); It; ++It)
+	{
+		GeoRefsManager = *It;
+	}
+	
 	FMiniGameRecord Record;
 	Record.MGID          = MGID;
-	Record.BuildLocation = GetActorLocation();
+	Record.BuildLocation = GeoRefsManager != nullptr 
+							? GeoRefsManager->UECoordsToVRMoonCoords(GetActorLocation()) 
+							: FVector::ZeroVector;
 	Record.State         = State;
 	Record.Type          = GetBuildingType();
 	Record.MiniGameData  = MakeInitialTypeData();
@@ -287,7 +295,7 @@ void AMinigameActor::HandleStateChanged()
 	{
 		PublishSnapshot();
 
-		if (UMoonBuildingsManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonBuildingsManager>() : nullptr)
+		if (UMoonMiniGamesManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonMiniGamesManager>() : nullptr)
 		{
 			Manager->UpdateState(MGID, State);
 		}

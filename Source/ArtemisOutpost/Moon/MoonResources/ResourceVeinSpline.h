@@ -3,9 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SplineComponent.h"
 #include "Components/SplineMeshComponent.h"   // ESplineMeshAxis + USplineMeshComponent
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"  // ERessourceType
+#include "Components/SplineComponent.h"
 #include "ResourceVeinSpline.generated.h"
 
 class AGeoRefsManager;

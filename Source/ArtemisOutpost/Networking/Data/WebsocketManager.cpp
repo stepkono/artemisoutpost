@@ -33,7 +33,7 @@ void AWebsocketManager::BeginPlay()
 		return; 
 	}
 	
-	InitializeWebsocket();
+	InitializeWebsocketClient();
 }
 
 // Called every frame
@@ -42,78 +42,80 @@ void AWebsocketManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AWebsocketManager::InitializeWebsocket()
+void AWebsocketManager::InitializeWebsocketClient()
 {
 	GetWorld()->GetTimerManager().SetTimer(
 		BroadcastTimerHandle,
 		this,
-		&AWebsocketManager::ProcessBufferedMessage,
+		&AWebsocketManager::ProcessBufferedIncomingMessage,
 		1.0f / 30.0f,
 		true
 	);
 	
-	if (Websocket) return;
+	if (WSClient) return;
 	
 	if (!FModuleManager::Get().IsModuleLoaded("WebSockets"))
 	{
 		FModuleManager::LoadModuleChecked<FWebSocketsModule>("WebSockets");
 	}
 	
-	Websocket = FWebSocketsModule::Get().CreateWebSocket(ServerURL);
-	
-	if (!Websocket.IsValid())
+	WSClient = FWebSocketsModule::Get().CreateWebSocket(ServerURL);
+	if (!WSClient.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create WebSocket!"));
+		UE_LOG(LogTemp, Error, TEXT("WebsocketManager: Failed to create a websocket client!"));
 		return;
 	}
 	
-	Websocket->OnConnected().AddUObject(this, &AWebsocketManager::HandleConnection);
+	WSClient->OnConnected().AddUObject(this, &AWebsocketManager::HandleConnectionToServer);
 	
-	Websocket->OnConnectionError().AddLambda([](const FString & Error) -> void {
-	   UE_LOG(LogTemp, Warning, TEXT("Websocket connection error"));
+	WSClient->OnConnectionError().AddLambda([](const FString & Error) -> void {
+	   UE_LOG(LogTemp, Log, TEXT("WebsocketManager: Websocket connection error"));
 	});
     
-	Websocket->OnClosed().AddLambda([](int32 StatusCode, const FString& Reason, bool bWasClean) -> void {
-	   UE_LOG(LogTemp, Warning, TEXT("[WebsocketManager]: Websocket closed with code: %i. %s"), StatusCode, *Reason);
+	WSClient->OnClosed().AddLambda([](int32 StatusCode, const FString& Reason, bool bWasClean) -> void {
+	   UE_LOG(LogTemp, Log, TEXT("WebsocketManager: Websocket closed with code: %i. %s"), StatusCode, *Reason);
 	});
     
-	Websocket->OnMessage().AddUObject(this, &AWebsocketManager::HandleMessage);
+	WSClient->OnMessage().AddUObject(this, &AWebsocketManager::HandleIncomingMessage);
     
-	Websocket->OnRawMessage().AddLambda([](const void* Data, SIZE_T Size, SIZE_T BytesRemaining) -> void {
+	WSClient->OnRawMessage().AddLambda([](const void* Data, SIZE_T Size, SIZE_T BytesRemaining) -> void {
 	   // This code will run when we receive a raw (binary) message from the server.
 	});
     
-	Websocket->OnMessageSent().AddLambda([](const FString& MessageString) -> void {
+	WSClient->OnMessageSent().AddLambda([](const FString& MessageString) -> void {
 	   // This code is called after we sent a message to the server.
 	});
-    
-	// And we finally c
-	Websocket->Connect();
+	
+	WSClient->Connect();
 }
 
 void AWebsocketManager::SendMessage(const FString& Message) const
 {
-	if (Websocket.IsValid() && Websocket->IsConnected())
+	if (WSClient.IsValid() && WSClient->IsConnected())
 	{
-		Websocket->Send(Message);
+		WSClient->Send(Message);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WebsocketManager: Failed to send a websocket message."));
 	}
 }
 
-void AWebsocketManager::HandleConnection() const
+void AWebsocketManager::HandleConnectionToServer() const
 {
 	//const FString HandshakeMessage = TEXT("{\"messageType\":\"identify\",\"clientName\":\"unreal\"}");
 	const FString HandshakeMessage = TEXT("{\"type\":\"unreal\"}");
-	Websocket->Send(HandshakeMessage);
+	WSClient->Send(HandshakeMessage);
 		
-	UE_LOG(LogTemp, Warning, TEXT("Websocket connected"));
+	UE_LOG(LogTemp, Log, TEXT("Websocket connected"));
 }
 
-void AWebsocketManager::HandleMessage(const FString& Message)
+void AWebsocketManager::HandleIncomingMessage(const FString& Message)
 {
 	TSharedPtr<FJsonObject> JsonObject;
 	if (!FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Message), JsonObject) || !JsonObject.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("[WebsocketManager]: Failed to parse JSON: %s"), *Message);
+		UE_LOG(LogTemp, Error, TEXT("WebsocketManager: Failed to parse JSON: %s"), *Message);
 		return;
 	}
 
@@ -124,7 +126,7 @@ void AWebsocketManager::HandleMessage(const FString& Message)
 		if (ExtractMapBaseCoordinates(Message, MapBaseCoordinates))
 		{
 			FScopeLock Lock(&MessageMutex);
-			LatestCoordinates = MapBaseCoordinates;
+			LatestMapCoordinates = MapBaseCoordinates;
 		}
 	}
 	else if (JsonObject->HasField(TEXT("controls")))
@@ -248,17 +250,17 @@ bool AWebsocketManager::ExtractObjectFieldCoordinates(const TSharedPtr<FJsonObje
 	return true; 
 }
 
-void AWebsocketManager::ProcessBufferedMessage()
+void AWebsocketManager::ProcessBufferedIncomingMessage()
 {
 	TOptional<FMapBaseCoordinates> DataToSend;
-
+	
 	{
 		FScopeLock Lock(&MessageMutex);
-		if (!LatestCoordinates.IsSet())
+		if (!LatestMapCoordinates.IsSet())
 			return;
 
-		DataToSend = LatestCoordinates;
-		LatestCoordinates.Reset();
+		DataToSend = LatestMapCoordinates;
+		LatestMapCoordinates.Reset();
 	}
 
 	if (GS)
@@ -267,6 +269,6 @@ void AWebsocketManager::ProcessBufferedMessage()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("[WebsocketManager]: Cannot write map coordinates — GameState is not AArtemisGameState."));
+		UE_LOG(LogTemp, Error, TEXT("WebsocketManager: Cannot write map coordinates — GameState is null."));
 	}
 }

@@ -8,32 +8,39 @@ public class ArtemisOutpost : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		bEnableExceptions = true;
-
+		
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
 			"CoreUObject",
 			"Engine",
 			"InputCore",
-			"OculusXRHMD",
-			"OculusXRAnchors",
-			"HeadMountedDisplay",
-			"AndroidPermission",
-			"DeveloperSettings", 
-			"Json", 
+			"DeveloperSettings",
+			"Json",
 			"JsonUtilities",
-			"WebSockets", 
+			"WebSockets",
 			"Chaos",
 			"ChaosVehiclesCore",
 			"ChaosVehicles",
 			"ChaosVehiclesEngine",
-			"CesiumRuntime",
 			"UMG",
 			"Slate",
 			"SlateCore",
 			"EnhancedInput",
-			"Niagara"
+			"Niagara", 
+            "CesiumRuntime", 
+            "HeadMountedDisplay",
 		});
+
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PublicDependencyModuleNames.AddRange(new string[]
+			{
+				"OculusXRHMD",
+				"OculusXRAnchors",
+				"AndroidPermission",
+			});
+		}
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "XRBase" });
 

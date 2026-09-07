@@ -125,7 +125,7 @@ struct FMinigameInput
 	float Delta = 0.0f;
 };
 
-// Server-side registry record for ONE placed minigame/building, held by UMoonBuildingsManager keyed
+// Server-side registry record for ONE placed minigame/building, held by UMoonMiniGamesManager keyed
 // on MGID. Common fields for every type; the type-specific payload rides in MiniGameData (e.g. a
 // FHabitatData for habitats), so a single map covers all minigames.
 USTRUCT(BlueprintType)

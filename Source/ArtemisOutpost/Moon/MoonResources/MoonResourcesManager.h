@@ -5,14 +5,15 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"  // ERessourceType
+#include "ArtemisOutpost/StudyData/Types/MoonResourceType/MoonResourceProviderData.h"
 #include "MoonResourcesManager.generated.h"
 
 class UResourceVeinSpline;
 class APawnController;
 
 // Network seam: re-broadcast of a vein's per-sample deltas, tagged with the source vein.
-// Carries GEODETIC positions (Lon, Lat, Height). The bridge subscribes here later. Server-side.
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVeinDelta, UResourceVeinSpline* /*Vein*/, const TArray<FVector>& /*GeoPositions*/);
+// Carries GEODETIC positions (Lon, Lat, Height). The DataAggregator subscribes here. Server-side.
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnVeinDelta, UProviderDataBase&, const EGameEventType);
 
 /**
  * Owns the registry of resource veins and is the single entry point for the resource domain.

@@ -2,7 +2,7 @@
 
 #include "SignalTower.h"
 
-#include "ArtemisOutpost/Moon/MoonBuildings/MoonBuildingsManager.h"
+#include "ArtemisOutpost/Moon/MoonBuildings/MoonMiniGamesManager.h"
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/PuppetManagerComponent/MinigamePuppetManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -26,7 +26,7 @@ void ASignalTower::BeginPlay()
 	// If no habitat is in range yet, wait for one to be built later and claim it then.
 	if (!bHasTarget)
 	{
-		if (UMoonBuildingsManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonBuildingsManager>() : nullptr)
+		if (UMoonMiniGamesManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonMiniGamesManager>() : nullptr)
 		{
 			Manager->OnMinigameRegistered.AddUObject(this, &ASignalTower::HandleMinigameRegistered);
 		}
@@ -47,7 +47,7 @@ void ASignalTower::TryClaimTargetHabitat()
 		return;
 	}
 
-	UMoonBuildingsManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonBuildingsManager>() : nullptr;
+	UMoonMiniGamesManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonMiniGamesManager>() : nullptr;
 	if (!Manager)
 	{
 		return;

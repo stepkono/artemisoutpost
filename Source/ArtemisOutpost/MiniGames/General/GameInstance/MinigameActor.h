@@ -157,7 +157,7 @@ private:
 	void HandleStateChanged();
 
 	// Server: builds this actor's registry record and registers it with the buildings manager.
-	void RegisterWithBuildingsManager();
+	void RegisterWithMiniGamesManager();
 
 	// Server: bound to the connection's join gate + participant delegates.
 	bool ServerHandleCanJoin(const FString& UPID, FText& OutReason);

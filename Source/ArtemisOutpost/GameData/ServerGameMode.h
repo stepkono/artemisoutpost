@@ -55,7 +55,7 @@ protected:
 	AGeoRefsManager* GeoRefsManager;
 	
 	UPROPERTY(BlueprintAssignable, Category="Players Management")
-	FPlayerJoinDelegate PlayerJoinDelegate;
+	FPlayerJoinDelegate NewPlayerJoinDelegate;
 
 	UPROPERTY(BlueprintAssignable, Category="Players Management")
 	FPlayerReconnectDelegate PlayerReconnectedDelegate;

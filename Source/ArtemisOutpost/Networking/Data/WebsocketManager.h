@@ -30,35 +30,36 @@ protected:
 	virtual void BeginPlay() override;
 
 private: 
+	UPROPERTY()
+	AArtemisGameState* GS;
+    
+	UPROPERTY()
+	FString ServerURL = FString(TEXT("ws://rover.idux.uni-luebeck.de:8081"));
+	
+	TSharedPtr<IWebSocket> WSClient; 
+	
+	TOptional<FMapBaseCoordinates> LatestMapCoordinates;
+	
+	// Rate limiting
+	FTimerHandle BroadcastTimerHandle;
+	FCriticalSection MessageMutex;
+	
 	UFUNCTION()
-	void InitializeWebsocket(); 
+	void InitializeWebsocketClient(); 
 	
 	UFUNCTION()
 	bool ExtractMapBaseCoordinates(const FString& JsonString, FMapBaseCoordinates& MapBaseCoordinates); 
 	
 	UFUNCTION()
-	void ProcessBufferedMessage();
+	void ProcessBufferedIncomingMessage();
 	 
 	UFUNCTION()
-	void HandleMessage(const FString& Message); 
+	void HandleIncomingMessage(const FString& Message); 
 	
 	UFUNCTION()
-	void HandleConnection() const; 
+	void HandleConnectionToServer() const; 
 	
+#pragma region JSON Helpers 
 	static bool ExtractObjectFieldCoordinates(const TSharedPtr<FJsonObject>& JsonObject, FCoordinates& MapCornerCoords);
-	
-private: 
-	TSharedPtr<IWebSocket> Websocket; 
-    
-	UPROPERTY()
-	FString ServerURL = FString(TEXT("ws://rover.idux.uni-luebeck.de:8081"));
-	
-	// Rate limiting
-	FTimerHandle BroadcastTimerHandle;
-	FCriticalSection MessageMutex;
-
-	TOptional<FMapBaseCoordinates> LatestCoordinates;
-
-	UPROPERTY()
-	AArtemisGameState* GS;
+#pragma endregion
 };

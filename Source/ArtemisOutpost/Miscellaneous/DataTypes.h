@@ -196,6 +196,32 @@ enum EXRMode
 	AR UMETA(DisplayName = "AR"),
 };
 
+UENUM(BlueprintType)
+enum EDataProviderType
+{
+	MoonResource UMETA(DisplayName = "Moon Resource"),
+	MoonBuilding UMETA(DisplayName = "Moon Building"), 
+	MoonScanner  UMETA(DisplayName = "Moon Scanner"),
+	PlayerAction UMETA(DisplayName = "Player Action"),
+};
+
+UENUM(BlueprintType)
+enum EGameEventType
+{
+	NewMiniGamePlaced    UMETA(DisplayName = "New Minigame Placed"),
+	
+	ResourceDiscovered    UMETA(DisplayName = "Resource Discovered"),
+	ResourceMined   UMETA(DisplayName = "Resource Mined"),
+	
+	PlayerMovementStart  UMETA(DisplayName = "Player Movement Start"),
+	PlayerMovementFinish UMETA(DisplayName = "Player Movement Finish"),
+	PlayerLookAtStart    UMETA(DisplayName = "Player Looking At Start"),
+	PlayerLookAtFinish   UMETA(DisplayName = "Player Looking At Finish"),
+	
+	PlayerConnected      UMETA(DisplayName = "Player Connected"),
+	PlayerDisconnected   UMETA(DisplayName = "Player Disconnected"),
+};
+
 /**
  * 
  */

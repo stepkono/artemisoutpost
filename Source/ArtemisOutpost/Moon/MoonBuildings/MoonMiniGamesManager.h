@@ -5,18 +5,20 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "ArtemisOutpost/MiniGames/General/MinigameTypes.h"
-#include "MoonBuildingsManager.generated.h"
+#include "ArtemisOutpost/StudyData/Providers/DataProviderSubsystemBase.h"
+#include "ArtemisOutpost/StudyData/Types/MiniGameType/MiniGameProviderData.h"
+#include "MoonMiniGamesManager.generated.h"
 
 // Fired (server-side) whenever a minigame/building registers. Signal Towers without a target listen
 // so they can claim a habitat that is built after them.
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnMinigameRegistered, const FMiniGameRecord& /*Record*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMinigameRegistered, UProviderDataBase&, const EGameEventType);
 
 // Server-authoritative registry of every placed minigame/building on the moon, keyed on MGID. Also
 // owns the Signal-Tower -> Habitat claim logic. Server-only in practice (all mutating calls are made
 // from HasAuthority paths); the result (target angle) reaches clients via the replicated minigame
 // actor, so this subsystem itself never replicates.
 UCLASS()
-class ARTEMISOUTPOST_API UMoonBuildingsManager : public UWorldSubsystem
+class ARTEMISOUTPOST_API UMoonMiniGamesManager : public UDataProviderSubsystemBase
 {
 	GENERATED_BODY()
 
@@ -31,8 +33,7 @@ public:
 	// marks it assigned to TowerMGID (permanent claim), and returns it. Single-threaded game logic
 	// means no real race: the claim is committed before this returns, so a second tower sees it taken.
 	// Returns false if no habitat qualifies.
-	bool TryClaimHabitatFor(const FGuid& TowerMGID, const FVector& TowerLocation, float Radius,
-		FGuid& OutHabitatMGID, FVector& OutHabitatLocation);
+	bool TryClaimHabitatFor(const FGuid& TowerMGID, const FVector& TowerLocation, float Radius, FGuid& OutHabitatMGID, FVector& OutHabitatLocation);
 
 	FOnMinigameRegistered OnMinigameRegistered;
 

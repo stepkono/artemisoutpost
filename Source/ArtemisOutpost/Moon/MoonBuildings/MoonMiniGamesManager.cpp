@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "MoonBuildingsManager.h"
+#include "MoonMiniGamesManager.h"
 
-void UMoonBuildingsManager::RegisterMinigame(const FMiniGameRecord& Record)
+void UMoonMiniGamesManager::RegisterMinigame(const FMiniGameRecord& Record)
 {
 	if (!Record.MGID.IsValid())
 	{
@@ -11,10 +11,17 @@ void UMoonBuildingsManager::RegisterMinigame(const FMiniGameRecord& Record)
 	}
 
 	Buildings.Add(Record.MGID, Record);
-	OnMinigameRegistered.Broadcast(Record);
+	
+	UMiniGameProviderData* NewData = NewObject<UMiniGameProviderData>();
+	NewData->MGID = Record.MGID;
+	NewData->BuildLocation = Record.BuildLocation;
+	NewData->MiniGameData = Record.MiniGameData;
+	NewData->State = Record.State;
+	
+	OnMinigameRegistered.Broadcast(*NewData, EGameEventType::NewMiniGamePlaced);
 }
 
-void UMoonBuildingsManager::UpdateState(const FGuid& MGID, EMinigameState NewState)
+void UMoonMiniGamesManager::UpdateState(const FGuid& MGID, EMinigameState NewState)
 {
 	if (FMiniGameRecord* Record = Buildings.Find(MGID))
 	{
@@ -22,7 +29,7 @@ void UMoonBuildingsManager::UpdateState(const FGuid& MGID, EMinigameState NewSta
 	}
 }
 
-bool UMoonBuildingsManager::TryClaimHabitatFor(const FGuid& TowerMGID, const FVector& TowerLocation, float Radius,
+bool UMoonMiniGamesManager::TryClaimHabitatFor(const FGuid& TowerMGID, const FVector& TowerLocation, float Radius,
 	FGuid& OutHabitatMGID, FVector& OutHabitatLocation)
 {
 	const float RadiusSq = Radius * Radius;

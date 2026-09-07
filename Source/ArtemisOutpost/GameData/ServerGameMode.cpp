@@ -128,7 +128,7 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		
 		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: First join for UPID %s (player #%d)."), *UPID, NewPlayer.PlayerNumber);
 		
-		PlayerJoinDelegate.Broadcast(PlayerController);
+		NewPlayerJoinDelegate.Broadcast(PlayerController);
 	}
 }
 
@@ -157,4 +157,3 @@ TMap<FString, FArtemisPlayer> AServerGameMode::GetPlayersInGame()
 {
 	return PlayersInGame;
 }
-

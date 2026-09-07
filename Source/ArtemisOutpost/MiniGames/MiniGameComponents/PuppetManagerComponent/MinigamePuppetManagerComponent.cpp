@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MinigamePuppetManagerComponent.h"
-
 #include "ArtemisOutpost/MiniGames/MiniGamePuppet/MinigamePuppet.h"
 #include "ArtemisOutpost/Moon/Cesium/GeoRefsManager.h"
 #include "EngineUtils.h"
