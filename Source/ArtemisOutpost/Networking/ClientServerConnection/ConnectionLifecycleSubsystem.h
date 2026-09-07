@@ -47,6 +47,14 @@ private:
 	void HandleAppWillDeactivate();
 	void HandleAppHasReactivated();
 
+	// Proximity-sensor worn-state (Meta/Oculus HMD plugin). These fire the instant the HMD is
+	// taken off / put back on, well before the ~15s app-suspend, so they are the low-latency source
+	// for HMD doff/don study events. Client-only.
+	void HandleHmdPutOnHead();
+	void HandleHmdRemovedFromHead();
+	// Sends the worn flag to the server through the local (client-owned) APawnController.
+	void ReportHmdState(bool bWorn);
+
 	FString NetModeString() const;
 
 	// ---- Client reconnect ----
@@ -71,6 +79,8 @@ private:
 	FDelegateHandle AppForegroundHandle;
 	FDelegateHandle AppDeactivateHandle;
 	FDelegateHandle AppReactivateHandle;
+	FDelegateHandle HmdPutOnHeadHandle;
+	FDelegateHandle HmdRemovedFromHeadHandle;
 
 	// Reconnect state.
 	FString LastServerURL;                 // "host:port" captured while connected

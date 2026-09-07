@@ -15,29 +15,33 @@
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerController.h"
 #include "ArtemisOutpost/GameData/ArtemisGameInstance.h"
+#include "ArtemisOutpost/Player/PlayerController/PawnController.h"
 
 void UConnectionLifecycleSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
+	// Both: Server and Client 
 	if (GEngine)
 	{
 		NetworkFailureHandle = GEngine->OnNetworkFailure().AddUObject(this, &UConnectionLifecycleSubsystem::HandleNetworkFailure);
 		TravelFailureHandle  = GEngine->OnTravelFailure().AddUObject(this, &UConnectionLifecycleSubsystem::HandleTravelFailure);
 	}
 
-	// Server-only signals (a GameMode only exists on the authority): player join, and leave/timeout-drop.
-	PostLoginHandle = FGameModeEvents::GameModePostLoginEvent.AddUObject(this, &UConnectionLifecycleSubsystem::HandlePostLogin);
-	LogoutHandle    = FGameModeEvents::GameModeLogoutEvent.AddUObject(this, &UConnectionLifecycleSubsystem::HandleLogout);
-
-	// Shows the return to the default map (SA_Showcase) after a client drops.
+	// Server-only: player join, and leave/timeout-drop.
+	PostLoginHandle   = FGameModeEvents::GameModePostLoginEvent.AddUObject(this, &UConnectionLifecycleSubsystem::HandlePostLogin);
+	LogoutHandle      = FGameModeEvents::GameModeLogoutEvent.AddUObject(this, &UConnectionLifecycleSubsystem::HandleLogout);
 	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UConnectionLifecycleSubsystem::HandlePostLoadMap);
 
-	// App lifecycle — on Quest, taking the HMD off pauses the app (suspected disconnect trigger).
+	// Client only: on Quest, taking the HMD off pauses the app
 	AppBackgroundHandle = FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddUObject(this, &UConnectionLifecycleSubsystem::HandleAppWillEnterBackground);
 	AppForegroundHandle = FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddUObject(this, &UConnectionLifecycleSubsystem::HandleAppHasEnteredForeground);
 	AppDeactivateHandle = FCoreDelegates::ApplicationWillDeactivateDelegate.AddUObject(this, &UConnectionLifecycleSubsystem::HandleAppWillDeactivate);
 	AppReactivateHandle = FCoreDelegates::ApplicationHasReactivatedDelegate.AddUObject(this, &UConnectionLifecycleSubsystem::HandleAppHasReactivated);
+
+	// HMD proximity-sensor worn-state (client-only, fires immediately on doff/don).
+	HmdPutOnHeadHandle       = FCoreDelegates::VRHeadsetPutOnHead.AddUObject(this, &UConnectionLifecycleSubsystem::HandleHmdPutOnHead);
+	HmdRemovedFromHeadHandle = FCoreDelegates::VRHeadsetRemovedFromHead.AddUObject(this, &UConnectionLifecycleSubsystem::HandleHmdRemovedFromHead);
 
 	UE_LOG(LogTemp, Warning, TEXT("[NetLife][%s] Subsystem initialized — watching network/travel failures, player join/leave, app lifecycle, map loads."), *NetModeString());
 }
@@ -56,6 +60,8 @@ void UConnectionLifecycleSubsystem::Deinitialize()
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Remove(AppForegroundHandle);
 	FCoreDelegates::ApplicationWillDeactivateDelegate.Remove(AppDeactivateHandle);
 	FCoreDelegates::ApplicationHasReactivatedDelegate.Remove(AppReactivateHandle);
+	FCoreDelegates::VRHeadsetPutOnHead.Remove(HmdPutOnHeadHandle);
+	FCoreDelegates::VRHeadsetRemovedFromHead.Remove(HmdRemovedFromHeadHandle);
 
 	if (GetGameInstance())
 	{
@@ -178,6 +184,41 @@ void UConnectionLifecycleSubsystem::HandleAppWillDeactivate()
 void UConnectionLifecycleSubsystem::HandleAppHasReactivated()
 {
 	UE_LOG(LogTemp, Warning, TEXT("[NetLife][%s] App HAS REACTIVATED."), *NetModeString());
+}
+
+void UConnectionLifecycleSubsystem::HandleHmdPutOnHead()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[NetLife][%s] HMD DONNED (proximity)."), *NetModeString());
+	ReportHmdState(/*bWorn=*/true);
+}
+
+void UConnectionLifecycleSubsystem::HandleHmdRemovedFromHead()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[NetLife][%s] HMD DOFFED (proximity)."), *NetModeString());
+	ReportHmdState(/*bWorn=*/false);
+}
+
+void UConnectionLifecycleSubsystem::ReportHmdState(bool bWorn)
+{
+	// Only the client owns an HMD; the server never doffs. Route through the local (client-owned)
+	// APawnController so its Server RPC lands authoritatively on the server. On doff the app stays
+	// alive for ~15s before suspend, so a reliable RPC has ample time to flush.
+	if (!IsClientContextNow())
+	{
+		return;
+	}
+
+	UWorld* World = GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
+	APlayerController* PC = GetGameInstance() ? GetGameInstance()->GetFirstLocalPlayerController(World) : nullptr;
+	if (APawnController* PawnPC = Cast<APawnController>(PC))
+	{
+		PawnPC->ServerReportHmdState(bWorn);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NetLife][CLIENT] HMD state %s not reported: no local APawnController."),
+			bWorn ? TEXT("DONNED") : TEXT("DOFFED"));
+	}
 }
 
 void UConnectionLifecycleSubsystem::ConnectToServer(const FString& HostAddress)

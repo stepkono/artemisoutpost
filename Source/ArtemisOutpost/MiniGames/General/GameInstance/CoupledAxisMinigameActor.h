@@ -57,6 +57,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	bool IsAxisAligned(int32 AxisIndex) const;
 
+	// Permanently finished: a participant left this axis aligned. Never claimable again.
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	bool IsAxisSolved(int32 AxisIndex) const;
+
+	// Every axis solved, i.e. the whole task is done and the minigame is no longer playable.
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	bool AreAllAxesSolved() const;
+
 	// Dwell duration, pushed to the screen UI to draw a progress ring from InToleranceTime.
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	float GetDwellSeconds() const { return DwellSeconds; }
@@ -68,6 +76,7 @@ public:
 	virtual float GetAxisTarget(int32 AxisIndex) const;
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void OnStart() override;
 	virtual void OnAbort() override;
 	virtual void ApplyInput(const FString& UPID, const FMinigameInput& Input) override;
@@ -109,7 +118,8 @@ private:
 	void ReleaseAxis(const FString& UPID, int32 AxisIndex);
 	void ReleaseAxesOf(const FString& UPID);
 	void RotateAxis(const FString& UPID, int32 AxisIndex, float DeltaDegrees);
-	void EvaluateCompletion(float DeltaTime);
+	// Server tick: refreshes InToleranceTime for UI feedback. Does NOT complete the game.
+	void UpdateAlignment(float DeltaTime);
 
 	static float NormalizeDeg(float Angle);
 	static float AngularDistanceDeg(float A, float B);

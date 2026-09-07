@@ -237,9 +237,28 @@ void UMinigamePlayerController::SubmitInputAction(UInputAction* InputAction, EIn
 
 void UMinigamePlayerController::SubmitEnterAction()
 {
-	if (ActiveView)
+	if (!ActiveView)
 	{
-		ActiveView->ConfirmHighlighted();
+		return;
+	}
+
+	switch (ActiveView->ConfirmHighlighted())
+	{
+	case EMiniGameUIAction::RequestLeave:
+		// The View decided the press means "I am done". Leaving is server-authoritative: the
+		// connection frees the slot, the actor releases this player's axis (values are kept), and
+		// once the last participant is gone the actor judges the result. The View closes on its own,
+		// because the replicated slot change runs AMinigameActor::RefreshLocalUI -> CloseUI.
+		if (ActiveTarget)
+		{
+			ServerRequestLeave(ActiveTarget);
+		}
+		break;
+
+	case EMiniGameUIAction::Handled:
+	case EMiniGameUIAction::None:
+	default:
+		break;
 	}
 }
 

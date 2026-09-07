@@ -75,6 +75,11 @@ protected:
 	UFUNCTION()
 	void OnRep_ActiveSlots();
 	
-private: 
-	AServerGameMode* GameMode; 
+private:
+	// Flips APawnController::bIsInGame for a participant, guarding every step. Shared by join and
+	// leave so the two sides cannot drift apart again. No-op (with a log) when the player, its
+	// registry entry or its controller is not there.
+	void SetParticipantInGame(const FString& UPID, bool bIsPlayingMinigame) const;
+
+	AServerGameMode* GameMode = nullptr;
 };

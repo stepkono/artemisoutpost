@@ -26,7 +26,6 @@ class ARTEMISOUTPOST_API AServerGameMode : public AGameModeBase
 public: 
 	virtual void BeginPlay() override;
 	
-public:
 	// Called by the BP after it spawns a first-time player's pawns, so the slot remembers them and a
 	// later reconnect can re-attach instead of spawning duplicates.
 	UFUNCTION(BlueprintCallable, Category="Players Management")
@@ -34,15 +33,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Players Management")
 	TMap<FString, FArtemisPlayer> GetPlayersInGame();
-	
+
 protected:
 	virtual void OnPostLogin(AController* NewPlayer) override;
 
 	// Read the client's persistent identity from the ?UPID= login option and stash it on the
 	// controller, before OnPostLogin runs, so player slots are keyed by a stable cross-session id.
-	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId,
-		const FString& Options, const FString& Portal) override;
-
+	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal) override;
+	
 private:
 	UFUNCTION()
 	void ProcessNewPlayer(APawnController* PlayerController);

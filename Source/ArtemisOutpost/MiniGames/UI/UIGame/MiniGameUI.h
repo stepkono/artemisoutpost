@@ -10,6 +10,21 @@
 // View -> Controller input signal. The BP view raises it via EmitInput().
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMiniGameUIInput, FMinigameInput, Input);
 
+// What ConfirmHighlighted() wants the controller to do with the press. The View decides the MEANING
+// of the trigger (it is the only thing that knows which screen is up), the controller performs the
+// action (it is the only thing that owns the transport). Keeps the View free of any actor reference.
+enum class EMiniGameUIAction : uint8
+{
+	// The View did not want the press. The caller may pass it on to something else.
+	None,
+
+	// The View handled it internally, e.g. it emitted an intent through OnInput.
+	Handled,
+
+	// The player is done. The controller must run the server-side leave.
+	RequestLeave
+};
+
 // Parent of every per-player screen-space minigame UI (BP children: WBP_UISignalTower, ...).
 // Deliberately holds NO reference to the model or the actor — that would couple the View to the
 // model graph and break the hierarchy. The controller pushes plain data in via PushAxes/PushState
@@ -54,8 +69,9 @@ public:
 	// Thumbstick step. Only called while WantsNavigationInput() is true.
 	virtual void HandleNavigate(FVector2D Axis) {}
 
-	// Trigger / "enter" pressed while this View is open. Return true if the View consumed the press.
-	virtual bool ConfirmHighlighted() { return false; }
+	// Trigger / "enter" pressed while this View is open. The return value tells the controller what
+	// the press MEANT on the current screen. Base: the View wants nothing.
+	virtual EMiniGameUIAction ConfirmHighlighted() { return EMiniGameUIAction::None; }
 
 	// --- Widget lifecycle (the only BP events on this base) ---
 	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame")

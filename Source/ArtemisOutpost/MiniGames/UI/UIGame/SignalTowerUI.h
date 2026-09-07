@@ -13,8 +13,7 @@ UENUM(BlueprintType)
 enum class ESignalTowerUIScreen : uint8
 {
 	AxisSelection UMETA(DisplayName = "Axis Selection"),
-	Rotate        UMETA(DisplayName = "Rotate"),
-	Completed     UMETA(DisplayName = "Completed")
+	Rotate        UMETA(DisplayName = "Rotate")
 };
 
 // One selectable axis on the selection screen.
@@ -32,7 +31,8 @@ struct FMinigameAxisOption
 	UPROPERTY(BlueprintReadOnly, Category = "Signal Tower UI")
 	FText Label;
 
-	// False = held by ANOTHER participant. Draw greyed out. Cannot be highlighted or confirmed.
+	// False = not selectable. Draw greyed out. Cannot be highlighted or confirmed. Either held by
+	// another participant, or already solved — DisabledReason says which.
 	UPROPERTY(BlueprintReadOnly, Category = "Signal Tower UI")
 	bool bEnabled = true;
 
@@ -40,6 +40,12 @@ struct FMinigameAxisOption
 	UPROPERTY(BlueprintReadOnly, Category = "Signal Tower UI")
 	bool bOwnedByLocal = false;
 
+	// Permanently finished: somebody left this axis aligned. Style it as done (a tick, green),
+	// not as blocked, even though it is disabled like a taken axis.
+	UPROPERTY(BlueprintReadOnly, Category = "Signal Tower UI")
+	bool bSolved = false;
+
+	// Why this option is disabled. Show it on the button.
 	UPROPERTY(BlueprintReadOnly, Category = "Signal Tower UI")
 	FText DisabledReason;
 };
@@ -67,11 +73,15 @@ public:
 	// falls through to ASignalTower::ProcessInput, which turns the owned axis.
 	virtual bool WantsNavigationInput() const override;
 	virtual void HandleNavigate(FVector2D Axis) override;
-	virtual bool ConfirmHighlighted() override;
+
+	// Selection screen: claim the highlighted axis.
+	// Rotate screen: the trigger IS the accept — the player is done aligning, so the press asks the
+	// controller to leave the minigame. Whether the tower was actually solved is decided
+	// server-side on leave; the View never judges the task.
+	virtual EMiniGameUIAction ConfirmHighlighted() override;
 
 protected:
 	virtual void HandleAxesUpdated(const TArray<FAxisData>& InAxes) override;
-	virtual void HandleStateChanged(EMinigameState NewState) override;
 
 	// ---- View hooks. One job each. Implement in WBP_UISignalTower. ----
 
@@ -112,6 +122,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Signal Tower UI|Content")
 	FText AxisTakenReason;
 
+	// Reason attached to an option that is already solved.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Signal Tower UI|Content")
+	FText AxisSolvedReason;
+
 	// ---- Navigation tuning (mirrors UToolsHUDWidget) ----
 
 	// Stick magnitude that triggers a step.
@@ -127,7 +141,7 @@ protected:
 	float NavRepeatDelay = 0.2f;
 
 private:
-	// Recompute everything from CachedAxes + CachedState, then raise only the events whose data moved.
+	// Recompute everything from CachedAxes, then raise only the events whose data moved.
 	void Refresh();
 
 	// Rebuild the option list and re-place the highlight. Raises nothing.
@@ -150,8 +164,6 @@ private:
 	// Last data pushed in by the controller.
 	UPROPERTY(Transient)
 	TArray<FAxisData> CachedAxes;
-
-	EMinigameState CachedState = EMinigameState::Idle;
 
 	UPROPERTY(Transient)
 	TArray<FMinigameAxisOption> AxisOptions;

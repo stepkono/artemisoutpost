@@ -40,6 +40,11 @@ void UDataAggregator::OnWorldBeginPlay(UWorld& InWorld)
 	
 	MoonResourceProvider->OnVeinDiscovered.AddUObject(this, &UDataAggregator::HandleNewGameEvent);
 	MoonResourceProvider->OnVeinMined.AddUObject(this, &UDataAggregator::HandleNewGameEvent);
+
+	if (PlayerActionsProvider)
+	{
+		PlayerActionsProvider->OnPlayerActionEvent.AddUObject(this, &UDataAggregator::HandleNewGameEvent);
+	}
 }
 
 void UDataAggregator::HandleNewGameEvent(UProviderDataBase& ProviderData, const EGameEventType GameEvent)
@@ -49,6 +54,7 @@ void UDataAggregator::HandleNewGameEvent(UProviderDataBase& ProviderData, const 
 	
 	if (WS)
 	{
+		UE_LOG(LogTemp, Log, TEXT("DataAggregator: Sending GameEvent %s over websocket..."), *UEnum::GetValueAsString(GameEvent));
 		WS->SendMessage(DataString);
 	}
 }
@@ -80,6 +86,11 @@ void UDataAggregator::OnWorldEndPlay(UWorld& InWorld)
 	MiniGameProvider->OnMinigameRegistered.RemoveAll(this);
 	MoonResourceProvider->OnVeinDiscovered.RemoveAll(this);
 	MoonResourceProvider->OnVeinMined.RemoveAll(this);
+
+	if (PlayerActionsProvider)
+	{
+		PlayerActionsProvider->OnPlayerActionEvent.RemoveAll(this);
+	}
 	
 	Super::OnWorldEndPlay(InWorld);
 }

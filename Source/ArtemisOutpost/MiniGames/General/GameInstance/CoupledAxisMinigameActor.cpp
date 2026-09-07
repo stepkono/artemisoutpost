@@ -48,15 +48,34 @@ float ACoupledAxisMinigameActor::GetAxisTarget(int32 AxisIndex) const
 
 // ---- Lifecycle mechanics ----
 
+void ACoupledAxisMinigameActor::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// The axes belong to the TOWER, not to a play session: a solved axis and a half-turned axis both
+	// have to survive everybody leaving and somebody else walking up later. So they are built once
+	// here rather than in OnStart, which runs on every fresh session.
+	if (HasAuthority())
+	{
+		Axes.Reset();
+		Axes.SetNum(FMath::Max(1, GetAxisCount()));
+		for (int32 i = 0; i < Axes.Num(); ++i)
+		{
+			Axes[i].AxisIndex = i; // so puppets/UI can branch on which axis this is (Earth vs Habitat)
+		}
+
+		NotifyAxesUpdated();
+	}
+}
+
 void ACoupledAxisMinigameActor::OnStart()
 {
 	Super::OnStart();
 
-	Axes.Reset();
-	Axes.SetNum(FMath::Max(1, GetAxisCount()));
-	for (int32 i = 0; i < Axes.Num(); ++i)
+	// A new session must NOT touch Value or bSolved. Only the dwell timers are session-scoped.
+	for (FAxisData& Axis : Axes)
 	{
-		Axes[i].AxisIndex = i; // so puppets/UI can branch on which axis this is (Earth vs Habitat)
+		Axis.InToleranceTime = 0.0f;
 	}
 
 	NotifyAxesUpdated();
@@ -66,13 +85,46 @@ void ACoupledAxisMinigameActor::OnAbort()
 {
 	Super::OnAbort();
 
-	Axes.Reset();
+	// "Abort" now only means "nobody is playing any more". It used to Axes.Reset(), which would
+	// throw away every solved axis the moment the last player pressed the trigger.
+	for (FAxisData& Axis : Axes)
+	{
+		Axis.OwnerUPID.Empty();
+		Axis.InToleranceTime = 0.0f;
+	}
+
 	NotifyAxesUpdated();
 }
 
 void ACoupledAxisMinigameActor::OnParticipantLeft(const FString& UPID)
 {
+	// Leaving IS the commit. Judge the axis this player was holding by its last input state, mark it
+	// solved if it ended up aligned, then hand it back. Evaluated per leave, so a solo player can
+	// solve one axis, walk away, come back and solve the other.
+	const int32 Axis = GetAxisOwnedBy(UPID);
+	if (Axes.IsValidIndex(Axis) && !Axes[Axis].bSolved && IsAxisAligned(Axis))
+	{
+		Axes[Axis].bSolved = true;
+
+		UE_LOG(LogMinigame, Log, TEXT("[Solve] %s: axis %d left ALIGNED by '%s' (value=%.1f, target=%.1f) -> solved."),
+			*GetName(), Axis, *UPID, Axes[Axis].Value, GetAxisTarget(Axis));
+	}
+	else if (Axes.IsValidIndex(Axis))
+	{
+		UE_LOG(LogMinigame, Log, TEXT("[Solve] %s: axis %d left MISALIGNED by '%s' (value=%.1f, target=%.1f, tolerance=%.1f) -> stays open at that angle."),
+			*GetName(), Axis, *UPID, Axes[Axis].Value, GetAxisTarget(Axis), AxisToleranceDeg);
+	}
+
 	ReleaseAxesOf(UPID);
+
+	// Whole task done? Do this BEFORE the base class decides to abort, so that its
+	// "State != Completed" guard already sees the finished state.
+	if (AreAllAxesSolved() && GetState() != EMinigameState::Completed)
+	{
+		UE_LOG(LogMinigame, Log, TEXT("[Solve] %s: ALL axes solved -> minigame complete, it can no longer be played."), *GetName());
+		OnComplete();
+	}
+
 	NotifyAxesUpdated();
 }
 
@@ -103,6 +155,15 @@ void ACoupledAxisMinigameActor::ClaimAxis(const FString& UPID, int32 AxisIndex)
 	{
 		return;
 	}
+
+	// A solved axis is finished for good. The UI greys it out, this is the authoritative backstop.
+	if (Axes[AxisIndex].bSolved)
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Solve] %s: '%s' tried to claim axis %d, which is already solved."),
+			*GetName(), *UPID, AxisIndex);
+		return;
+	}
+
 	ReleaseAxesOf(UPID);
 	Axes[AxisIndex].OwnerUPID = UPID;
 }
@@ -146,26 +207,21 @@ void ACoupledAxisMinigameActor::Tick(float DeltaTime)
 
 	if (HasAuthority() && GetState() == EMinigameState::Active)
 	{
-		EvaluateCompletion(DeltaTime);
+		UpdateAlignment(DeltaTime);
 	}
 }
 
-void ACoupledAxisMinigameActor::EvaluateCompletion(float DeltaTime)
+// Per-tick BOOKKEEPING only. It keeps InToleranceTime current so the UI can show "you are on
+// target / holding steady", and nothing else. It deliberately does NOT finish the game: the task
+// is no longer completed by holding still long enough. Whether the tower was solved is decided
+// exactly once, when the last participant leaves.
+void ACoupledAxisMinigameActor::UpdateAlignment(float DeltaTime)
 {
-	bool bAllInTolerance = Axes.Num() > 0;
-
 	for (int32 i = 0; i < Axes.Num(); ++i)
 	{
 		FAxisData& Axis = Axes[i];
 		const bool bInTol = AngularDistanceDeg(Axis.Value, GetAxisTarget(i)) <= AxisToleranceDeg;
 		Axis.InToleranceTime = bInTol ? Axis.InToleranceTime + DeltaTime : 0.0f;
-		bAllInTolerance &= (Axis.InToleranceTime >= DwellSeconds);
-	}
-
-	if (bAllInTolerance)
-	{
-		// OnComplete sets State = Completed; the tick guard then stops further evaluation.
-		OnComplete();
 	}
 }
 
@@ -204,6 +260,28 @@ bool ACoupledAxisMinigameActor::IsAxisAligned(int32 AxisIndex) const
 		return false;
 	}
 	return AngularDistanceDeg(Axes[AxisIndex].Value, GetAxisTarget(AxisIndex)) <= AxisToleranceDeg;
+}
+
+bool ACoupledAxisMinigameActor::IsAxisSolved(int32 AxisIndex) const
+{
+	return Axes.IsValidIndex(AxisIndex) && Axes[AxisIndex].bSolved;
+}
+
+bool ACoupledAxisMinigameActor::AreAllAxesSolved() const
+{
+	if (Axes.Num() == 0)
+	{
+		return false;
+	}
+
+	for (const FAxisData& Axis : Axes)
+	{
+		if (!Axis.bSolved)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 void ACoupledAxisMinigameActor::OnRep_UpdateAxes()

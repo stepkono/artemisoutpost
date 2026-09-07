@@ -32,7 +32,7 @@ public class ArtemisOutpost : ModuleRules
             "HeadMountedDisplay",
 		});
 
-		if (Target.Platform == UnrealTargetPlatform.Win64)
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Android)
 		{
 			PublicDependencyModuleNames.AddRange(new string[]
 			{
@@ -51,6 +51,5 @@ public class ArtemisOutpost : ModuleRules
         // PrivateDependencyModuleNames.Add("OnlineSubsystem");
 
         // To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
-
     }
 }

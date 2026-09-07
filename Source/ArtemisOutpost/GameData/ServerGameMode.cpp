@@ -44,8 +44,7 @@ void AServerGameMode::BeginPlay()
 	World->SpawnActor(AWebsocketManager::StaticClass()); 
 }
 
-FString AServerGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId,
-	const FString& Options, const FString& Portal)
+FString AServerGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal)
 {
 	const FString Result = Super::InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
 

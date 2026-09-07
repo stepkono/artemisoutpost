@@ -55,6 +55,13 @@ public:
 	UFUNCTION(Server, Reliable, Category = "Resource Vein")
 	void ServerReportVeinMined(UResourceVeinSpline* Vein, const TArray<int32>& Indices);
 
+	// Client -> server: report HMD worn-state changes (doff/don). The client-side proximity signal
+	// originates in UConnectionLifecycleSubsystem and is sent through this client-owned controller;
+	// the server fills in the player identity from its authoritative UPID, so only the worn flag
+	// travels on the wire.
+	UFUNCTION(Server, Reliable, Category = "HMD")
+	void ServerReportHmdState(bool bWorn);
+
 	// The per-player minigame controller (transport + screen-UI lifecycle). Its own component
 	// (§9) so this controller stays lean.
 	UFUNCTION(BlueprintPure, Category = "Minigame")
@@ -70,7 +77,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame")
 	void DeactivateMiniGameInput();
 	
-	void SetIsInGame(const bool IsInGame);
+	void SetIsPlayingMiniGame(const bool IsInGame);
 	
 protected: 
 	virtual void BeginPlay() override;
@@ -80,7 +87,7 @@ protected:
 	void VRPawnInitialized();
 	
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mini Game")
-	bool bIsInGame; 
+	bool bIsInGame = false;
 	
 private: 
 	UFUNCTION()

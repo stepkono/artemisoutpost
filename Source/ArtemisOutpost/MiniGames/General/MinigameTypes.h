@@ -87,6 +87,12 @@ struct FAxisData
 	// UPID that exclusively controls this axis. Empty = any participant may (the solo case).
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
 	FString OwnerUPID;
+
+	// Set server-side when a participant LEAVES this axis in an aligned state. Permanent progress:
+	// a solved axis can never be claimed again, and once every axis is solved the whole minigame is
+	// finished. Survives everybody leaving and re-entering, so it is tower state, not session state.
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
+	bool bSolved = false;
 };
 
 // One-time target packet for the puppet (sent via the generic ApplyData channel, separate from the

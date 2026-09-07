@@ -89,11 +89,10 @@ void UConnectionComponent::ServerRequestJoin(const FString& UPID)
 	NewSlot.OwnerUPID = UPID;
 	ActiveSlots.Add(NewSlot);
 	
-	if (GameMode)
-	{
-		//const FArtemisPlayer* ArtemisPLayer = GameMode->GetPlayersInGame().Find(UPID);
-		//ArtemisPLayer->PawnController->SetIsInGame(true); 
-	}
+	// Still commented out as you left it: nothing reads bIsInGame yet, so the join side was never
+	// enabled. Uncomment when something needs it — the helper is now safe to call from both sides.
+	// SetParticipantInGame(UPID, true);
+
 	OnParticipantJoined.Broadcast(UPID);
 }
 
@@ -115,12 +114,39 @@ void UConnectionComponent::ServerRequestLeave(const FString& UPID)
 	UE_LOG(LogMinigame, Log, TEXT("[Disconnect] %s: '%s' LEFT slot %d."), *GetOwner()->GetName(), *UPID, Index);
 
 	ActiveSlots.RemoveAt(Index);
-	if (GameMode)
-	{
-		const FArtemisPlayer* ArtemisPLayer = GameMode->GetPlayersInGame().Find(UPID);
-		ArtemisPLayer->PawnController->SetIsInGame(false); 
-	}
+	SetParticipantInGame(UPID, false);
 	OnParticipantLeft.Broadcast(UPID);
+}
+
+void UConnectionComponent::SetParticipantInGame(const FString& UPID, bool bIsPlayingMinigame) const
+{
+	if (!GameMode)
+	{
+		return;
+	}
+
+	// GetPlayersInGame() returns the map BY VALUE, so the result must be held in a named local.
+	// Calling .Find() straight on the call expression yields a pointer into a temporary that dies
+	// at the end of the statement, and dereferencing it is undefined behaviour even when the key
+	// exists. That is what crashed the server on the first ever leave.
+	const TMap<FString, FArtemisPlayer> Players = GameMode->GetPlayersInGame();
+
+	const FArtemisPlayer* Player = Players.Find(UPID);
+	if (!Player)
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Connect] '%s' is not in AServerGameMode::PlayersInGame -> cannot set IsInGame=%s."),
+			*UPID, bIsPlayingMinigame ? TEXT("true") : TEXT("false"));
+		return;
+	}
+
+	if (!Player->PawnController)
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Connect] '%s' has no PawnController in the registry -> cannot set IsInGame=%s."),
+			*UPID, bIsPlayingMinigame ? TEXT("true") : TEXT("false"));
+		return;
+	}
+
+	Player->PawnController->SetIsPlayingMiniGame(bIsPlayingMinigame);
 }
 
 int32 UConnectionComponent::GetMaxSlots() const

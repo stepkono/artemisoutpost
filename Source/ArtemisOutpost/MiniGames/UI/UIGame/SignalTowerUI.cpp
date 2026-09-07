@@ -7,7 +7,8 @@
 USignalTowerUI::USignalTowerUI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	AxisTakenReason = LOCTEXT("AxisTaken", "Von einem anderen Spieler belegt");
+	AxisTakenReason  = LOCTEXT("AxisTaken",  "Von einem anderen Spieler belegt");
+	AxisSolvedReason = LOCTEXT("AxisSolved", "Bereits ausgerichtet");
 }
 
 // ---- Data in (from UMinigamePlayerController) ----
@@ -15,12 +16,6 @@ USignalTowerUI::USignalTowerUI(const FObjectInitializer& ObjectInitializer)
 void USignalTowerUI::HandleAxesUpdated(const TArray<FAxisData>& InAxes)
 {
 	CachedAxes = InAxes;
-	Refresh();
-}
-
-void USignalTowerUI::HandleStateChanged(EMinigameState NewState)
-{
-	CachedState = NewState;
 	Refresh();
 }
 
@@ -128,10 +123,20 @@ void USignalTowerUI::RebuildOptions()
 		}
 
 		Option.bOwnedByLocal = !LocalUPID.IsEmpty() && Axis.OwnerUPID == LocalUPID;
+		Option.bSolved = Axis.bSolved;
 
-		// Free, or already mine. Anything held by another participant is greyed out.
-		Option.bEnabled = Axis.OwnerUPID.IsEmpty() || Option.bOwnedByLocal;
-		Option.DisabledReason = Option.bEnabled ? FText::GetEmpty() : AxisTakenReason;
+		// Solved wins over ownership: a finished axis is never selectable again, by anyone.
+		// Otherwise: free, or already mine. Held by another participant means greyed out.
+		if (Option.bSolved)
+		{
+			Option.bEnabled = false;
+			Option.DisabledReason = AxisSolvedReason;
+		}
+		else
+		{
+			Option.bEnabled = Axis.OwnerUPID.IsEmpty() || Option.bOwnedByLocal;
+			Option.DisabledReason = Option.bEnabled ? FText::GetEmpty() : AxisTakenReason;
+		}
 
 		AxisOptions.Add(Option);
 	}
@@ -158,7 +163,8 @@ bool USignalTowerUI::OptionsEqual(const TArray<FMinigameAxisOption>& A, const TA
 		// fields decide whether the list would render differently.
 		if (A[i].AxisIndex != B[i].AxisIndex
 			|| A[i].bEnabled != B[i].bEnabled
-			|| A[i].bOwnedByLocal != B[i].bOwnedByLocal)
+			|| A[i].bOwnedByLocal != B[i].bOwnedByLocal
+			|| A[i].bSolved != B[i].bSolved)
 		{
 			return false;
 		}
@@ -189,12 +195,6 @@ int32 USignalTowerUI::FindEnabledIndex(int32 StartIndex, int32 Dir) const
 
 void USignalTowerUI::UpdateScreen()
 {
-	if (CachedState == EMinigameState::Completed)
-	{
-		CurrentScreen = ESignalTowerUIScreen::Completed;
-		return;
-	}
-
 	// Owning an axis IS the transition. Deriving the page from the replicated ownership (rather than
 	// switching optimistically on the button press) means a claim that loses the race against another
 	// participant simply leaves this player on the selection screen, with that option now greyed out.
@@ -269,13 +269,25 @@ void USignalTowerUI::HandleNavigate(FVector2D Axis)
 	OnHighlightChanged(HighlightIndex, OldIndex);
 }
 
-bool USignalTowerUI::ConfirmHighlighted()
+EMiniGameUIAction USignalTowerUI::ConfirmHighlighted()
 {
-	// Only the selection screen consumes the trigger for now. On the rotate screen it stays free for
-	// the gameplay binding (release / commit), which is why this returns false there.
-	if (CurrentScreen != ESignalTowerUIScreen::AxisSelection || !AxisOptions.IsValidIndex(HighlightIndex))
+	// The trigger means something different per screen, and the View is the only thing that knows
+	// which screen is up, so the decision belongs here. The controller only executes the result.
+	if (CurrentScreen == ESignalTowerUIScreen::Rotate)
 	{
-		return false;
+		// The trigger IS the accept. There is no separate exit button and no Accept intent: the
+		// player signalling "I am done" and the player leaving are the same act. Whether the tower
+		// ended up solved is judged server-side once the last participant is gone, never here.
+		return EMiniGameUIAction::RequestLeave;
+	}
+
+	// --- Axis selection ---
+
+	if (!AxisOptions.IsValidIndex(HighlightIndex))
+	{
+		// No selectable axis (empty list, or both taken). Swallow the press so it cannot fall
+		// through to the hand tool while the minigame HUD is up.
+		return EMiniGameUIAction::Handled;
 	}
 
 	const FMinigameAxisOption& Option = AxisOptions[HighlightIndex];
@@ -284,8 +296,7 @@ bool USignalTowerUI::ConfirmHighlighted()
 
 	if (!Option.bEnabled)
 	{
-		// Consumed anyway: a press on a taken axis must not fall through to anything else.
-		return true;
+		return EMiniGameUIAction::Handled;
 	}
 
 	FMinigameInput In;
@@ -295,7 +306,7 @@ bool USignalTowerUI::ConfirmHighlighted()
 
 	// No optimistic page switch. The switch happens in UpdateScreen once the server's ownership
 	// change replicates back.
-	return true;
+	return EMiniGameUIAction::Handled;
 }
 
 #undef LOCTEXT_NAMESPACE

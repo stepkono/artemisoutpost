@@ -8,9 +8,11 @@
 #include "Net/UnrealNetwork.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
+#include "ArtemisOutpost/GameData/ServerGameMode.h"
 #include "ArtemisOutpost/Moon/Cesium/CustomCesiumCameraManager.h"
 #include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/MiniGameInteraction/MinigamePlayerController.h"
 #include "ArtemisOutpost/Moon/MoonResources/MoonResourcesManager.h"
+#include "ArtemisOutpost/StudyData/Providers/PlayerActionProvider/PlayerActionProvider.h"
 
 APawnController::APawnController()
 {
@@ -75,6 +77,7 @@ void APawnController::OnPossess(APawn* InPawn)
 	{
 		if (APawnAR* AR = Cast<APawnAR>(InPawn))
 		{
+			UE_LOG(LogTemp, Log, TEXT("PawnController: AR Pawn was possessed and set."))
 			ARPawn = AR;
 		}
 	}
@@ -100,6 +103,26 @@ void APawnController::InitializePawns(ACharVR* InVRChar, AMasterRover* InMasterR
 	VRPawn = InVRChar;
 	MasterRover = InMasterRover;
 	
+	AServerGameMode* ServerGameMode = Cast<AServerGameMode>(GetWorld()->GetAuthGameMode());
+	if (!ServerGameMode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PawnController: Failed to cast GameMode as ServerGameMode. Aborting."));
+		return;
+	}
+	
+	// Set the Pawns inside the FArtemisPlayer object
+	TMap<FString, FArtemisPlayer> PlayersInGame = ServerGameMode->GetPlayersInGame(); 
+	FArtemisPlayer* Player = PlayersInGame.Find(UPID);
+	if (!Player)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PawnController: No Player found or zero pointer. Aborting."));
+		return;
+	}
+	
+	Player->MasterRover = InMasterRover;
+	Player->VRChar      = InVRChar;
+	
+	// Init GeoRef on the pawns
 	if (!GeoRefsManager)
 	{
 		UE_LOG(LogTemp, Error, TEXT("PawnController: GeoRefsManager is NULL. Aborting."))
@@ -162,6 +185,16 @@ void APawnController::ServerReportVeinMined_Implementation(UResourceVeinSpline* 
 	}
 }
 
+void APawnController::ServerReportHmdState_Implementation(bool bWorn)
+{
+	// Runs on the server. UPID here is the authoritative value set from the ?UPID= login option, so
+	// the client never has to send it. Route to the player-action provider for aggregation.
+	if (UPlayerActionProvider* Provider = GetWorld() ? GetWorld()->GetSubsystem<UPlayerActionProvider>() : nullptr)
+	{
+		Provider->ServerReportHmdState(UPID, bWorn);
+	}
+}
+
 ACharVR* APawnController::GetVRPawn() const
 {
 	return VRPawn;
@@ -193,7 +226,7 @@ void APawnController::RegisterProxyCam() const
 	}
 }
 
-void APawnController::SetIsInGame(const bool IsInGame)
+void APawnController::SetIsPlayingMiniGame(const bool IsInGame)
 {
 	bIsInGame = IsInGame;
 }

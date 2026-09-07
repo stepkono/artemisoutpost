@@ -122,20 +122,23 @@ struct FArtemisPlayer
 {
 	GENERATED_BODY()
 
+	// All three default to null on purpose: a default-constructed FArtemisPlayer is put into
+	// PlayersInGame before the pawns exist, and an uninitialized raw pointer there reads as garbage
+	// rather than as "not set yet".
 	UPROPERTY(BlueprintReadOnly)
-	APawnController* PawnController;
-	
+	APawnController* PawnController = nullptr;
+
 	UPROPERTY(BlueprintReadOnly)
-	FString UPID; 
+	FString UPID;
 
 	UPROPERTY(BlueprintReadOnly)
 	int PlayerNumber = -1;
-	
-	UPROPERTY(BlueprintReadOnly)
-	AMasterRover* MasterRover;
 
 	UPROPERTY(BlueprintReadOnly)
-	ACharVR* VRChar;
+	AMasterRover* MasterRover = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	ACharVR* VRChar = nullptr;
 };
 
 UENUM(BlueprintType)
@@ -220,6 +223,11 @@ enum EGameEventType
 	
 	PlayerConnected      UMETA(DisplayName = "Player Connected"),
 	PlayerDisconnected   UMETA(DisplayName = "Player Disconnected"),
+
+	// HMD worn-state, distinct from network connect/disconnect: a doffed HMD does not necessarily
+	// mean the client has dropped its connection.
+	HMDDonned            UMETA(DisplayName = "HMD Donned"),
+	HMDDoffed            UMETA(DisplayName = "HMD Doffed"),
 };
 
 /**

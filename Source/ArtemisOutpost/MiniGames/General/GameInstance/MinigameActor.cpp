@@ -225,6 +225,16 @@ FVector2D AMinigameActor::GetLocalActionValue(const UInputAction* Action) const
 
 bool AMinigameActor::ServerHandleCanJoin(const FString& UPID, FText& OutReason)
 {
+	// Finished for good. The connection prompt is already hidden by CanLocalPlayerConnect, this is
+	// the authoritative backstop against a late or replayed join request.
+	if (State == EMinigameState::Completed)
+	{
+		OutReason = NSLOCTEXT("Minigame", "AlreadyCompleted", "Diese Aufgabe ist bereits abgeschlossen.");
+		UE_LOG(LogMinigame, Warning, TEXT("[CanJoin] %s: REFUSED for UPID '%s' -> the minigame is already completed."),
+			*GetName(), *UPID);
+		return false;
+	}
+
 	// Additional joiners are always fine (slot rules already checked by the connection). Only the
 	// first joiner, which starts the task, must satisfy the game preconditions.
 	if (State != EMinigameState::Idle)

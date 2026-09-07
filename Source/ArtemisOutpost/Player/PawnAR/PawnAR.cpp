@@ -12,6 +12,7 @@
 APawnAR::APawnAR()
 {
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	PrimaryActorTick.bCanEverTick = true;
 	bAlwaysRelevant = true; 
 }
