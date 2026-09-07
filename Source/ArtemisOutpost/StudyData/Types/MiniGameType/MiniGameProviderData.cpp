@@ -3,11 +3,11 @@
 
 #include "MiniGameProviderData.h"
 
-TSharedPtr<FJsonObject> UMiniGameProviderData::BuildJsonFromData(EGameEventType GameEventType)
+TSharedPtr<FJsonObject> UMiniGameProviderData::BuildJsonFromData(const EGameEventType GameEventType)
 {
 	switch (GameEventType)
 	{
-		case EGameEventType::NewMiniGamePlaced: return SerializeNewMinigameData(); 
+		case NewMiniGamePlaced: return SerializeNewMinigameData(); 
 		default:
 			{
 				UE_LOG(LogTemp, Error, TEXT("MiniGameProviderData: BuildJsonFromData received an Unknown GameEventType. Retuning null."));
@@ -20,7 +20,7 @@ TSharedPtr<FJsonObject> UMiniGameProviderData::SerializeNewMinigameData()
 {
 	const TSharedPtr<FJsonObject> DataObject = MakeShared<FJsonObject>();
 	DataObject->SetStringField(TEXT("MGID: "), MGID.ToString());
-	DataObject->SetStringField(TEXT("Building Type: "), Type);
+	DataObject->SetStringField(TEXT("Building Type: "), UEnum::GetValueAsString(Type));
 	
 	const TSharedRef<FJsonObject> BuildingLocationObject = MakeShared<FJsonObject>();
 	BuildingLocationObject->SetNumberField(TEXT("Lon: "),    BuildLocation.X);

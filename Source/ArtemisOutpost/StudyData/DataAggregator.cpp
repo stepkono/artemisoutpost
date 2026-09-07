@@ -4,6 +4,7 @@
 #include "DataAggregator.h"
 
 #include "EngineUtils.h"
+#include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "ArtemisOutpost/Moon/MoonBuildings/MoonMiniGamesManager.h"
 #include "ArtemisOutpost/Moon/MoonResources/MoonResourcesManager.h"
 #include "ArtemisOutpost/Moon/MoonScannedArea/MoonScannedAreaManager.h"
@@ -14,6 +15,7 @@ void UDataAggregator::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
 		
+	// Only run on server
 	if (ArtemisNet::IsClientContext(InWorld.GetNetMode()))
 	{
 		return; 
@@ -27,9 +29,11 @@ void UDataAggregator::OnWorldBeginPlay(UWorld& InWorld)
 		}
 	}
 	
+	AArtemisGameState* GameState = InWorld.GetGameState<AArtemisGameState>();
+	
 	UMoonMiniGamesManager* MiniGameProvider          = InWorld.GetSubsystem<UMoonMiniGamesManager>();
 	UMoonResourcesManager* MoonResourceProvider      = InWorld.GetSubsystem<UMoonResourcesManager>();
-	UMoonScannedAreaManager* MoonScannedAreaProvider = InWorld.GetSubsystem<UMoonScannedAreaManager>();
+	UMoonScannedAreaManager* MoonScannedAreaProvider = GameState ? GameState->GetMoonDataManager() : nullptr;
 	UPlayerActionProvider* PlayerActionsProvider     = InWorld.GetSubsystem<UPlayerActionProvider>();
 	
 	MiniGameProvider->OnMinigameRegistered.AddUObject(this, &UDataAggregator::HandleNewGameEvent);
@@ -69,7 +73,8 @@ void UDataAggregator::OnWorldEndPlay(UWorld& InWorld)
 	
 	UMoonMiniGamesManager* MiniGameProvider          = World->GetSubsystem<UMoonMiniGamesManager>();
 	UMoonResourcesManager* MoonResourceProvider      = World->GetSubsystem<UMoonResourcesManager>();
-	UMoonScannedAreaManager* MoonScannedAreaProvider = World->GetSubsystem<UMoonScannedAreaManager>();
+	const AArtemisGameState* GameState = World->GetGameState<AArtemisGameState>();
+	UMoonScannedAreaManager* MoonScannedAreaProvider = GameState ? GameState->GetMoonDataManager() : nullptr;
 	UPlayerActionProvider* PlayerActionsProvider     = World->GetSubsystem<UPlayerActionProvider>();
 	
 	MiniGameProvider->OnMinigameRegistered.RemoveAll(this);

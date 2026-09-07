@@ -107,7 +107,12 @@ void AMasterRover::Tick(float DeltaTime)
 				? TgtRot
 				: FMath::QInterpTo(CurRot, TgtRot, DeltaTime, ClientRotationInterpSpeed);
 
-			SetActorLocationAndRotation(NewLoc, NewRot);
+			// Must be a teleport: without a flag the engine treats this as a kinematic move and
+			// derives a velocity from the per-frame delta, feeding our interpolation back into the
+			// solver as a real impulse (a snap would inject a huge one). ResetPhysics on a snap also
+			// zeroes any velocity the body still carries; TeleportPhysics keeps it for the smooth case.
+			SetActorLocationAndRotation(NewLoc, NewRot, /*bSweep=*/false, nullptr,
+				bSnap ? ETeleportType::ResetPhysics : ETeleportType::TeleportPhysics);
 			bClientSmoothingInit = true;
 		}
 	}

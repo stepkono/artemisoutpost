@@ -26,13 +26,25 @@ FString UMinigamePlayerController::GetPlayerUPID() const
 
 void UMinigamePlayerController::ServerRequestEnter_Implementation(AMinigameActor* Target)
 {
-	if (Target)
+	// First link in the chain. If you press "enter" and see NO [Enter] line at all, the Blueprint
+	// never called ServerRequestEnter — the problem is the prompt / trigger wiring, not the game.
+	if (!Target)
 	{
-		if (UConnectionComponent* Connection = Target->GetConnectionComponent())
-		{
-			Connection->ServerRequestJoin(GetPlayerUPID());
-		}
+		UE_LOG(LogMinigame, Error, TEXT("[Enter] REFUSED: Target minigame actor is null. The Blueprint passed no actor to ServerRequestEnter."));
+		return;
 	}
+
+	UConnectionComponent* Connection = Target->GetConnectionComponent();
+	if (!Connection)
+	{
+		UE_LOG(LogMinigame, Error, TEXT("[Enter] REFUSED: %s has no ConnectionComponent."), *Target->GetName());
+		return;
+	}
+
+	UE_LOG(LogMinigame, Log, TEXT("[Enter] '%s' requests to enter %s (state=%s). Handing over to the connection."),
+		*GetPlayerUPID(), *Target->GetName(), *UEnum::GetValueAsString(Target->GetState()));
+
+	Connection->ServerRequestJoin(GetPlayerUPID());
 }
 
 void UMinigamePlayerController::ServerRequestLeave_Implementation(AMinigameActor* Target)

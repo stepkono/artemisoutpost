@@ -16,6 +16,8 @@
 #include "EngineUtils.h"
 #include "EnhancedPlayerInput.h"
 
+DEFINE_LOG_CATEGORY(LogMinigame);
+
 AMinigameActor::AMinigameActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -98,16 +100,34 @@ void AMinigameActor::RegisterWithMiniGamesManager()
 	{
 		GeoRefsManager = *It;
 	}
-	
+
+	if (!GeoRefsManager)
+	{
+		// The record would then store a bogus origin position, and since the geodetic position is
+		// what travels over the network, every peer would place this building at the moon origin.
+		UE_LOG(LogMinigame, Error, TEXT("[Register] %s: no AGeoRefsManager in the level -> BuildGeoLocation falls back to ZeroVector. This record is unusable for range checks and for other peers."),
+			*GetName());
+	}
+
 	FMiniGameRecord Record;
 	Record.MGID          = MGID;
-	Record.BuildLocation = GeoRefsManager != nullptr 
-							? GeoRefsManager->UECoordsToVRMoonCoords(GetActorLocation()) 
+	// GEODETIC on purpose: this is the position that gets sent over the network and stays valid no
+	// matter where a peer's georeference origin sits. Consumers convert to UE space themselves.
+	Record.BuildGeoLocation = GeoRefsManager != nullptr
+							? GeoRefsManager->UECoordsToVRMoonCoords(GetActorLocation())
 							: FVector::ZeroVector;
 	Record.State         = State;
 	Record.Type          = GetBuildingType();
 	Record.MiniGameData  = MakeInitialTypeData();
 	// BuiltByUPID: the placing player is not tracked here yet; fill in once the build tool passes it.
+
+	UE_LOG(LogMinigame, Log, TEXT("[Register] %s (%s) MGID=%s | BuildGeoLocation=%s | ActorLocation(UEWorld)=%s | HasTypeData=%s"),
+		*GetName(),
+		*UEnum::GetValueAsString(Record.Type),
+		*Record.MGID.ToString(EGuidFormats::DigitsWithHyphens),
+		*Record.BuildGeoLocation.ToString(),
+		*GetActorLocation().ToString(),
+		Record.MiniGameData.IsValid() ? TEXT("yes") : TEXT("NO"));
 
 	Manager->RegisterMinigame(Record);
 }
@@ -143,11 +163,17 @@ void AMinigameActor::ServerHandleInput(const FString& UPID, const FMinigameInput
 {
 	if (!HasAuthority() || State != EMinigameState::Active)
 	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Input] %s: DROPPED %s from '%s' -> %s"),
+			*GetName(), *UEnum::GetValueAsString(Input.Type), *UPID,
+			!HasAuthority() ? TEXT("no authority (this is not the server)")
+							: *FString::Printf(TEXT("state is %s, not Active"), *UEnum::GetValueAsString(State)));
 		return;
 	}
 
 	if (!GameConnection || !GameConnection->IsParticipant(UPID))
 	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Input] %s: DROPPED %s -> UPID '%s' is not a participant."),
+			*GetName(), *UEnum::GetValueAsString(Input.Type), *UPID);
 		return;
 	}
 
@@ -203,13 +229,28 @@ bool AMinigameActor::ServerHandleCanJoin(const FString& UPID, FText& OutReason)
 	// first joiner, which starts the task, must satisfy the game preconditions.
 	if (State != EMinigameState::Idle)
 	{
+		UE_LOG(LogMinigame, Verbose, TEXT("[CanJoin] %s: already running (state=%s) -> joining an active game, no CanStart check."),
+			*GetName(), *UEnum::GetValueAsString(State));
 		return true;
 	}
-	return CanStart(UPID, OutReason);
+
+	const bool bCanStart = CanStart(UPID, OutReason);
+	if (!bCanStart)
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[CanJoin] %s: REFUSED for UPID '%s' -> CanStart said no: %s"),
+			*GetName(), *UPID, *OutReason.ToString());
+	}
+	return bCanStart;
 }
 
 void AMinigameActor::ServerHandleParticipantJoined(const FString& UPID)
 {
+	UE_LOG(LogMinigame, Log, TEXT("[Join] %s: UPID '%s' JOINED (%d/%d slots). %s"),
+		*GetName(), *UPID,
+		GameConnection ? GameConnection->GetParticipantCount() : -1,
+		GameConnection ? GameConnection->GetMaxSlots() : -1,
+		State == EMinigameState::Idle ? TEXT("Starting the game.") : TEXT("Game already running."));
+
 	if (State == EMinigameState::Idle)
 	{
 		SetState(EMinigameState::Active);

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ArtemisOutpost/MiniGames/General/GameInstance/CoupledAxisMinigameActor.h"
+#include "ArtemisOutpost/StudyData/Types/MiniGameType/MiniGameProviderData.h"
 #include "SignalTower.generated.h"
 
 // The radio mast (Funkmast). Two coupled alignment axes — [0] toward Earth, [1] toward a Habitat
@@ -53,7 +54,7 @@ private:
 	void TryClaimTargetHabitat();
 
 	// Server: reaction to a newly registered building (bound only while we have no target yet).
-	void HandleMinigameRegistered(const FMiniGameRecord& Record);
+	void HandleMinigameRegistered(UProviderDataBase& ProviderData, const EGameEventType GameEvent);
 
 	// Bearing (deg, 0 = local forward, CW around up) from this tower to a world location, projected
 	// onto the surface tangent plane.

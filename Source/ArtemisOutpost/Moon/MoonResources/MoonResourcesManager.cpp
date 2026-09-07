@@ -124,7 +124,6 @@ ERessourceType UMoonResourcesManager::GetResourceTypeAt(const FVector& GeoPos, f
 void UMoonResourcesManager::HandleVeinDiscovered(const TArray<FVector>& GeoPositions, UResourceVeinSpline* Vein)
 {
 	UMoonResourceProviderData* Data = NewObject<UMoonResourceProviderData>(this);
-	Data->GameEventType = EGameEventType::ResourceDiscovered;
 	Data->ResourceVein = Vein;
 	Data->GeoPositions = GeoPositions;
 
@@ -134,7 +133,6 @@ void UMoonResourcesManager::HandleVeinDiscovered(const TArray<FVector>& GeoPosit
 void UMoonResourcesManager::HandleVeinMined(const TArray<FVector>& GeoPositions, UResourceVeinSpline* Vein)
 {
 	UMoonResourceProviderData* Data = NewObject<UMoonResourceProviderData>(this);
-	Data->GameEventType = EGameEventType::ResourceMined;
 	Data->ResourceVein = Vein;
 	Data->GeoPositions = GeoPositions;
 

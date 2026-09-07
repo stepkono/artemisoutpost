@@ -96,7 +96,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Player ID")
 	FString UPID; 
 	
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(Replicated, BlueprintReadWrite)
 	APawnAR* ARPawn; 
 	
 	UPROPERTY( ReplicatedUsing=OnRep_VRPawn, BlueprintReadWrite)

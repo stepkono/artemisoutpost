@@ -9,6 +9,8 @@
 #include "ArtemisOutpost/StudyData/Types/MiniGameType/MiniGameProviderData.h"
 #include "MoonMiniGamesManager.generated.h"
 
+class AGeoRefsManager;
+
 // Fired (server-side) whenever a minigame/building registers. Signal Towers without a target listen
 // so they can claim a habitat that is built after them.
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMinigameRegistered, UProviderDataBase&, const EGameEventType);
@@ -29,15 +31,27 @@ public:
 	// Update the cached lifecycle state of a registered building.
 	void UpdateState(const FGuid& MGID, EMinigameState NewState);
 
-	// Finds the nearest un-activated, un-assigned habitat within Radius of TowerLocation, ATOMICALLY
+	// Finds the nearest un-activated, un-assigned habitat within Radius of TowerUELocation, ATOMICALLY
 	// marks it assigned to TowerMGID (permanent claim), and returns it. Single-threaded game logic
 	// means no real race: the claim is committed before this returns, so a second tower sees it taken.
 	// Returns false if no habitat qualifies.
-	bool TryClaimHabitatFor(const FGuid& TowerMGID, const FVector& TowerLocation, float Radius, FGuid& OutHabitatMGID, FVector& OutHabitatLocation);
+	//
+	// COORDINATE SPACES: records store geodetic positions (BuildGeoLocation), because that is what
+	// travels over the network and stays valid regardless of a peer's georeference origin. The tower
+	// asks in UE world space, so each candidate is converted geo -> UE here before the range test.
+	// Radius and OutHabitatUELocation are therefore both UE world space (cm).
+	bool TryClaimHabitatFor(const FGuid& TowerMGID, const FVector& TowerUELocation, float Radius, FGuid& OutHabitatMGID, FVector& OutHabitatUELocation);
 
 	FOnMinigameRegistered OnMinigameRegistered;
 
 private:
+	// Lazily resolved: this subsystem is created before the level's actors, so the georeference
+	// cannot be looked up at initialization time. Re-resolves while still null.
+	AGeoRefsManager* GetGeoRefsManager();
+
 	UPROPERTY()
 	TMap<FGuid, FMiniGameRecord> Buildings;
+
+	UPROPERTY(Transient)
+	AGeoRefsManager* CachedGeoRefsManager = nullptr;
 };

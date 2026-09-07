@@ -50,29 +50,74 @@ void ASignalTower::TryClaimTargetHabitat()
 	UMoonMiniGamesManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonMiniGamesManager>() : nullptr;
 	if (!Manager)
 	{
+		UE_LOG(LogMinigame, Error, TEXT("[Claim] %s: UMoonMiniGamesManager subsystem not found -> cannot look for a habitat."), *GetName());
 		return;
 	}
 
 	FGuid HabitatMGID;
-	FVector HabitatLocation;
-	if (Manager->TryClaimHabitatFor(GetMGID(), GetActorLocation(), SignalRadius, HabitatMGID, HabitatLocation))
+
+	// Comes back in UE world space (the manager converts each record's geodetic position for us),
+	// which is what BearingToDeg needs since it works against this actor's transform.
+	FVector HabitatUELocation;
+
+	UE_LOG(LogMinigame, Log, TEXT("[Claim] %s: searching for a habitat within %.0f of %s (UE world space), MGID=%s."),
+		*GetName(), SignalRadius, *GetActorLocation().ToString(),
+		*GetMGID().ToString(EGuidFormats::DigitsWithHyphens));
+
+	if (Manager->TryClaimHabitatFor(GetMGID(), GetActorLocation(), SignalRadius, HabitatMGID, HabitatUELocation))
 	{
 		TargetHabitatMGID = HabitatMGID;
-		HabitatTargetDeg  = BearingToDeg(HabitatLocation);
+		HabitatTargetDeg  = BearingToDeg(HabitatUELocation);
 		bHasTarget        = true;
+
+		UE_LOG(LogMinigame, Log, TEXT("[Claim] %s: CLAIMED habitat %s at %s (UE world) -> HabitatTargetDeg=%.1f. The tower can now be started."),
+			*GetName(), *HabitatMGID.ToString(EGuidFormats::DigitsWithHyphens),
+			*HabitatUELocation.ToString(), HabitatTargetDeg);
 
 		// Server/listen-host: OnRep won't fire locally, so push the (one-time) target directly.
 		PushHabitatTargetToPuppet();
 	}
+	else
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Claim] %s: NO habitat claimed. The tower stays unstartable until one registers in range."), *GetName());
+	}
 }
 
-void ASignalTower::HandleMinigameRegistered(const FMiniGameRecord& Record)
+void ASignalTower::HandleMinigameRegistered(UProviderDataBase& ProviderData, const EGameEventType GameEvent)
 {
 	// Only newly built habitats can give an untargeted tower a target.
-	if (bHasTarget || Record.Type != EMiniGameType::Habitat)
+	// TODO: how much performance does this casting cost 
+	// TODO: might be better to create secondary event extra for the Aggregator to reduce casting on in game events
+	const UMiniGameProviderData* MiniGameData = Cast<UMiniGameProviderData>(&ProviderData);
+	if (!MiniGameData)
+	{
+		// Was a log-and-fall-through, which then dereferenced the null pointer below.
+		UE_LOG(LogMinigame, Error, TEXT("[Claim] %s: registration payload is not a UMiniGameProviderData -> ignored."), *GetName());
+		return;
+	}
+
+	if (bHasTarget)
 	{
 		return;
 	}
+
+	if (MiniGameData->Type != EMiniGameType::Habitat)
+	{
+		UE_LOG(LogMinigame, Verbose, TEXT("[Claim] %s: ignoring registration of type %s, still waiting for a Habitat."),
+			*GetName(), *UEnum::GetValueAsString(MiniGameData->Type));
+		return;
+	}
+
+	UE_LOG(LogMinigame, Log, TEXT("[Claim] %s: a Habitat registered -> retrying the claim."), *GetName());
+	
+	// TODO: shouldn't the logic be this way? 
+	/*
+	if (!bHasTarget && Record.Type == EMiniGameType::SignalTower)
+	{
+		TryClaimTargetHabitat();
+	}
+	 */
+	
 	TryClaimTargetHabitat();
 }
 
@@ -140,8 +185,18 @@ bool ASignalTower::CanStart(const FString& UPID, FText& OutReason) const
 	if (!bHasTarget)
 	{
 		OutReason = NSLOCTEXT("SignalTower", "NoHabitatInRange", "No habitat in range to align to.");
+
+		// THIS is the gate that blocks a tower that looks perfectly placed. bHasTarget is only set
+		// by TryClaimTargetHabitat, either at BeginPlay or when a habitat registers later, so read
+		// the [Claim] lines above to see which of those two paths failed and why.
+		UE_LOG(LogMinigame, Warning, TEXT("[CanStart] %s: REFUSED -> no habitat claimed (bHasTarget=false). SignalRadius=%.0f. See the [Claim] logs for the rejected candidates."),
+			*GetName(), SignalRadius);
 		return false;
 	}
+
+	UE_LOG(LogMinigame, Log, TEXT("[CanStart] %s: OK -> habitat %s claimed, HabitatTargetDeg=%.1f, EarthTargetDeg=%.1f."),
+		*GetName(), *TargetHabitatMGID.ToString(EGuidFormats::DigitsWithHyphens), HabitatTargetDeg, EarthTargetDeg);
+
 	return Super::CanStart(UPID, OutReason);
 }
 

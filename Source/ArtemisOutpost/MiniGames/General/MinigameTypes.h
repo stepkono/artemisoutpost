@@ -6,6 +6,13 @@
 #include "StructUtils/InstancedStruct.h"
 #include "MinigameTypes.generated.h"
 
+// One category for the whole minigame layer. The join/start chain is a series of gates that each
+// used to `return` silently, so every refusal now logs its reason here. Trace a failed start with
+//   Log LogMinigame Verbose
+// in the console. If NOTHING is logged when you try to enter, the request never left Blueprint —
+// see UMinigamePlayerController::ServerRequestEnter.
+DECLARE_LOG_CATEGORY_EXTERN(LogMinigame, Log, All);
+
 // A placeable outpost building. Each maps to a concrete AMinigameActor subclass via the
 // BuildingClasses map on ABuildingTool (Antenna -> ASignalTower today). Named with the Outpost
 // prefix because plain "EBuildingType" collides with an engine/plugin enum.
@@ -137,7 +144,7 @@ struct FMiniGameRecord
 	FGuid MGID;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
-	FVector BuildLocation = FVector::ZeroVector;
+	FVector BuildGeoLocation = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
 	FString BuiltByUPID;

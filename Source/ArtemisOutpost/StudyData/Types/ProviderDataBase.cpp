@@ -3,7 +3,12 @@
 
 #include "ProviderDataBase.h"
 
-TSharedRef<FJsonObject> SerializeData(EGameEventType GameEventType)
+TSharedPtr<FJsonObject> UProviderDataBase::BuildJsonFromData(const EGameEventType GameEventType)
 {
-	return MakeShared<FJsonObject>();
+	// Subclasses provide the payload. Reaching this means a provider type has no override,
+	// so log it rather than silently sending nothing.
+	UE_LOG(LogTemp, Error, TEXT("UProviderDataBase: BuildJsonFromData is not overridden by %s. Returning null."),
+		*GetClass()->GetName());
+
+	return nullptr;
 }

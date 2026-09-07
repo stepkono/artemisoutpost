@@ -10,14 +10,12 @@
 /**
  *
  */
-UCLASS()
+UCLASS(Abstract)
 class ARTEMISOUTPOST_API UProviderDataBase : public UObject
 {
 	GENERATED_BODY()
-	
+
 public:
-	UPROPERTY()
-	TEnumAsByte<EGameEventType> GameEventType; 
-	
-	virtual TSharedPtr<FJsonObject> BuildJsonFromData(EGameEventType GameEventType);
+	// Override per provider type. The base logs and returns null, see ProviderDataBase.cpp.
+	virtual TSharedPtr<FJsonObject> BuildJsonFromData(const EGameEventType GameEventType);
 };

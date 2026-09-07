@@ -37,6 +37,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Buildings")
 	FInstancedStruct MiniGameData;
 	
-	virtual TSharedPtr<FJsonObject> BuildJsonFromData(EGameEventType GameEventType) override;
+	virtual TSharedPtr<FJsonObject> BuildJsonFromData(const EGameEventType GameEventType) override;
 	TSharedPtr<FJsonObject> SerializeNewMinigameData();
 };
