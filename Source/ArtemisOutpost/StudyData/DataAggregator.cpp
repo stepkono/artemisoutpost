@@ -45,17 +45,32 @@ void UDataAggregator::OnWorldBeginPlay(UWorld& InWorld)
 	{
 		PlayerActionsProvider->OnPlayerActionEvent.AddUObject(this, &UDataAggregator::HandleNewGameEvent);
 	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[DataAggregator] No UPlayerActionProvider at BeginPlay — HMD events will not be aggregated."));
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[DataAggregator] Subscribed on server (WS=%s)."), WS ? TEXT("found") : TEXT("NULL"));
 }
 
 void UDataAggregator::HandleNewGameEvent(UProviderDataBase& ProviderData, const EGameEventType GameEvent)
 {	
 	const TSharedPtr<FJsonObject> MiniGameDataObject = ProviderData.BuildJsonFromData(GameEvent);
 	const FString DataString = JSONToString(MiniGameDataObject);
-	
+
+	// Log the arrival unconditionally (Warning, so it matches the rest of the system and is not
+	// stripped/filtered like Log verbosity), then send — or warn if there is no websocket target.
+	UE_LOG(LogTemp, Warning, TEXT("DataAggregator: GameEvent %s received; payload=%s"),
+		*UEnum::GetValueAsString(GameEvent), *DataString);
+
 	if (WS)
 	{
-		UE_LOG(LogTemp, Log, TEXT("DataAggregator: Sending GameEvent %s over websocket..."), *UEnum::GetValueAsString(GameEvent));
 		WS->SendMessage(DataString);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DataAggregator: WS is NULL — GameEvent %s not sent over websocket."),
+			*UEnum::GetValueAsString(GameEvent));
 	}
 }
 

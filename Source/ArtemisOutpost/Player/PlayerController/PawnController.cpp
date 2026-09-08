@@ -178,10 +178,15 @@ void APawnController::ServerReportHmdState_Implementation(bool bWorn)
 {
 	// Runs on the server. UPID here is the authoritative value set from the ?UPID= login option, so
 	// the client never has to send it. Route to the player-action provider for aggregation.
-	if (UPlayerActionProvider* Provider = GetWorld() ? GetWorld()->GetSubsystem<UPlayerActionProvider>() : nullptr)
+	UE_LOG(LogTemp, Warning, TEXT("[HMD] Server RPC received: worn=%d, UPID=%s"), bWorn ? 1 : 0, *UPID);
+
+	UPlayerActionProvider* Provider = GetWorld() ? GetWorld()->GetSubsystem<UPlayerActionProvider>() : nullptr;
+	if (!Provider)
 	{
-		Provider->ServerReportHmdState(UPID, bWorn);
+		UE_LOG(LogTemp, Error, TEXT("[HMD] Server RPC: no UPlayerActionProvider subsystem — event dropped."));
+		return;
 	}
+	Provider->ServerReportHmdState(UPID, bWorn);
 }
 
 ACharVR* APawnController::GetVRPawn() const
