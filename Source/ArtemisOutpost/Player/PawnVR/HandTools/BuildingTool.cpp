@@ -9,6 +9,7 @@
 #include "Engine/World.h"
 #include "CollisionQueryParams.h"
 #include "EngineUtils.h"
+#include "ArtemisOutpost/Moon/MoonBuildings/MoonMiniGamesManager.h"
 
 #define LOCTEXT_NAMESPACE "BuildingTool"
 
@@ -64,18 +65,17 @@ bool ABuildingTool::CanPlaceBuildingAt(FVector Location, FVector SurfaceNormal, 
 {
 	OutReason = FText::GetEmpty();
 
-	// Reference "up" = geodetic up at the build spot. Do NOT use the pawn's actor up: the VR capsule
-	// stays WORLD-up aligned (only the view tilts to the surface), so on the moon its up is world-up
-	// and every slope check would wrongly fail.
+	// Geo Up
 	const FVector ReferenceUp = GetSurfaceUp(Location);
 
+	// Check ground placement
 	const float CosAngle = FVector::DotProduct(SurfaceNormal.GetSafeNormal(), ReferenceUp.GetSafeNormal());
 	const float SlopeDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(CosAngle, -1.0f, 1.0f)));
-
+	
 	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] CanPlaceBuildingAt: Loc=%s Normal=%s RefUp=%s Slope=%.1f (max %.1f) GeoRefs=%s"),
-		*Location.ToCompactString(), *SurfaceNormal.GetSafeNormal().ToCompactString(),
-		*ReferenceUp.ToCompactString(), SlopeDeg, MaxPlacementSlopeDegrees,
-		GeoRefsManager ? TEXT("OK") : TEXT("NULL"));
+	*Location.ToCompactString(), *SurfaceNormal.GetSafeNormal().ToCompactString(),
+	*ReferenceUp.ToCompactString(), SlopeDeg, MaxPlacementSlopeDegrees,
+	GeoRefsManager ? TEXT("OK") : TEXT("NULL"));
 
 	if (SlopeDeg > MaxPlacementSlopeDegrees)
 	{
@@ -83,19 +83,33 @@ bool ABuildingTool::CanPlaceBuildingAt(FVector Location, FVector SurfaceNormal, 
 		UE_LOG(LogTemp, Warning, TEXT("[BuildingTool]   REJECT: too steep (%.1f > %.1f)"), SlopeDeg, MaxPlacementSlopeDegrees);
 		return false;
 	}
-
-	// Proximity: reject if too close to an existing building. Iterating AMinigameActor is RHI-safe
-	// (no collision query) — all buildings derive from AMinigameActor.
+	
+	// Check obstructing actors
+	const TSubclassOf<AMinigameActor> BuildingClass = BuildingClasses[CurrentBuildingType];
+	const AMinigameActor* Building = BuildingClass.GetDefaultObject();
+	if (!Building)
+	{
+		UE_LOG(LogTemp, Error, TEXT("BuildingTool: Failed to get Building object. Aborting Placement."))
+		OutReason = LOCTEXT("Minigame Failure", "Failed to get building actor.");
+		return false;
+	}
+	FVector Origin; 
+	FVector BoxExtent; 
+	Building->GetActorBounds(false, Origin, BoxExtent, true);
+	const float WidestExtent = FMath::Max(BoxExtent.X, BoxExtent.Y);
+	
 	if (const UWorld* World = GetWorld())
 	{
-		for (TActorIterator<AMinigameActor> It(World); It; ++It)
+		for (TActorIterator<AActor> It(World); It; ++It)
 		{
-			const AMinigameActor* Existing = *It;
+			const AActor* Existing = *It;
 			if (!Existing)
 			{
 				continue;
 			}
-			const float Dist = FVector::Dist(Existing->GetActorLocation(), Location);
+			
+			const float Dist = FVector::Dist(Existing->GetActorLocation(), Location) - WidestExtent;
+			
 			if (Dist < MinBuildingSpacing)
 			{
 				OutReason = LOCTEXT("TooClose", "Zu nah an einem Gebäude");
@@ -105,7 +119,7 @@ bool ABuildingTool::CanPlaceBuildingAt(FVector Location, FVector SurfaceNormal, 
 			}
 		}
 	}
-
+	
 	UE_LOG(LogTemp, Warning, TEXT("[BuildingTool]   OK: placement allowed"));
 	return true;
 }

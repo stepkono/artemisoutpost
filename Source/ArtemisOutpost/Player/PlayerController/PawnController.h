@@ -81,13 +81,16 @@ public:
 	
 protected: 
 	virtual void BeginPlay() override;
+	
 	virtual void OnPossess(APawn* InPawn) override;
+	
+	virtual void OnNetCleanup(UNetConnection* Connection) override;
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = "VR Pawn")
 	void VRPawnInitialized();
 	
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mini Game")
-	bool bIsInGame = false;
+	bool bIsPlayingMinigame = false;
 	
 private: 
 	UFUNCTION()

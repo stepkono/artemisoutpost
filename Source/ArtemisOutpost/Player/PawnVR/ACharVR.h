@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Cesium3DTileset.h"
-#include "CesiumGeoreference.h"
+#include "VRCharPuppet.h"
 #include "ArtemisOutpost/Moon/Cesium/GeoRefsManager.h"
 #include "GameFramework/Character.h"
 #include "ACharVR.generated.h"
@@ -48,6 +48,9 @@ public:
 	// BP_VRChar routes IA_Trigger to GetActiveTool()->ExecuteAction()/EndAction().
 	UFUNCTION(BlueprintPure, Category = "Hand Tools")
 	AHandToolBase* GetActiveTool() const { return ActiveHandTool; }
+	
+	UFUNCTION(BlueprintCallable, Category = "Puppet")
+	AVRCharPuppet* GetPuppet(); 
 
 	void SetActiveHandTool(AHandToolBase* Tool) { ActiveHandTool = Tool; }
 
@@ -63,6 +66,8 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void NotifyControllerChanged() override;
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	// Refuses Cesium streamed tiles as a movement base. They are created at runtime and are not
 	// network-addressable, so CMC's base-relative replication can't resolve them across the wire
@@ -186,6 +191,12 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Minigame")
 	bool bIsInMiniGame = false;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "VR Char Puppet")
+	AVRCharPuppet* ARPuppet = nullptr;
+	
+	UFUNCTION(BlueprintCallable, Category = "VR CHar Puppet")
+	void SetVRCharPuppet(AVRCharPuppet* VRCharPuppet);
 
 private:
 	// One-shot guard so the local floor/origin setup is applied exactly once.

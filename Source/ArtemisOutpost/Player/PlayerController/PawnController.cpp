@@ -66,6 +66,7 @@ void APawnController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(APawnController, VRPawn);
 	DOREPLIFETIME(APawnController, MasterRover);
 	DOREPLIFETIME(APawnController, GeoRefsManager); 
+	DOREPLIFETIME(APawnController, bIsPlayingMinigame);
 }
 
 void APawnController::OnPossess(APawn* InPawn)
@@ -109,18 +110,6 @@ void APawnController::InitializePawns(ACharVR* InVRChar, AMasterRover* InMasterR
 		UE_LOG(LogTemp, Error, TEXT("PawnController: Failed to cast GameMode as ServerGameMode. Aborting."));
 		return;
 	}
-	
-	// Set the Pawns inside the FArtemisPlayer object
-	TMap<FString, FArtemisPlayer> PlayersInGame = ServerGameMode->GetPlayersInGame(); 
-	FArtemisPlayer* Player = PlayersInGame.Find(UPID);
-	if (!Player)
-	{
-		UE_LOG(LogTemp, Error, TEXT("PawnController: No Player found or zero pointer. Aborting."));
-		return;
-	}
-	
-	Player->MasterRover = InMasterRover;
-	Player->VRChar      = InVRChar;
 	
 	// Init GeoRef on the pawns
 	if (!GeoRefsManager)
@@ -228,5 +217,15 @@ void APawnController::RegisterProxyCam() const
 
 void APawnController::SetIsPlayingMiniGame(const bool IsInGame)
 {
-	bIsInGame = IsInGame;
+	bIsPlayingMinigame = IsInGame;
+}
+
+void APawnController::OnNetCleanup(UNetConnection* Connection)
+{
+	if (Cast<ACharVR>(GetPawn()))
+	{
+		UnPossess();
+	}
+	
+	Super::OnNetCleanup(Connection);
 }

@@ -5,35 +5,36 @@
 #include "CoreMinimal.h"
 #include "ArtemisOutpost/Moon/Cesium/GeoRefsManager.h"
 #include "GameFramework/Actor.h"
-#include "PuppetRover.generated.h"
+#include "VRCharPuppet.generated.h"
 
-class AMasterRover;
+class ACharVR;
 
 UCLASS()
-class ARTEMISOUTPOST_API APuppetRover : public AActor
+class ARTEMISOUTPOST_API AVRCharPuppet : public AActor
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this actor's properties
-	APuppetRover();
-	
+	AVRCharPuppet();
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	UFUNCTION(BlueprintCallable, Category = "Master Rover")
-	void SetMaster(AMasterRover* MasterRover); 
+	UFUNCTION(BlueprintCallable, Category = "Master Char")
+	void SetMaster(ACharVR* MasterVRChar);
 	
-	UFUNCTION(BlueprintCallable, Category = "Master Rover")
-	AMasterRover* GetMaster();
+	UFUNCTION(BlueprintCallable, Category = "Master Char")
+	ACharVR* GetMaster(); 
+
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	UPROPERTY(BlueprintReadOnly)
-	AMasterRover* Master; 
-
+	UPROPERTY(BlueprintReadOnly, Category = "Master")
+	ACharVR* Master;
+	
 private: 
 	UPROPERTY()
 	AGeoRefsManager* GeoRefsManager; 

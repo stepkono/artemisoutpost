@@ -583,3 +583,20 @@ void ACharVR::SetShouldReplicateTransform(bool bReplicateTransform)
 {
 	bShouldReplicateTransform = bReplicateTransform;
 }
+
+void ACharVR::SetVRCharPuppet(AVRCharPuppet* VRCharPuppet)
+{
+	ARPuppet = VRCharPuppet;
+}
+
+AVRCharPuppet* ACharVR::GetPuppet()
+{
+	return ARPuppet;
+}
+
+void ACharVR::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UE_LOG(LogTemp, Error, TEXT("[ACharVR] EndPlay on %s, reason=%d, Controller=%s"),
+		*GetName(), (int32)EndPlayReason, *GetNameSafe(GetController()));
+	Super::EndPlay(EndPlayReason);
+}

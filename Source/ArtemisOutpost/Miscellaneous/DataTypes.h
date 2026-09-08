@@ -121,10 +121,7 @@ USTRUCT(BlueprintType)
 struct FArtemisPlayer
 {
 	GENERATED_BODY()
-
-	// All three default to null on purpose: a default-constructed FArtemisPlayer is put into
-	// PlayersInGame before the pawns exist, and an uninitialized raw pointer there reads as garbage
-	// rather than as "not set yet".
+	
 	UPROPERTY(BlueprintReadOnly)
 	APawnController* PawnController = nullptr;
 

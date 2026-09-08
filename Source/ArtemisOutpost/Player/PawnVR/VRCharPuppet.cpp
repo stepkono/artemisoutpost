@@ -1,26 +1,27 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PuppetRover.h"
-#include "AMasterRover.h"
+#include "VRCharPuppet.h"
+
 #include "EngineUtils.h"
 
+
 // Sets default values
-APuppetRover::APuppetRover()
+AVRCharPuppet::AVRCharPuppet()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
 
 // Called when the game starts or when spawned
-void APuppetRover::BeginPlay()
+void AVRCharPuppet::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	const UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Puppet] BeginPlay: Failed to get World. Aborting..."));
+		UE_LOG(LogTemp, Error, TEXT("[VRCharPuppet] BeginPlay: Failed to get World. Aborting..."));
 		return;
 	}
 
@@ -35,11 +36,11 @@ void APuppetRover::BeginPlay()
 
 	if (!GeoRefsManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Puppet] BeginPlay: Failed to get GeoRefsManager."));
+		UE_LOG(LogTemp, Error, TEXT("[VRCharPuppet] BeginPlay: Failed to get GeoRefsManager."));
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[Puppet]BeginPlay: GeoRefsManager OK | VRMoon=%s | ARMoon=%s"), *GetNameSafe(GeoRefsManager->GetVRMoon()), *GetNameSafe(GeoRefsManager->GetARMoon()));
+	UE_LOG(LogTemp, Warning, TEXT("[VRCharPuppet]BeginPlay: GeoRefsManager OK | VRMoon=%s | ARMoon=%s"), *GetNameSafe(GeoRefsManager->GetVRMoon()), *GetNameSafe(GeoRefsManager->GetARMoon()));
 
 	const FAttachmentTransformRules AttachmentTransformRules(
 		EAttachmentRule::KeepWorld,
@@ -50,29 +51,27 @@ void APuppetRover::BeginPlay()
 
 	// To account for scaling for the local delta vector for position
 	GeoRefScalingFactor = GeoRefsManager->GetARMoon()->GetActorScale3D().X / GeoRefsManager->GetVRMoon()->GetActorScale3D().X;
-	UE_LOG(LogTemp, Warning, TEXT("[Puppet] BeginPlay: ARScale=%s | VRScale=%s | GeoRefScalingFactor=%f"), *GeoRefsManager->GetARMoon()->GetActorScale3D().ToString(),
+	UE_LOG(LogTemp, Warning, TEXT("[VRCharPuppet] BeginPlay: ARScale=%s | VRScale=%s | GeoRefScalingFactor=%f"), *GeoRefsManager->GetARMoon()->GetActorScale3D().ToString(),
 		*GeoRefsManager->GetVRMoon()->GetActorScale3D().ToString(), GeoRefScalingFactor);
 
 	USceneComponent* ARMoonRoot = GeoRefsManager->GetARMoon()->GetRootComponent();
 	this->GetRootComponent()->AttachToComponent(ARMoonRoot, AttachmentTransformRules);
 
-	UE_LOG(LogTemp, Warning, TEXT("[Puppet] BeginPlay: Attached to ARMoon root '%s'. AttachParent=%s"), *GetNameSafe(ARMoonRoot), *GetNameSafe(GetRootComponent()->GetAttachParent()));
+	UE_LOG(LogTemp, Warning, TEXT("[VRCharPuppet] BeginPlay: Attached to ARMoon root '%s'. AttachParent=%s"), *GetNameSafe(ARMoonRoot), *GetNameSafe(GetRootComponent()->GetAttachParent()));
 }
 
 // Called every frame
-void APuppetRover::Tick(float DeltaTime)
+void AVRCharPuppet::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
-void APuppetRover::SetMaster(AMasterRover* MasterRover)
+void AVRCharPuppet::SetMaster(ACharVR* MasterVRChar)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[Puppet]SetMaster: %s -> Master=%s"), *GetName(), *GetNameSafe(MasterRover));
-
-	Master = MasterRover;
+	Master = MasterVRChar;
 }
 
-AMasterRover* APuppetRover::GetMaster()
+ACharVR* AVRCharPuppet::GetMaster()
 {
 	return Master;
 }

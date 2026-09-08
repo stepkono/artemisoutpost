@@ -108,9 +108,14 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 	PlayerController->SetGeoRefsManager(GeoRefsManager);
 
 	if (FArtemisPlayer* Existing = PlayersInGame.Find(UPID))
-	{
-		// Reconnect: reuse the slot, point it at the NEW controller, and hand the BP the existing
-		// pawns to RE-ATTACH (it must not spawn new ones). MasterRover/VRChar persist server-side.
+	{ 
+		APawnController* OldController = Existing->PawnController;
+		if (OldController && OldController != PlayerController)
+		{
+			OldController->UnPossess();
+			OldController->Destroy();
+		}
+		
 		Existing->PawnController = PlayerController;
 		
 		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Reconnect for UPID %s (player #%d) — re-attaching existing pawns."), *UPID, Existing->PlayerNumber);
