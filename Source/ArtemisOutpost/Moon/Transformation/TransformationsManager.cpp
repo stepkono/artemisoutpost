@@ -45,16 +45,13 @@ TStatId UTransformationsManager::GetStatId() const
 void UTransformationsManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (!bCutoutSet /*|| !Rover*/ || !ARGeoRef) return;
+	if (!bCutoutSet || !ARGeoRef) return;
 	
-	if (PlayerController)
+	if (PlayerController && PlayerController->GetXRMode() == EXRMode::VR)
 	{
-		if (PlayerController->GetXRMode() == EXRMode::VR)
-		{
-			return; 
-		}
+		return;
 	}
-	
+
 	// Sample params before any transform
 	const FTransform MoonNow = ARGeoRef->GetActorTransform();
 	
@@ -184,8 +181,28 @@ void UTransformationsManager::Tick(float DeltaTime)
 	// Zoom is done via WorldToMeters scaling: a uniform world scale that keeps the surface in the table plane.
 	// We queue the WTM change for end-of-frame and stash the matching reposition (PendingTableCenter);
 	// it is committed next frame, when the camera actually adopts the new scale (see commit block above).
-	if (IsNewScaleAvailable())
+	const bool bScalingThisFrame = IsNewScaleAvailable();
+	if (bScalingThisFrame)
 	{
+		// The scale pivot must be the tracking-to-world transform the anchors use RIGHT NOW. The copy
+		// cached at anchor seed time goes stale whenever the view target or its camera parent changes
+		// (VR round trip, re-possession). Log cached vs live once per zoom for verification, then
+		// always scale around the live transform.
+		if (XRUtils)
+		{
+			if (!bWasScaling)
+			{
+				const FTransform Cached = XRUtils->GetXRTransform();
+				const FTransform Live = UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(GetWorld());
+				const bool bEqual = Cached.GetLocation().Equals(Live.GetLocation(), 1.0f)
+					&& Cached.GetRotation().AngularDistance(Live.GetRotation()) < FMath::DegreesToRadians(0.5f);
+				UE_LOG(LogTemp, Warning, TEXT("[TM][ZoomStart] cachedXR=%s | liveXR=%s | equal=%d | liveWTM=%.2f trackedWTM=%.2f"),
+					*Cached.ToString(), *Live.ToString(), bEqual ? 1 : 0,
+					UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()), BaseWorldScale * CurrentMoonVisualScale);
+			}
+			XRUtils->InitXRTRansform();
+		}
+
 		CurrentMoonVisualScale = CalcInterpolatedScale(DeltaTime);
 		// CalcNewTableCenter() records PreviousTableCenter = TableCenter and returns the precompensated
 		// center. We do NOT assign TableCenter here — the live TableCenter (and moon position) must keep
@@ -201,6 +218,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 		ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
 		CurrentMoonPosition = ARGeoRef->GetActorLocation();
 	}
+	bWasScaling = bScalingThisFrame;
 
 	const FTransform MoonAfter = ARGeoRef->GetActorTransform();
 

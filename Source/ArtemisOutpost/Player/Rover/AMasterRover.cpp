@@ -14,6 +14,8 @@ AMasterRover::AMasterRover()
 {
 	bReplicates = true;
 	bAlwaysRelevant = true;
+	
+	this->Tags.AddUnique(FName("Blocking"));
 }
 
 void AMasterRover::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

@@ -9,7 +9,7 @@
 #include "Engine/World.h"
 #include "CollisionQueryParams.h"
 #include "EngineUtils.h"
-#include "ArtemisOutpost/Moon/MoonBuildings/MoonMiniGamesManager.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 
 #define LOCTEXT_NAMESPACE "BuildingTool"
 
@@ -29,6 +29,58 @@ void ABuildingTool::BeginPlay()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BuildingTool] No AGeoRefsManager found; surface arc falls back to world-up."));
 	}
+	
+	// The server host is authoritative from the start, so it can measure here. The owning client
+	// cannot: see EnsureBuildingBoundsInitialized for why, and ActivateTool for where it retries.
+	EnsureBuildingBoundsInitialized();
+}
+
+void ABuildingTool::ActivateTool()
+{
+	Super::ActivateTool();
+	
+	EnsureBuildingBoundsInitialized();
+}
+
+void ABuildingTool::EnsureBuildingBoundsInitialized()
+{
+	if (!ArtemisNet::IsServerHost(GetNetMode()) && !IsOwnerLocallyControlled())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	for (const auto& PuppetTuple : PuppetClasses)
+	{
+		if (BuildingsBounds.Contains(PuppetTuple.Value))
+		{
+			continue;
+		}
+
+		AMinigamePuppet* ArchetypeBuilding = Cast<AMinigamePuppet>(World->SpawnActor(PuppetTuple.Key));
+		if (!ArchetypeBuilding)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[BuildingTool] Failed to spawn archetype for %s."),
+				*UEnum::GetValueAsString(PuppetTuple.Value));
+			continue;
+		}
+
+		FVector Origin;
+		FVector BoxExtent;
+		ArchetypeBuilding->GetActorBounds(false, Origin, BoxExtent, true);
+
+		BuildingsBounds.Add(PuppetTuple.Value, BoxExtent);
+
+		ArchetypeBuilding->Destroy();
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[BuildingTool] BuildingsBounds measured: %d of %d puppet rows (net mode %d)."),
+		BuildingsBounds.Num(), PuppetClasses.Num(), static_cast<int32>(GetNetMode()));
 }
 
 FVector ABuildingTool::GetSurfaceUp(FVector WorldPos) const
@@ -85,17 +137,7 @@ bool ABuildingTool::CanPlaceBuildingAt(FVector Location, FVector SurfaceNormal, 
 	}
 	
 	// Check obstructing actors
-	const TSubclassOf<AMinigameActor> BuildingClass = BuildingClasses[CurrentBuildingType];
-	const AMinigameActor* Building = BuildingClass.GetDefaultObject();
-	if (!Building)
-	{
-		UE_LOG(LogTemp, Error, TEXT("BuildingTool: Failed to get Building object. Aborting Placement."))
-		OutReason = LOCTEXT("Minigame Failure", "Failed to get building actor.");
-		return false;
-	}
-	FVector Origin; 
-	FVector BoxExtent; 
-	Building->GetActorBounds(false, Origin, BoxExtent, true);
+	const FVector BoxExtent = BuildingsBounds[CurrentBuildingType];
 	const float WidestExtent = FMath::Max(BoxExtent.X, BoxExtent.Y);
 	
 	if (const UWorld* World = GetWorld())
@@ -103,7 +145,7 @@ bool ABuildingTool::CanPlaceBuildingAt(FVector Location, FVector SurfaceNormal, 
 		for (TActorIterator<AActor> It(World); It; ++It)
 		{
 			const AActor* Existing = *It;
-			if (!Existing)
+			if (!Existing || !Existing->ActorHasTag(TEXT("Blocking")))
 			{
 				continue;
 			}

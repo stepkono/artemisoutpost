@@ -14,6 +14,7 @@
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "ArtemisOutpost/XR/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
+#include "ArtemisOutpost/Player/PlayerController/PawnController.h"
 #include "EnhancedInputComponent.h"
 #include "ToolsHUD/ToolsHUDComponent.h"
 #include "ControllerRays/ControllerRayComponent.h"
@@ -41,6 +42,8 @@ ACharVR::ACharVR()
 	// Client-local controller rays (both hands). A plain ActorComponent; it resolves the
 	// WidgetInteractionComponents authored in BP_VRChar and spawns the Niagara visuals at runtime.
 	ControllerRayComponent = CreateDefaultSubobject<UControllerRayComponent>(TEXT("ControllerRayComponent"));
+	
+	this->Tags.AddUnique(FName("Blocking"));
 }
 
 void ACharVR::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -55,7 +58,7 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	//SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
+	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
@@ -112,7 +115,38 @@ void ACharVR::Tick(float DeltaTime)
 		return;
 	}
 	
-	if (bIsPossessed)
+	// The tilt may only run while THIS pawn renders the local view. bIsPossessed is a Blueprint flag
+	// (and is forced on in BeginPlay for TestLvl), so it can stay true after the switch back to AR.
+	// If UpdateVRViewTilt keeps running then, the base orientation rotates the whole tracking space
+	// (HMD and spatial anchors alike, MetaXR folds it into every pose) by the parked VR character's
+	// surface normal every frame: the anchors leave the physical table plane, the AR moon is re-seeded
+	// along a stale table normal and drifts or disappears. Engine possession is the reliable signal:
+	// in VR this pawn is locally controlled, in AR the AR pawn is. Remote proxies never reach this
+	// point (bLocalVRSetupApplied gate above).
+	// The VR character stays engine-possessed after the first switch to VR (verified in the Quest
+	// log), so IsLocallyControlled() alone cannot tell AR from VR. Ask the controller for the mode
+	// when it is our APawnController. Without one (TestLvl) fall back to the Blueprint flag.
+	bool bModeIsVR = true;
+	if (const APawnController* PC = Cast<APawnController>(GetController()))
+	{
+		bModeIsVR = (PC->GetXRMode() == EXRMode::VR);
+	}
+	const bool bDrivesLocalView = bIsPossessed && IsLocallyControlled() && bModeIsVR;
+	if (bIsPossessed && !bDrivesLocalView)
+	{
+		if (!bTiltSuppressedLogged)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ACharVR: %s has bIsPossessed=true but is not the VR view (locallyControlled=%d modeVR=%d). VR view tilt suppressed, base orientation reset."),
+				*GetName(), IsLocallyControlled() ? 1 : 0, bModeIsVR ? 1 : 0);
+			bTiltSuppressedLogged = true;
+		}
+	}
+	else
+	{
+		bTiltSuppressedLogged = false;
+	}
+
+	if (bDrivesLocalView)
 	{
 		// VR mode: tilt the horizon to the surface and keep the body under the HMD.
 		bXRBaseIsReset = false;

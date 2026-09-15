@@ -349,6 +349,10 @@ private:
 	UPROPERTY()
 	bool bScaleApplyPending = false;
 
+	// True while IsNewScaleAvailable() was true on the previous zoom tick; logs once per zoom start.
+	UPROPERTY()
+	bool bWasScaling = false;
+
 	// Idle re-seed: anchor[0]'s world position last frame, used to detect when the anchors have
 	// actually moved (re-localization) vs. sitting still. Recalibrate only when it changed.
 	UPROPERTY()

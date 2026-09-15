@@ -109,3 +109,8 @@ void UDataAggregator::OnWorldEndPlay(UWorld& InWorld)
 	
 	Super::OnWorldEndPlay(InWorld);
 }
+
+void UDataAggregator::SetWebSocketManager(AWebsocketManager* WebSocketManager)
+{
+	WS = WebSocketManager;
+}

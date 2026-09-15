@@ -225,6 +225,54 @@ void APawnController::SetIsPlayingMiniGame(const bool IsInGame)
 	bIsPlayingMinigame = IsInGame;
 }
 
+void APawnController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+	EnforceViewTargetForXRMode();
+}
+
+void APawnController::EnforceViewTargetForXRMode()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	AActor* Desired = nullptr;
+	AActor* Other = nullptr;
+	if (CurrentXRMode == EXRMode::AR)
+	{
+		Desired = ARPawn;
+		Other = VRPawn;
+	}
+	else
+	{
+		Desired = VRPawn;
+		Other = ARPawn;
+	}
+
+	if (!IsValid(Desired))
+	{
+		return;
+	}
+
+	AActor* Current = GetViewTarget();
+	if (Current == Desired)
+	{
+		return;
+	}
+	// Only take over from the automatic targets. A Blueprint that deliberately views something else
+	// (cinematic camera, minigame view) keeps its choice.
+	if (Current != nullptr && Current != this && Current != Other)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Ctrl] XR mode %s: view target %s -> %s (tracking origin follows the view target's camera parent)."),
+		CurrentXRMode == EXRMode::AR ? TEXT("AR") : TEXT("VR"), *GetNameSafe(Current), *GetNameSafe(Desired));
+	SetViewTarget(Desired);
+}
+
 void APawnController::OnNetCleanup(UNetConnection* Connection)
 {
 	if (Cast<ACharVR>(GetPawn()))

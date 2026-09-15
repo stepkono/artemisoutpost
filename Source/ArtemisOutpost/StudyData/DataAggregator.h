@@ -11,10 +11,14 @@
 /**
  * 
  */
-UCLASS()
+UCLASS(Blueprintable, Category = "Data Manager Subsystem")
 class ARTEMISOUTPOST_API UDataAggregator : public UWorldSubsystem
 {
 	GENERATED_BODY()
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "Data Manager Subsystem")
+	void SetWebSocketManager(AWebsocketManager* WebSocketManager);
 	
 protected:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;

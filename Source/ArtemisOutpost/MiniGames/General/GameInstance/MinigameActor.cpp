@@ -32,6 +32,8 @@ AMinigameActor::AMinigameActor()
 
 	GameConnection = CreateDefaultSubobject<UConnectionComponent>(TEXT("Connection"));
 	PuppetManager  = CreateDefaultSubobject<UMinigamePuppetManagerComponent>(TEXT("PuppetManager"));
+	
+	this->Tags.AddUnique(FName("Blocking"));
 }
 
 void AMinigameActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

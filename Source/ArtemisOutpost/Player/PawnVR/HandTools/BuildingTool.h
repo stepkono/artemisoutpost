@@ -7,6 +7,7 @@
 #include "ArtemisOutpost/MiniGames/Games/SolarPanel/SolarPanel.h"
 #include "Engine/EngineTypes.h"
 #include "ArtemisOutpost/MiniGames/General/MinigameTypes.h"
+#include "ArtemisOutpost/MiniGames/MiniGamePuppet/MinigamePuppet.h"
 #include "BuildingTool.generated.h"
 
 class AMinigameActor;
@@ -49,6 +50,10 @@ public:
 	// AHandToolBase — trigger DOWN while this is the active tool: build at the current aim point.
 	// The BP arc writes ProposedBuildLocation each tick; this just confirms there.
 	virtual void ExecuteAction() override;
+
+	// AHandToolBase — also the owning client's second chance to measure the building bounds, since
+	// possession (and therefore the owning connection) only arrives after BeginPlay.
+	virtual void ActivateTool() override;
 
 	// Geodetic "up" (moon surface normal) at a world position, via the VR-moon georeference.
 	UFUNCTION(BlueprintPure, Category = "Building Tool")
@@ -128,4 +133,15 @@ private:
 	// Persistent smoothed beam for the inertia effect.
 	UPROPERTY(Transient)
 	TArray<FVector> SmoothedPath;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Building Tool")
+	TMap<TSubclassOf<AMinigamePuppet>, EMiniGameType> PuppetClasses;
+	
+	UPROPERTY()
+	TMap<EMiniGameType, FVector> BuildingsBounds;
+
+	// Measures each PuppetClasses archetype once (spawn hidden -> GetActorBounds -> destroy) and
+	// caches the extent under its EMiniGameType. Idempotent and gated on server host / local owner,
+	// so both BeginPlay and ActivateTool can call it unconditionally.
+	void EnsureBuildingBoundsInitialized();
 };

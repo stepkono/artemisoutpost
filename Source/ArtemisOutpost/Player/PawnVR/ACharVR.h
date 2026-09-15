@@ -215,7 +215,11 @@ private:
 	USceneComponent* CachedVROrigin = nullptr;
 	
 	UPROPERTY()
-	bool bXRBaseIsReset = false; 
+	bool bXRBaseIsReset = false;
+
+	// One log line per transition when the Blueprint bIsPossessed flag is true while this pawn is
+	// not the locally controlled view target (AR). See the tilt gate in Tick.
+	bool bTiltSuppressedLogged = false;
 
 	UPROPERTY(Transient)
 	class UCameraComponent* CachedVRCamera = nullptr;

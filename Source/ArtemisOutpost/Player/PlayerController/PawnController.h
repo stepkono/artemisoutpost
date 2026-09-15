@@ -83,8 +83,20 @@ protected:
 	virtual void BeginPlay() override;
 	
 	virtual void OnPossess(APawn* InPawn) override;
-	
+
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
+
+	// Local player only (needs a PlayerInput). Keeps the camera view target consistent with CurrentXRMode.
+	virtual void PlayerTick(float DeltaTime) override;
+
+	// The XR tracking origin is derived from the VIEW TARGET's camera parent
+	// (FXRTrackingSystemBase::ComputeTrackingToWorldTransform). After the first switch to VR the
+	// VR character stays possessed for good, so without this the view target stays on the VR
+	// character in AR too. Its capsule keeps moving (gravity, collisions), the tracking origin moves
+	// with it and the AR moon slides off the physical table during every zoom or map move.
+	// AR: view target = ARPawn (static). VR: view target = VRPawn. Only corrects the two automatic
+	// targets (the other pawn or the controller itself), never a deliberately set camera.
+	void EnforceViewTargetForXRMode();
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = "VR Pawn")
 	void VRPawnInitialized();
