@@ -184,23 +184,20 @@ void UTransformationsManager::Tick(float DeltaTime)
 	const bool bScalingThisFrame = IsNewScaleAvailable();
 	if (bScalingThisFrame)
 	{
-		// The scale pivot must be the tracking-to-world transform the anchors use RIGHT NOW. The copy
-		// cached at anchor seed time goes stale whenever the view target or its camera parent changes
-		// (VR round trip, re-possession). Log cached vs live once per zoom for verification, then
-		// always scale around the live transform.
-		if (XRUtils)
+		// The precompensation in CalcNewTableCenter scales TableCenter around the tracking origin that
+		// UXRUtilsSubsystem cached once at anchor seed (the AR pawn's camera parent, which never moves).
+		// It must NOT be refreshed from the live tracking-to-world transform here: right after a switch
+		// back to AR the view target is still the VR character until the server's possession replicates,
+		// and the live transform would then be the VR character's origin. Diagnostic only, once per zoom.
+		if (XRUtils && !bWasScaling)
 		{
-			if (!bWasScaling)
-			{
-				const FTransform Cached = XRUtils->GetXRTransform();
-				const FTransform Live = UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(GetWorld());
-				const bool bEqual = Cached.GetLocation().Equals(Live.GetLocation(), 1.0f)
-					&& Cached.GetRotation().AngularDistance(Live.GetRotation()) < FMath::DegreesToRadians(0.5f);
-				UE_LOG(LogTemp, Warning, TEXT("[TM][ZoomStart] cachedXR=%s | liveXR=%s | equal=%d | liveWTM=%.2f trackedWTM=%.2f"),
-					*Cached.ToString(), *Live.ToString(), bEqual ? 1 : 0,
-					UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()), BaseWorldScale * CurrentMoonVisualScale);
-			}
-			XRUtils->InitXRTRansform();
+			const FTransform Cached = XRUtils->GetXRTransform();
+			const FTransform Live = UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(GetWorld());
+			const bool bEqual = Cached.GetLocation().Equals(Live.GetLocation(), 1.0f)
+				&& Cached.GetRotation().AngularDistance(Live.GetRotation()) < FMath::DegreesToRadians(0.5f);
+			UE_LOG(LogTemp, Warning, TEXT("[TM][ZoomStart] cachedXR=%s | liveXR=%s | equal=%d | liveWTM=%.2f trackedWTM=%.2f"),
+				*Cached.ToString(), *Live.ToString(), bEqual ? 1 : 0,
+				UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()), BaseWorldScale * CurrentMoonVisualScale);
 		}
 
 		CurrentMoonVisualScale = CalcInterpolatedScale(DeltaTime);

@@ -51,10 +51,59 @@ void UMoonMiniGamesManager::RegisterMinigame(const FMiniGameRecord& Record)
 
 void UMoonMiniGamesManager::UpdateState(const FGuid& MGID, EMinigameState NewState)
 {
-	if (FMiniGameRecord* Record = Buildings.Find(MGID))
+	FMiniGameRecord* Record = Buildings.Find(MGID);
+	if (!Record)
 	{
-		Record->State = NewState;
+		UE_LOG(LogMinigame, Warning, TEXT("[Register] UpdateState(%s -> %s): MGID is not in the registry -> ignored."),
+			*MGID.ToString(EGuidFormats::DigitsWithHyphens), *UEnum::GetValueAsString(NewState));
+		return;
 	}
+
+	if (Record->State == NewState)
+	{
+		return;
+	}
+
+	Record->State = NewState;
+	OnMinigameStateChanged.Broadcast(MGID, Record->Type, NewState);
+}
+
+bool UMoonMiniGamesManager::MarkHabitatActivated(const FGuid& HabitatMGID, const FGuid& ByTowerMGID)
+{
+	FMiniGameRecord* Record = Buildings.Find(HabitatMGID);
+	if (!Record)
+	{
+		UE_LOG(LogMinigame, Error, TEXT("[Activate] tower %s: habitat %s is not in the registry -> nothing activated."),
+			*ByTowerMGID.ToString(EGuidFormats::DigitsWithHyphens), *HabitatMGID.ToString(EGuidFormats::DigitsWithHyphens));
+		return false;
+	}
+	if (Record->Type != EMiniGameType::Habitat)
+	{
+		UE_LOG(LogMinigame, Error, TEXT("[Activate] tower %s: %s is a %s, not a Habitat -> nothing activated."),
+			*ByTowerMGID.ToString(EGuidFormats::DigitsWithHyphens), *HabitatMGID.ToString(EGuidFormats::DigitsWithHyphens),
+			*UEnum::GetValueAsString(Record->Type));
+		return false;
+	}
+
+	FHabitatData* Habitat = Record->MiniGameData.GetMutablePtr<FHabitatData>();
+	if (!Habitat)
+	{
+		UE_LOG(LogMinigame, Error, TEXT("[Activate] tower %s: habitat %s carries no FHabitatData -> nothing activated."),
+			*ByTowerMGID.ToString(EGuidFormats::DigitsWithHyphens), *HabitatMGID.ToString(EGuidFormats::DigitsWithHyphens));
+		return false;
+	}
+
+	if (Habitat->bActivated)
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Activate] tower %s: habitat %s was already activated -> no change."),
+			*ByTowerMGID.ToString(EGuidFormats::DigitsWithHyphens), *HabitatMGID.ToString(EGuidFormats::DigitsWithHyphens));
+		return false;
+	}
+
+	Habitat->bActivated = true;
+	UE_LOG(LogMinigame, Log, TEXT("[Activate] habitat %s ACTIVATED by tower %s."),
+		*HabitatMGID.ToString(EGuidFormats::DigitsWithHyphens), *ByTowerMGID.ToString(EGuidFormats::DigitsWithHyphens));
+	return true;
 }
 
 bool UMoonMiniGamesManager::TryClaimHabitatFor(const FGuid& TowerMGID, const FVector& TowerUELocation, float Radius,
@@ -99,6 +148,14 @@ bool UMoonMiniGamesManager::TryClaimHabitatFor(const FGuid& TowerMGID, const FVe
 			// The habitat actor must override MakeInitialTypeData() to attach an FHabitatData.
 			UE_LOG(LogMinigame, Warning, TEXT("[Claim]   skip %s: Habitat record carries NO FHabitatData payload."),
 				*Pair.Key.ToString(EGuidFormats::DigitsWithHyphens));
+			continue;
+		}
+		if (Record.State != EMinigameState::Completed)
+		{
+			// The foundation has not been levelled yet (Habitat minigame not completed). A tower may only
+			// point at a finished habitat; it retries when this record reaches Completed.
+			UE_LOG(LogMinigame, Warning, TEXT("[Claim]   skip %s: habitat is not levelled yet (state=%s, needs Completed)."),
+				*Pair.Key.ToString(EGuidFormats::DigitsWithHyphens), *UEnum::GetValueAsString(Record.State));
 			continue;
 		}
 		if (Habitat->bActivated)

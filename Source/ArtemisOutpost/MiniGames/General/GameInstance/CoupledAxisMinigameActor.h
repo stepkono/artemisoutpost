@@ -14,13 +14,20 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAxesUpdated, const TArray<FAxisDa
 
 // Reusable "two people, two locked degrees of freedom" minigame actor. Signal Tower (Earth +
 // Habitat) and Habitat (Pitch + Roll) both derive from this. It OWNS the replicated Axes, runs the
-// mechanics (claim/release/rotate + dwell/completion) and holds the coupled-axis rules itself as
-// config properties + overridable GetAxisCount/GetAxisTarget — no separate rules component.
+// mechanics (claim/release/rotate + dwell bookkeeping) and holds the coupled-axis rules itself as
+// config properties + overridable virtuals — no separate rules component.
 //
 // Ownership is EXPLICIT: a participant claims an axis (the selection screen), owns exactly one at a
 // time, and only the owner may rotate it. A second participant can only claim a still-free axis, so
 // the two are coupled one-per-person (§8.6/§8.7). Solo: claim one, align it, claim the other (the
 // first keeps its value) — completion checks all axes regardless of owner.
+//
+// Two policies differ per game and are therefore virtuals with tower-preserving defaults:
+//  - WHEN rotation applies: IsRotationOpen. The tower is always open. The Habitat is open only while
+//    both axes are owned (both players on the rotation screen).
+//  - HOW the task completes: SolvesAxisOnLeave + EvaluateCompletion. The tower judges an axis when
+//    its owner leaves and completes once every axis was left aligned. The Habitat completes from the
+//    server tick once every axis has dwelled in tolerance simultaneously.
 UCLASS(Abstract)
 class ARTEMISOUTPOST_API ACoupledAxisMinigameActor : public AMinigameActor
 {
@@ -57,13 +64,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	bool IsAxisAligned(int32 AxisIndex) const;
 
-	// Permanently finished: a participant left this axis aligned. Never claimable again.
+	// Permanently finished. Never claimable again.
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	bool IsAxisSolved(int32 AxisIndex) const;
 
 	// Every axis solved, i.e. the whole task is done and the minigame is no longer playable.
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	bool AreAllAxesSolved() const;
+
+	// Number of axes that currently have an owner. Two owned axes on a two-axis game means both
+	// participants are on their rotation screen (the View derives that page from ownership).
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	int32 GetOwnedAxisCount() const;
 
 	// Dwell duration, pushed to the screen UI to draw a progress ring from InToleranceTime.
 	UFUNCTION(BlueprintPure, Category = "Minigame")
@@ -74,6 +86,19 @@ public:
 	// completion + alignment, and readable by UI. Base returns 0.
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	virtual float GetAxisTarget(int32 AxisIndex) const;
+
+	// Whether rotation input is currently applied to the axes. Works on every peer from replicated
+	// data, so the client-side gesture can stop sending while closed and the server refuses what still
+	// arrives. OutReason is for the refusal log. Base: always open (the Signal Tower).
+	// Also gates the dwell timers: while closed they are held at zero, so time spent alone never
+	// counts toward a "hold steady" completion.
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	virtual bool IsRotationOpen(FString& OutReason) const;
+
+	// Client-side: maps the fired InputAction to an intent (via InputActionMap) and interprets it —
+	// Rotate turns the axis this player owns (joystick angle -> delta degrees), Release lets it go.
+	// The analog value is read on demand via GetLocalActionValue. Shared by every coupled-axis game.
+	virtual void ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -88,6 +113,25 @@ protected:
 
 	// Number of controllable degrees of freedom.
 	virtual int32 GetAxisCount() const;
+
+	// Whether an axis is judged (and marked solved when aligned) the moment its owner leaves the
+	// minigame. True for the tower, where leaving IS the commit. A game that completes from the tick
+	// (Habitat) returns false so a player stepping out never freezes half the task as solved.
+	virtual bool SolvesAxisOnLeave() const;
+
+	// Server tick hook, called while Active and IsRotationOpen, right after the dwell timers were
+	// refreshed. A game whose completion is time-based decides here and calls OnComplete. Base: empty,
+	// the tower completes on leave instead.
+	virtual void EvaluateCompletion();
+
+	// Server: fired once after any change to an axis' OwnerUPID (claim, release, leave, abort). A
+	// subclass that derives state from ownership (the Habitat phase) recomputes it here. Base: empty.
+	virtual void OnAxisOwnershipChanged();
+
+	// Broadcasts OnAxesUpdated to local subscribers (screen UI) AND pushes the axes to the AR puppet.
+	// Single funnel so the listen host (server-authored changes, no OnRep) and remote clients (OnRep)
+	// both keep UI + puppet in sync. Protected so a subclass that mutates Axes (completion) can notify.
+	void NotifyAxesUpdated();
 
 	// --- Designer tuning (§10) ---
 
@@ -107,20 +151,29 @@ protected:
 	UFUNCTION()
 	void OnRep_UpdateAxes();
 
-private:
-	// Broadcasts OnAxesUpdated to local subscribers (screen UI) AND pushes the axes to the AR puppet.
-	// Single funnel so the listen host (server-authored changes, no OnRep) and remote clients (OnRep)
-	// both keep UI + puppet in sync.
-	void NotifyAxesUpdated();
+	static float NormalizeDeg(float Angle);
+	static float AngularDistanceDeg(float A, float B);
 
+private:
 	// Mechanics (server).
 	void ClaimAxis(const FString& UPID, int32 AxisIndex);
 	void ReleaseAxis(const FString& UPID, int32 AxisIndex);
 	void ReleaseAxesOf(const FString& UPID);
 	void RotateAxis(const FString& UPID, int32 AxisIndex, float DeltaDegrees);
+
+	// Empties every axis owned by UPID WITHOUT firing OnAxisOwnershipChanged. Returns whether anything
+	// changed. ClaimAxis uses it so a re-claim raises the ownership hook once, not twice.
+	bool ClearOwnershipOf(const FString& UPID);
+
 	// Server tick: refreshes InToleranceTime for UI feedback. Does NOT complete the game.
 	void UpdateAlignment(float DeltaTime);
 
-	static float NormalizeDeg(float Angle);
-	static float AngularDistanceDeg(float A, float B);
+	// Server tick while rotation is closed: holds every dwell timer at zero.
+	void ResetDwell();
+
+	// --- Client-side rotate gesture state (per local player; one per client) ---
+	// The joystick "dial" model: delta = change in stick angle since last frame. Reset on release so
+	// the next grab doesn't produce a huge jump.
+	float LastStickAngleDeg = 0.0f;
+	bool bHasLastStickAngle = false;
 };

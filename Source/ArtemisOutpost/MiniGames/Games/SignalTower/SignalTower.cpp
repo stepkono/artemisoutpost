@@ -6,7 +6,10 @@
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/PuppetManagerComponent/MinigamePuppetManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 
-
+ASignalTower::ASignalTower()
+{
+	MiniGameType = EMiniGameType::SignalTower;
+}
 
 void ASignalTower::BeginPlay()
 {
@@ -23,12 +26,14 @@ void ASignalTower::BeginPlay()
 
 	TryClaimTargetHabitat();
 
-	// If no habitat is in range yet, wait for one to be built later and claim it then.
+	// No claimable habitat yet: either none is in range, or the one in range is not levelled yet. Wait
+	// for a habitat to register (built later) or to complete (levelled later) and claim it then.
 	if (!bHasTarget)
 	{
 		if (UMoonMiniGamesManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonMiniGamesManager>() : nullptr)
 		{
 			Manager->OnMinigameRegistered.AddUObject(this, &ASignalTower::HandleMinigameRegistered);
+			Manager->OnMinigameStateChanged.AddUObject(this, &ASignalTower::HandleMinigameStateChanged);
 		}
 	}
 }
@@ -109,15 +114,26 @@ void ASignalTower::HandleMinigameRegistered(UProviderDataBase& ProviderData, con
 	}
 
 	UE_LOG(LogMinigame, Log, TEXT("[Claim] %s: a Habitat registered -> retrying the claim."), *GetName());
-	
-	// TODO: shouldn't the logic be this way? 
-	/*
-	if (!bHasTarget && Record.Type == EMiniGameType::SignalTower)
+
+	TryClaimTargetHabitat();
+}
+
+void ASignalTower::HandleMinigameStateChanged(const FGuid& MiniGameID, EMiniGameType Type, EMinigameState NewState)
+{
+	if (bHasTarget)
 	{
-		TryClaimTargetHabitat();
+		return;
 	}
-	 */
-	
+
+	// Only a habitat that just finished its levelling can turn from unclaimable into claimable.
+	if (Type != EMiniGameType::Habitat || NewState != EMinigameState::Completed)
+	{
+		return;
+	}
+
+	UE_LOG(LogMinigame, Log, TEXT("[Claim] %s: habitat %s reached Completed (levelled) -> retrying the claim."),
+		*GetName(), *MiniGameID.ToString(EGuidFormats::DigitsWithHyphens));
+
 	TryClaimTargetHabitat();
 }
 
@@ -204,94 +220,24 @@ void ASignalTower::OnComplete()
 {
 	Super::OnComplete();
 
+	// The tower is aligned to Earth and to its habitat: that IS the habitat's activation (§8.7).
+	// Registry first, so the flag is already set when BP reacts with score / radius / VFX.
+	if (UMoonMiniGamesManager* Manager = GetWorld() ? GetWorld()->GetSubsystem<UMoonMiniGamesManager>() : nullptr)
+	{
+		if (TargetHabitatMGID.IsValid())
+		{
+			Manager->MarkHabitatActivated(TargetHabitatMGID, GetMGID());
+		}
+		else
+		{
+			UE_LOG(LogMinigame, Error, TEXT("[Activate] %s completed without a claimed habitat (TargetHabitatMGID invalid) -> nothing to activate. CanStart should have refused this."),
+				*GetName());
+		}
+	}
+	else
+	{
+		UE_LOG(LogMinigame, Error, TEXT("[Activate] %s: UMoonMiniGamesManager subsystem not found -> habitat not marked activated."), *GetName());
+	}
+
 	OnTowerActivated();
-}
-
-void ASignalTower::ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent)
-{
-	// Data-driven dispatch: the BP child maps each concrete InputAction asset to an intent type.
-	const EMinigameInputType* Intent = InputActionMap.Find(InputAction);
-	if (!Intent)
-	{
-		return;
-	}
-
-	const FString LocalUPID = GetLocalPlayerUPID();
-
-	switch (*Intent)
-	{
-	case EMinigameInputType::Rotate:
-	{
-		// Rotate the axis THIS player owns (resolved from ownership, so the input layer needs no
-		// axis knowledge). No owned axis -> nothing to turn.
-		const int32 Axis = GetAxisOwnedBy(LocalUPID);
-		if (Axis == INDEX_NONE)
-		{
-			return;
-		}
-
-		// Gesture end (stick released): reset so the next grab starts fresh, no delta jump.
-		if (TriggerEvent == EInputActionType::Completed || TriggerEvent == EInputActionType::Canceled)
-		{
-			bHasLastStickAngle = false;
-			return;
-		}
-		if (TriggerEvent != EInputActionType::Triggered)
-		{
-			return;
-		}
-
-		// Read the current stick from the local player's Enhanced Input. Deadzone is already applied
-		// by the action's EnhancedInput modifier -> a centered stick reads ~zero.
-		const FVector2D Stick = GetLocalActionValue(InputAction);
-		if (Stick.IsNearlyZero())
-		{
-			bHasLastStickAngle = false;
-			return;
-		}
-
-		// Dial model: delta = change in the stick's angle since last frame (circle the stick to turn).
-		const float CurrentAngle = FMath::RadiansToDegrees(FMath::Atan2(Stick.Y, Stick.X));
-		if (!bHasLastStickAngle)
-		{
-			LastStickAngleDeg = CurrentAngle;
-			bHasLastStickAngle = true;
-			return; // first frame of the gesture: set the reference, emit no delta yet
-		}
-
-		const float Delta = FMath::FindDeltaAngleDegrees(LastStickAngleDeg, CurrentAngle);
-		LastStickAngleDeg = CurrentAngle;
-
-		FMinigameInput In;
-		In.Type = EMinigameInputType::Rotate;
-		In.AxisIndex = Axis;
-		In.Delta = Delta;
-		SubmitInput(In);
-		break;
-	}
-
-	case EMinigameInputType::ReleaseAxis:
-	{
-		if (TriggerEvent != EInputActionType::Started)
-		{
-			return;
-		}
-		const int32 Axis = GetAxisOwnedBy(LocalUPID);
-		if (Axis == INDEX_NONE)
-		{
-			return;
-		}
-		FMinigameInput In;
-		In.Type = EMinigameInputType::ReleaseAxis;
-		In.AxisIndex = Axis;
-		SubmitInput(In);
-		break;
-	}
-
-	case EMinigameInputType::ClaimAxis:
-		// Claim needs an explicit TARGET axis (which one to grab) -> that comes from the axis-selection
-		// screen (widget), which calls SubmitInput with the chosen index. A generic input action can't
-		// carry "which axis", so it is not handled here.
-		break;
-	}
 }

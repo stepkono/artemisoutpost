@@ -322,6 +322,10 @@ void AMinigameActor::OnParticipantLeft(const FString& UPID)
 {
 }
 
+void AMinigameActor::OnStateChangedNative(EMinigameState NewState)
+{
+}
+
 // ---- State machine ----
 
 void AMinigameActor::SetState(EMinigameState NewState)
@@ -341,6 +345,10 @@ void AMinigameActor::OnRep_State()
 
 void AMinigameActor::HandleStateChanged()
 {
+	// Subclass first, so a derived sub-state (e.g. the Habitat phase) is already consistent when the
+	// delegate below wakes the View and the puppet.
+	OnStateChangedNative(State);
+
 	OnStateChanged.Broadcast();
 	// TODO: check what should be server side and what should be client side only
 	

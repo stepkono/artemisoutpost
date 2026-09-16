@@ -110,6 +110,12 @@ protected:
 	virtual void OnParticipantJoined(const FString& UPID);
 	virtual void OnParticipantLeft(const FString& UPID);
 
+	// Runs on EVERY peer right after State changed (server: from SetState, clients: from OnRep), before
+	// the local View and the puppet are refreshed. OnStart/OnAbort are not enough for a subclass that
+	// derives its own sub-state from State: OnAbort fires BEFORE the flip to Idle, so a subclass reading
+	// State inside it still sees Active. Base does nothing.
+	virtual void OnStateChangedNative(EMinigameState NewState);
+
 	// JSON snapshot for bridge/logging. Base emits state + participants; subclasses call Super.
 	virtual TSharedRef<class FJsonObject> BuildSnapshot() const;
 

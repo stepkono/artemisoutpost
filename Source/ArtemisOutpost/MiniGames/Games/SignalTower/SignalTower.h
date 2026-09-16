@@ -33,13 +33,8 @@ protected:
 	virtual void SyncPuppet() override;
 	virtual EMiniGameType GetBuildingType() const override { return EMiniGameType::SignalTower; }
 
-	// Client-side: maps the fired InputAction to an intent (via InputActionMap) and interprets it —
-	// Rotate turns the axis this player owns (joystick angle -> delta degrees), Release lets it go.
-	// The analog value is read on demand via GetLocalActionValue.
-	virtual void ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent) override;
-
-	// Fired server-side when both axes are aligned. BP hooks habitat activation, score,
-	// influence-radius growth, VFX.
+	// Fired server-side when both axes are aligned. The claimed habitat was already marked activated
+	// in the registry at this point. BP hooks score, influence-radius growth, VFX.
 	UFUNCTION(BlueprintImplementableEvent, Category = "Signal Tower")
 	void OnTowerActivated();
 
@@ -48,13 +43,17 @@ protected:
 	float SignalRadius = 5000.0f;
 
 private:
-	// Server: try to claim the nearest free habitat in range and derive the habitat target bearing.
-	// Sets bHasTarget + HabitatTargetDeg on success. Called at BeginPlay and when a new habitat
-	// registers (in case the habitat is built after this tower).
+	// Server: try to claim the nearest LEVELLED free habitat in range and derive the habitat target
+	// bearing. Sets bHasTarget + HabitatTargetDeg on success. Called at BeginPlay, when a habitat
+	// registers, and when a habitat reaches Completed (only a levelled habitat is claimable, so a
+	// tower built before the levelling finished has to retry then).
 	void TryClaimTargetHabitat();
 
 	// Server: reaction to a newly registered building (bound only while we have no target yet).
 	void HandleMinigameRegistered(UProviderDataBase& ProviderData, const EGameEventType GameEvent);
+
+	// Server: reaction to a building changing lifecycle state (bound only while we have no target yet).
+	void HandleMinigameStateChanged(const FGuid& MiniGameID, EMiniGameType Type, EMinigameState NewState);
 
 	// Bearing (deg, 0 = local forward, CW around up) from this tower to a world location, projected
 	// onto the surface tangent plane.
@@ -78,10 +77,4 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_HabitatTarget)
 	float HabitatTargetDeg = 0.0f;
-
-	// --- Client-side rotate gesture state (per local player; one per client) ---
-	// The joystick "dial" model: delta = change in stick angle since last frame. Reset on release so
-	// the next grab doesn't produce a huge jump.
-	float LastStickAngleDeg = 0.0f;
-	bool bHasLastStickAngle = false;
 };

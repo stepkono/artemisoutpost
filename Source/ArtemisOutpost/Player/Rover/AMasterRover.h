@@ -41,6 +41,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "GeoRefsManager")
 	void SetGeoRefsManager(AGeoRefsManager* InManager); 
 	
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Master Rover")
+	FTransform GetVRCharTargetTransform(); 
+	
 private: 
 	UFUNCTION()
 	void HandleControls(FControlCommand& ControlCommand); 

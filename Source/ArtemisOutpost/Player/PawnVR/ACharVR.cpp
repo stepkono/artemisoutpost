@@ -16,6 +16,7 @@
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/Player/PlayerController/PawnController.h"
 #include "EnhancedInputComponent.h"
+#include "ArtemisOutpost/Moon/Cesium/GeoTools/GeoUtils.h"
 #include "ToolsHUD/ToolsHUDComponent.h"
 #include "ControllerRays/ControllerRayComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -58,7 +59,7 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
+	//etIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
@@ -167,6 +168,39 @@ void ACharVR::Tick(float DeltaTime)
 			}
 		}
 		bXRBaseIsReset = true;
+	}
+	
+	if (!ARPuppet || !GeoRefsManager)
+	{
+		return;
+	}
+	// ---- Drive the puppet (client) ----
+	// Map the master's geodetic location on the VR moon onto the AR moon, and transfer its pose
+	// through the local surface frame (N/E/U) at that lat/long
+	if (!HasAuthority())
+	{
+		const FVector MasterWorld         = GetActorLocation();
+		const FVector MasterGeoPosition   = GeoRefsManager->UECoordsToVRMoonCoords(MasterWorld);       // world -> VR-moon LLH
+		const FVector PuppetWorldPosition = GeoRefsManager->ARMoonCoordsToUECoords(MasterGeoPosition); // LLH -> AR-moon world
+
+		auto SurfaceQuatWorld = [](ACesiumGeoreference* Geo, const FVector& GeoPos) -> FQuat
+		{
+			const FMatrix LocalBasis = UGeoUtils::GetLocalSpatialReferenceFrame(GeoPos, Geo);
+			return Geo->GetActorQuat() * LocalBasis.ToQuat();
+		};
+
+		const FQuat MasterQuat = GetActorQuat();
+		const FQuat VRSurface  = SurfaceQuatWorld(GeoRefsManager->GetVRMoon(), MasterGeoPosition);
+		const FQuat ARSurface  = SurfaceQuatWorld(GeoRefsManager->GetARMoon(), MasterGeoPosition);
+
+		const FQuat MasterPoseRelToSurface = VRSurface.Inverse() * MasterQuat;    // heading/tilt vs the ground
+		const FQuat PuppetWorldOrientation = ARSurface * MasterPoseRelToSurface;  // same ground-relative pose on AR moon
+
+		// Refuse to push non-finite values into the puppet (would make it vanish / corrupt movement).
+		if (!MasterWorld.ContainsNaN() && !MasterGeoPosition.ContainsNaN() && !PuppetWorldPosition.ContainsNaN() && !PuppetWorldOrientation.ContainsNaN())
+		{
+			ARPuppet->SetActorLocationAndRotation(PuppetWorldPosition, PuppetWorldOrientation);
+		}
 	}
 }
 
