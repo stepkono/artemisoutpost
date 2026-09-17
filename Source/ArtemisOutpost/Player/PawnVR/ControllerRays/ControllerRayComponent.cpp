@@ -46,14 +46,6 @@ void UControllerRayComponent::TickComponent(float DeltaTime, ELevelTick TickType
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// Local player only. On a networked client possession lands AFTER BeginPlay, so setup is deferred
-	// to the first tick where local control is actually established. Proxies / server early-out cheaply.
-	const APawn* Pawn = Cast<APawn>(GetOwner());
-	if (!Pawn || !Pawn->IsLocallyControlled())
-	{
-		return;
-	}
-
 	if (!bSetupDone && !EnsureSetup())
 	{
 		return;

@@ -165,7 +165,12 @@ private:
 	// changed. ClaimAxis uses it so a re-claim raises the ownership hook once, not twice.
 	bool ClearOwnershipOf(const FString& UPID);
 
-	// Server tick: refreshes InToleranceTime for UI feedback. Does NOT complete the game.
+	// Server tick: recomputes every axis' bAligned from Value vs GetAxisTarget within AxisToleranceDeg.
+	// Runs in every state (an Idle building still shows whether it is on target). Returns whether any
+	// flag flipped, so the caller can notify local subscribers; clients get it through replication.
+	bool RefreshAlignmentFlags();
+
+	// Server tick: refreshes InToleranceTime for UI feedback from bAligned. Does NOT complete the game.
 	void UpdateAlignment(float DeltaTime);
 
 	// Server tick while rotation is closed: holds every dwell timer at zero.

@@ -21,34 +21,59 @@ enum class EMinigameAxisUIScreen : uint8
 	Completed     UMETA(DisplayName = "Completed")
 };
 
-// One selectable axis on the selection screen.
-// Named with the Minigame prefix because plain "FAxisOption" collides with the engine's animation
-// type (Engine/Public/Animation/AnimTypes.h) — same reason EMiniGameType is not "EBuildingType".
+// Everything the View knows about ONE axis, ready to draw. Built from the replicated FAxisData plus
+// the local player's identity, so the Blueprint never compares UPIDs or angles itself. The same
+// struct feeds both pages: the selection page reads Label / bEnabled / bOwnedByLocal / bSolved /
+// DisabledReason, the rotation page reads ValueDeg / SignedDeg / DwellProgress / bAligned.
+// Named with the Minigame prefix because plain "FAxisView" style names collide with engine types.
 USTRUCT(BlueprintType)
-struct FMinigameAxisOption
+struct FMinigameAxisView
 {
 	GENERATED_BODY()
 
-	// Index to send with a ClaimAxis intent. Equals the position in the model's Axes array.
+	// Position in the model's Axes array. Send this with a ClaimAxis intent.
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
 	int32 AxisIndex = INDEX_NONE;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
 	FText Label;
 
-	// False = not selectable. Draw greyed out. Cannot be highlighted or confirmed. Either held by
-	// another participant, or already solved — DisabledReason says which.
-	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
-	bool bEnabled = true;
+	// --- Rotation page ---
 
-	// Already owned by the local player.
+	// REPLICATED angle 0..360, never a local stick prediction, so both players see the same ring.
+	// Feed it straight into URadialWidget::SetAngle.
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
+	float ValueDeg = 0.0f;
+
+	// The same angle unwound to -180..180 (0 = target for a levelling game). For tilt meshes and the
+	// Habitat's level bubble.
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
+	float SignedDeg = 0.0f;
+
+	// 0..1 fraction of the in-tolerance hold. 0 while the game's rotation gate is closed.
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
+	float DwellProgress = 0.0f;
+
+	// SERVER verdict: within the actor's AxisToleranceDeg. Colour the ring from this, never from
+	// the angle. The tolerance is tuned in one place, on the actor BP.
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
+	bool bAligned = false;
+
+	// --- Both pages ---
+
+	// Held by the local player. On the rotation page this is "my" ring.
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
 	bool bOwnedByLocal = false;
 
-	// Permanently finished. Style it as done (a tick, green), not as blocked, even though it is
-	// disabled like a taken axis.
+	// Permanently finished. Style as done (tick, green), not as blocked.
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
 	bool bSolved = false;
+
+	// --- Selection page ---
+
+	// False = not selectable, draw greyed out. Held by another participant or already solved.
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
+	bool bEnabled = true;
 
 	// Why this option is disabled. Show it on the button.
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame UI")
@@ -59,12 +84,14 @@ struct FMinigameAxisOption
  * C++ View base shared by every coupled-axis game (USignalTowerUI, UHabitatUI). Owns all selection
  * logic — the option list, which options are greyed out, the highlight (incl. auto-preselecting the
  * only viable axis), joystick navigation, the ClaimAxis intent and which page the WidgetSwitcher
- * shows. Concrete Views add their game-specific read-outs on top (the tower has none, the Habitat
- * adds the shared level bubble and the partner presence).
+ * shows — and hands the Blueprint ready-to-draw data per PAGE.
  *
- * Each BP event below has ONE job and fires ONLY when its own data actually changed. A pure
- * rotation tick therefore raises OnRotationUpdated and nothing else — the option list and the page
- * switch stay silent. That change check is what keeps separate events cheap instead of noisy.
+ * Blueprint events are grouped by the page they feed and each fires ONLY when the data it carries
+ * actually changed:
+ *   OnScreenChanged                 which page is up
+ *   OnSelection*                    the axis-selection page (list, frame, press feedback)
+ *   OnRotationAxesUpdated           the rotation page (angles, dwell, aligned, ownership)
+ * A pure rotation tick therefore raises OnRotationAxesUpdated and nothing else.
  */
 UCLASS(Abstract, BlueprintType, Blueprintable)
 class ARTEMISOUTPOST_API UCoupledAxisMinigameUI : public UMiniGameUI
@@ -90,6 +117,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame UI")
 	EMinigameAxisUIScreen GetCurrentScreen() const { return CurrentScreen; }
 
+	// Latest per-axis view data, same content the events carry. For BP code that runs outside an event.
+	UFUNCTION(BlueprintPure, Category = "Minigame UI")
+	const TArray<FMinigameAxisView>& GetAxisViews() const { return AxisViews; }
+
+	// The axis the local player holds. Returns false (and a default struct) when none is held.
+	UFUNCTION(BlueprintPure, Category = "Minigame UI")
+	bool GetOwnAxis(FMinigameAxisView& OutAxis) const;
+
 protected:
 	virtual void HandleAxesUpdated(const TArray<FAxisData>& InAxes) override;
 	virtual void HandleStateChanged(EMinigameState NewState) override;
@@ -99,33 +134,34 @@ protected:
 	// on the initial broadcast, so the BP gets one full set of events on open.
 	virtual void BroadcastGameSpecific(bool bFirst) {}
 
-	// ---- View hooks. One job each. Implement in the WBP child. ----
+	// ---- View hooks. Implement in the WBP child. ----
 
 	// PAGE. Fires only when the WidgetSwitcher must show a different page.
 	// Rare: on open, on claim, on completion.
 	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI")
 	void OnScreenChanged(EMinigameAxisUIScreen NewScreen);
 
-	// SELECTION LIST. Fires only when an option's label, availability or ownership changed, i.e.
-	// when someone claims or releases an axis. NOT on rotation.
-	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI")
-	void OnAxisOptionsChanged(const TArray<FMinigameAxisOption>& Options);
+	// SELECTION PAGE, list content. Fires only when an option's availability, ownership or solved
+	// state changed, i.e. when someone claims or releases an axis or an axis gets solved. NOT on
+	// rotation. Rebuild the buttons from Label / bEnabled / bOwnedByLocal / bSolved / DisabledReason.
+	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI|Selection Page")
+	void OnSelectionOptionsChanged(const TArray<FMinigameAxisView>& Axes);
 
-	// SELECTION FRAME. Fires only when the highlighted entry moved (stick flick, or auto-preselect
-	// when the other player takes an option). OldIndex == -1 means there was no previous highlight.
-	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI")
-	void OnHighlightChanged(int32 NewIndex, int32 OldIndex);
+	// SELECTION PAGE, frame. Fires only when the highlighted entry moved (stick flick, or
+	// auto-preselect when the other player takes an option). OldIndex == -1 means no previous highlight.
+	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI|Selection Page")
+	void OnSelectionHighlightChanged(int32 NewIndex, int32 OldIndex);
 
-	// ROTATION. Fires only while this player owns an axis and its angle or dwell changed.
-	// ValueDeg is the REPLICATED angle 0..360, never a local stick prediction, so both players see
-	// the same ring. Feed it straight into URadialWidget::SetAngle.
-	// DwellProgress is the 0..1 in-tolerance hold fraction.
-	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI")
-	void OnRotationUpdated(int32 AxisIndex, float ValueDeg, float DwellProgress);
+	// SELECTION PAGE, press feedback. One-shot. bWasEnabled == false means play a "denied" bump.
+	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI|Selection Page")
+	void OnSelectionConfirmed(int32 Index, bool bWasEnabled);
 
-	// PRESS FEEDBACK. One-shot. bWasEnabled == false means play a "denied" bump instead of a press.
-	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI")
-	void OnAxisOptionConfirmed(int32 Index, bool bWasEnabled);
+	// ROTATION PAGE. Fires whenever any axis' ValueDeg, DwellProgress, bAligned or bOwnedByLocal
+	// changed, with ALL axes, so a shared read-out (the Habitat's level bubble) and the own ring are
+	// drawn from one call. Typical BP: find the entry with bOwnedByLocal (or call GetOwnAxis),
+	// SetAngle(ValueDeg) on the radial widget, SetFillColor(green if bAligned).
+	UFUNCTION(BlueprintImplementableEvent, Category = "Minigame UI|Rotation Page")
+	void OnRotationAxesUpdated(const TArray<FMinigameAxisView>& Axes);
 
 	// ---- Designer-editable content ----
 
@@ -158,28 +194,24 @@ protected:
 	// ---- Read access for concrete Views ----
 
 	const TArray<FAxisData>& GetCachedAxes() const { return CachedAxes; }
-	const TArray<FMinigameAxisOption>& GetAxisOptions() const { return AxisOptions; }
 	EMinigameState GetCachedState() const { return CachedState; }
-
-	// 0..1 dwell fraction of an axis from the cached data. 0 when unknown.
-	float GetDwellProgress(int32 AxisIndex) const;
 
 private:
 	// Recompute everything from CachedAxes + CachedState, then raise only the events whose data moved.
 	void Refresh();
 
-	// Rebuild the option list and re-place the highlight. Raises nothing.
-	void RebuildOptions();
+	// Rebuild AxisViews and re-place the highlight. Raises nothing.
+	void RebuildAxisViews();
 
 	// Derive the active page. Raises nothing.
 	void UpdateScreen();
 
-	// Raise OnRotationUpdated if the owned axis' angle or dwell moved. Silent when nothing is owned.
-	void BroadcastRotation();
+	// True when the selection page would render identically (labels are static, so only the fields it
+	// reads are compared).
+	static bool SelectionEqual(const TArray<FMinigameAxisView>& A, const TArray<FMinigameAxisView>& B);
 
-	// True when the two lists would render identically (labels are static, so only the mutable
-	// fields are compared).
-	static bool OptionsEqual(const TArray<FMinigameAxisOption>& A, const TArray<FMinigameAxisOption>& B);
+	// True when the rotation page would render identically.
+	static bool RotationEqual(const TArray<FMinigameAxisView>& A, const TArray<FMinigameAxisView>& B);
 
 	// First ENABLED option at or after StartIndex walking in Dir (wraps). INDEX_NONE if none exists,
 	// which is what keeps the highlight off a greyed-out axis.
@@ -192,7 +224,7 @@ private:
 	EMinigameState CachedState = EMinigameState::Idle;
 
 	UPROPERTY(Transient)
-	TArray<FMinigameAxisOption> AxisOptions;
+	TArray<FMinigameAxisView> AxisViews;
 
 	int32 HighlightIndex = INDEX_NONE;
 
@@ -201,11 +233,6 @@ private:
 	// False until the first Refresh, so the view gets one full set of events on open even where the
 	// computed value happens to equal the default.
 	bool bInitialBroadcastDone = false;
-
-	// Last values handed to OnRotationUpdated, so a repeated identical update stays silent.
-	int32 LastRotationAxis = INDEX_NONE;
-	float LastRotationValue = 0.0f;
-	float LastRotationDwell = 0.0f;
 
 	// Time (seconds) of the last highlight step, for auto-repeat timing. Very negative = ready now.
 	float LastNavStepTime = -1000.0f;

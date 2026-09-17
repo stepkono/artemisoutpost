@@ -213,6 +213,7 @@ void UConnectionLifecycleSubsystem::ReportHmdState(bool bWorn)
 	if (APawnController* PawnPC = Cast<APawnController>(PC))
 	{
 		PawnPC->ServerReportHmdState(bWorn);
+		PawnPC->ShouldActivateVRCharPuppet(bWorn);
 	}
 	else
 	{

@@ -31,8 +31,17 @@ public:
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Minigame")
 	void ServerRequestEnter(AMinigameActor* Target);
 
+	// Carries the target because ActiveTarget lives only on the owning client and never replicates, so
+	// the server has to be told which actor to leave. Call RequestLeave() instead of this directly.
 	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Minigame")
 	void ServerRequestLeave(AMinigameActor* Target);
+
+	// Leave the minigame this player is currently in. Client-side entry point, no parameters: uses
+	// ActiveTarget and forwards it to ServerRequestLeave. The View then closes on its own once the
+	// replicated slot change runs AMinigameActor::RefreshLocalUI -> CloseUI. Logs and does nothing
+	// when no minigame is open.
+	UFUNCTION(BlueprintCallable, Category = "Minigame")
+	void RequestLeave();
 
 	// Unreliable: input is high-frequency and a dropped step is self-correcting.
 	UFUNCTION(BlueprintCallable, Server, Unreliable, Category = "Minigame")

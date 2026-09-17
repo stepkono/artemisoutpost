@@ -80,9 +80,18 @@ struct FAxisData
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
 	float Value = 0.0f;
 
-	// Seconds this axis has continuously been within tolerance (server-driven dwell).
+	// Seconds this axis has continuously been within tolerance (server-driven dwell). Only accumulates
+	// while the game's rotation gate is open, so it can read 0 for an axis that IS aligned (Habitat
+	// waiting for its partner). Use bAligned for the "is it on target" question.
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
 	float InToleranceTime = 0.0f;
+
+	// Server verdict: |Value - target| is within the actor's AxisToleranceDeg. The View and the puppet
+	// colour the ring from THIS flag instead of comparing angles themselves, so the tunable tolerance
+	// lives in exactly one place (the actor BP) and every peer shows the same verdict. Refreshed every
+	// server tick, replicated on change.
+	UPROPERTY(BlueprintReadOnly, Category = "Minigame")
+	bool bAligned = false;
 
 	// UPID that exclusively controls this axis. Empty = any participant may (the solo case).
 	UPROPERTY(BlueprintReadOnly, Category = "Minigame")

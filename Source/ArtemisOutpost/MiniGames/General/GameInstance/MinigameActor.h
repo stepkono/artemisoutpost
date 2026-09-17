@@ -175,6 +175,10 @@ private:
 	void RefreshLocalUI();
 	bool bLocalUIOpen = false;
 
+	// Last (near, canConnect) pair as a bitmask, so Tick logs the prompt decision only when one of its
+	// inputs flips. 0xFF = never evaluated, which forces one line on the first tick.
+	uint8 LastPromptInputs = 0xFF;
+
 	bool IsPlayerNear();
 
 	// Local player's controller, cached (re-resolved only if it becomes null).

@@ -33,28 +33,40 @@ void APawnController::BeginPlay()
 	// GameInstance value. Only the client reads its identity from its local save/GameInstance.
 	if (!ArtemisNet::IsClientContext(GetNetMode()))
 	{
+		UE_LOG(LogMinigame, Log, TEXT("[UPID] %s (%s): server-side controller, identity comes from the ?UPID= login option (currently '%s')."),
+			*GetName(), ArtemisNet::RoleName(GetNetMode()), *UPID);
 		return;
 	}
 
 	const UArtemisGameInstance* GI = Cast<UArtemisGameInstance>(GetGameInstance());
 	if (!GI)
 	{
-		UE_LOG(LogTemp, Error, TEXT("PawnController: GameInstance is not a UArtemisGameInstance."));
+		UE_LOG(LogMinigame, Error, TEXT("[UPID] %s (%s): GameInstance is not a UArtemisGameInstance -> this client has NO identity. Every minigame join from here will be refused."),
+			*GetName(), ArtemisNet::RoleName(GetNetMode()));
 		return;
 	}
 
 	const FString CachedUPID = GI->GetUPID();
 	if (CachedUPID.IsEmpty())
 	{
-		UE_LOG(LogTemp, Error, TEXT("PawnController: UPID returned empty string."));
+		UE_LOG(LogMinigame, Error, TEXT("[UPID] %s (%s): GameInstance returned an EMPTY UPID -> this client has NO identity. RefreshLocalUI can never match a slot, so no minigame View will ever open here."),
+			*GetName(), ArtemisNet::RoleName(GetNetMode()));
 		return;
 	}
 
 	UPID = CachedUPID;
+
+	// The value the server holds for this player comes from the ?UPID= login option, which the
+	// client passes on connect. If THIS value and the server's [UPID] line for the same player differ,
+	// the server grants slots to a name this client never compares against -> the View never opens.
+	UE_LOG(LogMinigame, Log, TEXT("[UPID] %s (%s): local identity from GameInstance = '%s'. Must equal the ?UPID= the server logged for this player."),
+		*GetName(), ArtemisNet::RoleName(GetNetMode()), *UPID);
 }
 
 void APawnController::SetUPID(const FString& InUPID)
 {
+	UE_LOG(LogMinigame, Log, TEXT("[UPID] %s (%s): identity set to '%s' (was '%s')."),
+		*GetName(), ArtemisNet::RoleName(GetNetMode()), *InUPID, *UPID);
 	UPID = InUPID;
 }
 
@@ -233,4 +245,17 @@ void APawnController::OnNetCleanup(UNetConnection* Connection)
 	}
 	
 	Super::OnNetCleanup(Connection);
+}
+
+void APawnController::ShouldActivateVRCharPuppet(bool bShouldActivate) const
+{
+	if (!VRPawn)
+	{
+		return; 
+	}
+	
+	if (CurrentXRMode == VR)
+	{
+		VRPawn->ShouldActivateARPuppet(bShouldActivate); 	
+	}
 }

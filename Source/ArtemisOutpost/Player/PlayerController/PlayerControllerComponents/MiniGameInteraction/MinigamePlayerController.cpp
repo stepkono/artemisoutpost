@@ -6,6 +6,7 @@
 #include "ArtemisOutpost/MiniGames/MiniGameComponents/ConnectionComponent/ConnectionComponent.h"
 #include "ArtemisOutpost/MiniGames/General/GameInstance/MinigameActor.h"
 #include "ArtemisOutpost/MiniGames/General/GameInstance/CoupledAxisMinigameActor.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedPlayerInput.h"
 
@@ -41,10 +42,28 @@ void UMinigamePlayerController::ServerRequestEnter_Implementation(AMinigameActor
 		return;
 	}
 
-	UE_LOG(LogMinigame, Log, TEXT("[Enter] '%s' requests to enter %s (state=%s). Handing over to the connection."),
-		*GetPlayerUPID(), *Target->GetName(), *UEnum::GetValueAsString(Target->GetState()));
+	// This is the SERVER's UPID for the requesting connection (from the ?UPID= login option), not the
+	// value the client printed in its own [Prompt] CLICK line. The two must match.
+	UE_LOG(LogMinigame, Log, TEXT("[Enter] (%s) '%s' requests to enter %s (state=%s, owner controller=%s). Handing over to the connection."),
+		ArtemisNet::RoleName(GetNetMode()), *GetPlayerUPID(), *Target->GetName(),
+		*UEnum::GetValueAsString(Target->GetState()), *GetNameSafe(GetOwner()));
 
 	Connection->ServerRequestJoin(GetPlayerUPID());
+}
+
+void UMinigamePlayerController::RequestLeave()
+{
+	if (!ActiveTarget)
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Leave] '%s' asked to leave but is in no minigame on this client (ActiveTarget is null) -> nothing sent."),
+			*GetPlayerUPID());
+		return;
+	}
+
+	UE_LOG(LogMinigame, Log, TEXT("[Leave] '%s' leaves %s -> sending ServerRequestLeave. The View closes once the slot change replicates back."),
+		*GetPlayerUPID(), *ActiveTarget->GetName());
+
+	ServerRequestLeave(ActiveTarget);
 }
 
 void UMinigamePlayerController::ServerRequestLeave_Implementation(AMinigameActor* Target)
@@ -72,10 +91,13 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 {
 	if (ActiveView)
 	{
+		UE_LOG(LogMinigame, Warning, TEXT("[View] OpenUI for %s while a View for %s is still open -> closing the old one first."),
+			*GetNameSafe(Target), *GetNameSafe(ActiveTarget));
 		CloseUI();
 	}
 	if (!Target)
 	{
+		UE_LOG(LogMinigame, Error, TEXT("[View] OpenUI called with a null target -> nothing opened."));
 		return;
 	}
 
@@ -83,16 +105,25 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 
 	APlayerController* PC = Cast<APlayerController>(GetOwner());
 	const TSubclassOf<UMiniGameUI> WidgetClass = Target->GetMiniGameUIClass();
-	if (!PC || !WidgetClass)
+	if (!PC)
 	{
+		UE_LOG(LogMinigame, Error, TEXT("[View] %s: this component's owner is not an APlayerController -> cannot create the View."), *Target->GetName());
+		return;
+	}
+	if (!WidgetClass)
+	{
+		UE_LOG(LogMinigame, Error, TEXT("[View] %s: MiniGameUIClass is unset on the actor BP -> nothing to open. The slot IS granted, only the screen stays empty."), *Target->GetName());
 		return;
 	}
 
 	ActiveView = CreateWidget<UMiniGameUI>(PC, WidgetClass);
 	if (!ActiveView)
 	{
+		UE_LOG(LogMinigame, Error, TEXT("[View] %s: CreateWidget(%s) returned null."), *Target->GetName(), *WidgetClass->GetName());
 		return;
 	}
+
+	UE_LOG(LogMinigame, Log, TEXT("[View] %s: created %s for local '%s'."), *Target->GetName(), *WidgetClass->GetName(), *GetPlayerUPID());
 
 	ActiveView->LocalUPID = GetPlayerUPID();
 	if (const ACoupledAxisMinigameActor* Coupled = Cast<ACoupledAxisMinigameActor>(Target))
@@ -120,15 +151,16 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 	}
 	if (VRPawn)
 	{
+		UE_LOG(LogMinigame, Log, TEXT("[View] %s: handing the View to %s (world-space holder)."), *Target->GetName(), *VRPawn->GetName());
 		VRPawn->ShowMinigameView(ActiveView);
-		bMiniGameActive = true; 
+		bMiniGameActive = true;
 	}
 	else
 	{
 		// No VR pawn resolved -> screen-space fallback (glued to the view, ignores the world-space
 		// holder). If you see the HUD stuck to your face and moving the Minigame_View component does
 		// nothing, THIS is why: GetVRPawn() returned null.
-		UE_LOG(LogTemp, Warning, TEXT("[Minigame] OpenUI: GetVRPawn() is null -> screen-space fallback (world-space HUD holder not used)."));
+		UE_LOG(LogMinigame, Warning, TEXT("[View] %s: GetVRPawn() is null on the owning controller -> screen-space fallback (AddToViewport). In the HMD this may be invisible."), *Target->GetName());
 		ActiveView->AddToViewport();
 	}
 
@@ -145,6 +177,8 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 
 void UMinigamePlayerController::CloseUI()
 {
+	UE_LOG(LogMinigame, Log, TEXT("[View] CloseUI for %s (view=%s)."), *GetNameSafe(ActiveTarget), *GetNameSafe(ActiveView));
+
 	if (ActiveTarget)
 	{
 		ActiveTarget->OnStateChanged.RemoveDynamic(this, &UMinigamePlayerController::HandleModelStateChanged);
@@ -239,6 +273,10 @@ void UMinigamePlayerController::SubmitEnterAction()
 {
 	if (!ActiveView)
 	{
+		// BP_VRChar routed the trigger in MiniGameMode, but no View is open on this client. Either the
+		// trigger mode is stale, or the join never reached this client (see [View] / [Slots]).
+		UE_LOG(LogMinigame, Warning, TEXT("[View] SubmitEnterAction: trigger arrived in minigame mode but no View is open on this client (target=%s)."),
+			*GetNameSafe(ActiveTarget));
 		return;
 	}
 
@@ -249,10 +287,7 @@ void UMinigamePlayerController::SubmitEnterAction()
 		// connection frees the slot, the actor releases this player's axis (values are kept), and
 		// once the last participant is gone the actor judges the result. The View closes on its own,
 		// because the replicated slot change runs AMinigameActor::RefreshLocalUI -> CloseUI.
-		if (ActiveTarget)
-		{
-			ServerRequestLeave(ActiveTarget);
-		}
+		RequestLeave();
 		break;
 
 	case EMiniGameUIAction::Handled:

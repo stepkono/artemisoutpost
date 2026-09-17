@@ -79,6 +79,8 @@ public:
 	
 	void SetIsPlayingMiniGame(const bool IsInGame);
 	
+	void ShouldActivateVRCharPuppet(bool bShouldActivate) const; 
+	
 protected: 
 	virtual void BeginPlay() override;
 	

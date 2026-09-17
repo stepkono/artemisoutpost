@@ -129,5 +129,5 @@ void UGeoUtils::AlignNormalWithSurface(AActor* ActorToAlign, ACesiumGeoreference
 	// that normal so the capsule stands upright on the tilted surface, then apply it to the actor.
 	const FVector SurfaceUp = (ActorToAlign->GetActorLocation() - ReferenceMoon->GetActorLocation()).GetSafeNormal();
 	const FRotator NewRotation = FRotationMatrix::MakeFromZ(SurfaceUp).Rotator();
-	ActorToAlign->SetActorRotation(NewRotation);
+	ActorToAlign->SetActorRotation(NewRotation, ETeleportType::TeleportPhysics);
 }

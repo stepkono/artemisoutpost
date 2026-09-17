@@ -32,6 +32,20 @@ namespace ArtemisNet
 	{
 		return NetMode == NM_Client || NetMode == NM_Standalone;
 	}
+
+	// Short role label for log lines, so a line from a client and the same line from the server can
+	// be told apart when both logs are read side by side.
+	FORCEINLINE const TCHAR* RoleName(ENetMode NetMode)
+	{
+		switch (NetMode)
+		{
+		case NM_DedicatedServer: return TEXT("DedicatedServer");
+		case NM_ListenServer:    return TEXT("ListenServer");
+		case NM_Client:          return TEXT("Client");
+		case NM_Standalone:      return TEXT("Standalone");
+		default:                 return TEXT("UnknownNetMode");
+		}
+	}
 }
 
 /**

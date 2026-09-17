@@ -59,7 +59,7 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	//etIsPossessed(true); //TODO: TestLvl Only, remove in game 
+	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
@@ -372,17 +372,26 @@ void ACharVR::InitComponentsFromBP()
 
 void ACharVR::ShowMinigameView(UUserWidget* Widget)
 {
+	// Last hop of the enter chain: the View exists, it now has to be visible in the HMD.
 	if (CachedMinigameView)
 	{
 		CachedMinigameView->SetWidget(Widget);
 		CachedMinigameView->SetVisibility(true, true);
+		UE_LOG(LogMinigame, Log, TEXT("[View] %s (%s): %s placed in the world-space holder '%s', dim=%s. The minigame is now on screen for this player."),
+			*GetName(), ArtemisNet::RoleName(GetNetMode()), *GetNameSafe(Widget), *MinigameViewTag.ToString(),
+			CachedMinigameDim ? TEXT("yes") : TEXT("no holder found"));
+	}
+	else
+	{
+		UE_LOG(LogMinigame, Error, TEXT("[View] %s (%s): no UWidgetComponent tagged '%s' on this pawn -> the View %s was created but has nowhere to render. Check the tag on BP_VRChar."),
+			*GetName(), ArtemisNet::RoleName(GetNetMode()), *MinigameViewTag.ToString(), *GetNameSafe(Widget));
 	}
 
 	if (CachedMinigameDim)
 	{
 		CachedMinigameDim->SetVisibility(true, true);
 	}
-	
+
 	MiniGameIsOpen();
 }
 
@@ -667,4 +676,15 @@ void ACharVR::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	UE_LOG(LogTemp, Error, TEXT("[ACharVR] EndPlay on %s, reason=%d, Controller=%s"),
 		*GetName(), (int32)EndPlayReason, *GetNameSafe(GetController()));
 	Super::EndPlay(EndPlayReason);
+}
+
+void ACharVR::ShouldActivateARPuppet(bool bShouldActivate)
+{
+	if (!ARPuppet)
+	{
+		return; 
+	}
+	
+	ARPuppet->SetActorHiddenInGame(!bShouldActivate);
+	ARPuppet->SetActorEnableCollision(bShouldActivate);
 }

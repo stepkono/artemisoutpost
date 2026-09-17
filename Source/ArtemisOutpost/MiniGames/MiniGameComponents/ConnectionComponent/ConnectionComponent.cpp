@@ -88,6 +88,9 @@ void UConnectionComponent::ServerRequestJoin(const FString& UPID)
 	FConnectionSlot NewSlot;
 	NewSlot.OwnerUPID = UPID;
 	ActiveSlots.Add(NewSlot);
+
+	UE_LOG(LogMinigame, Log, TEXT("[Connect] %s: GRANTED slot %d to '%s' (%d/%d occupied). Replicating -> expect a [Slots] line on every client, then [View] on the one whose local UPID is '%s'."),
+		*OwnerName, ActiveSlots.Num() - 1, *UPID, ActiveSlots.Num(), MaxSlots, *UPID);
 	
 	// Still commented out as you left it: nothing reads bIsInGame yet, so the join side was never
 	// enabled. Uncomment when something needs it — the helper is now safe to call from both sides.
@@ -194,5 +197,12 @@ int32 UConnectionComponent::GetSlotIndexFor(const FString& UPID) const
 
 void UConnectionComponent::OnRep_ActiveSlots()
 {
+	// Client side of the join: the server's slot list arrived. RefreshLocalUI runs off this broadcast
+	// and compares these UPIDs against the local one. If the UPID the server logged in [Join] is in
+	// this list but the local [UPID] differs, that is the identity mismatch that keeps the View shut.
+	UE_LOG(LogMinigame, Log, TEXT("[Slots] %s: replicated %d/%d slot(s): [%s]"),
+		GetOwner() ? *GetOwner()->GetName() : TEXT("<no owner>"),
+		ActiveSlots.Num(), MaxSlots, *FString::Join(GetParticipantUPIDs(), TEXT(", ")));
+
 	OnSlotsChanged.Broadcast();
 }

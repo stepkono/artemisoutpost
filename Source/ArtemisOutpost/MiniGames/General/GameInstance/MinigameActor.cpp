@@ -138,9 +138,59 @@ void AMinigameActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Self-heal for the local View. Opening is normally EVENT driven (a slot change replicates ->
+	// RefreshLocalUI). That misses one case: this client is a participant WITHOUT a slot change ever
+	// happening on this client, i.e. after a reconnect. Slots are keyed on UPID and survive the drop
+	// (§7), so the server still holds the player inside, but the fresh client only saw the initial
+	// replication, possibly before its own UPID was set. Nothing would ever re-evaluate, the prompt
+	// stays hidden (already a participant) and the player is stuck. This catches it a frame later.
+	if (ArtemisNet::IsClientContext(GetNetMode()) && !bLocalUIOpen && GameConnection)
+	{
+		const APawnController* PC = GetLocalController();
+		const FString LocalUPID = GetLocalPlayerUPID();
+
+		// Wait for the VR pawn too: right after a reconnect it is re-attached by replication a few
+		// frames later, and opening before that would fall back to the screen-space View, which is
+		// invisible in the HMD.
+		if (PC && PC->GetVRPawn() && !LocalUPID.IsEmpty() && GameConnection->IsParticipant(LocalUPID))
+		{
+			UE_LOG(LogMinigame, Warning, TEXT("[View] %s (%s): local '%s' holds a slot but no View is open and no slot change is pending -> reopening (reconnect recovery)."),
+				*GetName(), ArtemisNet::RoleName(GetNetMode()), *LocalUPID);
+			RefreshLocalUI();
+		}
+	}
+
 	if (ConnectionUIHolder)
 	{
-		ConnectionUIHolder->SetShowConnectionUI(IsPlayerNear() && CanLocalPlayerConnect());
+		// Prompt visibility, evaluated every tick but logged only on a flip, with every input to the
+		// decision. This is the first hop of the enter chain: no prompt, no click, no request.
+		const bool bNear = IsPlayerNear();
+		const bool bCanConnect = CanLocalPlayerConnect();
+		const bool bShow = bNear && bCanConnect;
+
+		// Log on any change of the INPUTS, not only of the result: a client that walks up to the
+		// building but never gets the prompt must still print a line saying why (near=yes, canConnect=no).
+		const uint8 PromptInputs = (bNear ? 1 : 0) | (bCanConnect ? 2 : 0);
+		if (PromptInputs != LastPromptInputs)
+		{
+			LastPromptInputs = PromptInputs;
+
+			const APawnController* PC = GetLocalController();
+			const ACharVR* Pawn = PC ? PC->GetVRPawn() : nullptr;
+			UE_LOG(LogMinigame, Log, TEXT("[Prompt] %s (%s): prompt %s for local '%s' -> near=%s (vrPawn=%s, dist=%.0f), state=%s, freeSlot=%s (%d/%d), participant=%s."),
+				*GetName(), ArtemisNet::RoleName(GetNetMode()), bShow ? TEXT("SHOWN") : TEXT("HIDDEN"),
+				PC ? *PC->GetPlayerUPID() : TEXT("<no controller>"),
+				bNear ? TEXT("yes") : TEXT("no"),
+				Pawn ? *Pawn->GetName() : TEXT("NULL"),
+				Pawn ? FVector::Dist(Pawn->GetActorLocation(), GetActorLocation()) : -1.0f,
+				*UEnum::GetValueAsString(State),
+				HasFreeSlot() ? TEXT("yes") : TEXT("no"),
+				GameConnection ? GameConnection->GetParticipantCount() : -1,
+				GameConnection ? GameConnection->GetMaxSlots() : -1,
+				IsLocalPlayerParticipant() ? TEXT("yes") : TEXT("no"));
+		}
+
+		ConnectionUIHolder->SetShowConnectionUI(bShow);
 	}
 }
 
@@ -376,28 +426,64 @@ void AMinigameActor::HandleStateChanged()
 
 void AMinigameActor::RefreshLocalUI()
 {
+	// Runs on every peer after a slot or state change. The dedicated server has no player controller
+	// and returns at the first check, which is expected and not logged.
 	APawnController* PC = Cast<APawnController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 	if (!PC)
 	{
+		if (ArtemisNet::IsClientContext(GetNetMode()))
+		{
+			UE_LOG(LogMinigame, Error, TEXT("[View] %s (%s): no local APawnController (player controller 0 is null or not an APawnController) -> the View can never open on this client."),
+				*GetName(), ArtemisNet::RoleName(GetNetMode()));
+		}
 		return;
 	}
 
 	UMinigamePlayerController* Controller = PC->GetMinigamePlayerController();
 	if (!Controller)
 	{
+		UE_LOG(LogMinigame, Error, TEXT("[View] %s (%s): %s has no UMinigamePlayerController component -> the View can never open on this client."),
+			*GetName(), ArtemisNet::RoleName(GetNetMode()), *PC->GetName());
 		return;
 	}
 
-	const bool bShouldOpen = GameConnection && GameConnection->IsParticipant(PC->GetPlayerUPID());
+	const FString LocalUPID = PC->GetPlayerUPID();
+	const TArray<FString> Participants = GameConnection ? GameConnection->GetParticipantUPIDs() : TArray<FString>();
+	const bool bShouldOpen = GameConnection && GameConnection->IsParticipant(LocalUPID);
+
+	UE_LOG(LogMinigame, Log, TEXT("[View] %s (%s): refresh -> local UPID='%s', participants=[%s], state=%s, shouldOpen=%s, isOpen=%s."),
+		*GetName(), ArtemisNet::RoleName(GetNetMode()), *LocalUPID, *FString::Join(Participants, TEXT(", ")),
+		*UEnum::GetValueAsString(State), bShouldOpen ? TEXT("yes") : TEXT("no"), bLocalUIOpen ? TEXT("yes") : TEXT("no"));
+
+	if (!bShouldOpen && !bLocalUIOpen && Participants.Num() > 0)
+	{
+		// Somebody holds a slot, but not us. Correct when it is the other player. Suspicious when this
+		// client just pressed the prompt: then the server granted the slot to a UPID this client does
+		// not carry, which is an identity mismatch between the ?UPID= login option and the GameInstance.
+		if (LocalUPID.IsEmpty())
+		{
+			UE_LOG(LogMinigame, Warning, TEXT("[View] %s: local UPID is EMPTY, so no slot can ever be recognised as ours. Fix the identity first (see [UPID])."),
+				*GetName());
+		}
+		else
+		{
+			UE_LOG(LogMinigame, Verbose, TEXT("[View] %s: slots are held by other UPIDs only. If YOU just pressed the prompt on this client, compare '%s' against the UPID in the server's [Join] line."),
+				*GetName(), *LocalUPID);
+		}
+	}
 
 	if (bShouldOpen && !bLocalUIOpen)
 	{
+		UE_LOG(LogMinigame, Log, TEXT("[View] %s: local player '%s' holds a slot -> ActivateMiniGameInput(%s) + OpenUI."),
+			*GetName(), *LocalUPID, *UEnum::GetValueAsString(MiniGameType));
 		PC->ActivateMiniGameInput(MiniGameType);
 		Controller->OpenUI(this);
 		bLocalUIOpen = true;
 	}
 	else if (!bShouldOpen && bLocalUIOpen)
 	{
+		UE_LOG(LogMinigame, Log, TEXT("[View] %s: local player '%s' no longer holds a slot -> DeactivateMiniGameInput + CloseUI."),
+			*GetName(), *LocalUPID);
 		PC->DeactivateMiniGameInput();
 		Controller->CloseUI();
 		bLocalUIOpen = false;

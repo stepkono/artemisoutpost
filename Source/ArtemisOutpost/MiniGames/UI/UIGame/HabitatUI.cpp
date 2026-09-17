@@ -14,45 +14,29 @@ UHabitatUI::UHabitatUI(const FObjectInitializer& ObjectInitializer)
 
 void UHabitatUI::BroadcastGameSpecific(bool bFirst)
 {
-	const TArray<FAxisData>& Axes = GetCachedAxes();
-
-	// --- Partner presence: same rule as the server (HabitatRules::DerivePhase). ---
-	const EHabitatPhase Phase = HabitatRules::DerivePhase(GetCachedState(), Axes);
+	// Same rule as the server (HabitatRules::DerivePhase), on the same replicated data.
+	const EHabitatPhase Phase = HabitatRules::DerivePhase(GetCachedState(), GetCachedAxes());
 	if (bFirst || Phase != LastPhase)
 	{
 		LastPhase = Phase;
 		OnPhaseChanged(Phase);
 	}
+}
 
-	// --- Shared level bubble: both tilts + the common dwell. ---
-	if (Axes.Num() < 2)
+float UHabitatUI::GetSharedDwellProgress() const
+{
+	const TArray<FMinigameAxisView>& Axes = GetAxisViews();
+	if (Axes.Num() == 0)
 	{
-		// Axes may legitimately arrive a frame after open. Nothing to draw yet.
-		return;
+		return 0.0f;
 	}
 
-	const float PitchDeg = FMath::UnwindDegrees(Axes[0].Value);
-	const float RollDeg  = FMath::UnwindDegrees(Axes[1].Value);
-
-	// The server completes on min() over the axes' in-tolerance times, so the bubble's ring shows
-	// that same minimum. While waiting for the partner the server holds the timers at zero, which
-	// makes the ring read empty without any extra rule here.
-	const float SharedDwell = FMath::Min(GetDwellProgress(0), GetDwellProgress(1));
-
-	if (bLevelBroadcastDone
-		&& PitchDeg == LastPitchDeg
-		&& RollDeg == LastRollDeg
-		&& SharedDwell == LastSharedDwell)
+	float Shared = 1.0f;
+	for (const FMinigameAxisView& Axis : Axes)
 	{
-		return;
+		Shared = FMath::Min(Shared, Axis.DwellProgress);
 	}
-
-	bLevelBroadcastDone = true;
-	LastPitchDeg = PitchDeg;
-	LastRollDeg = RollDeg;
-	LastSharedDwell = SharedDwell;
-
-	OnLevelUpdated(PitchDeg, RollDeg, SharedDwell);
+	return Shared;
 }
 
 #undef LOCTEXT_NAMESPACE

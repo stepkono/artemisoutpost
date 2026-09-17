@@ -60,6 +60,9 @@ public:
 	// render in the HMD.
 	void ShowMinigameView(UUserWidget* Widget);
 	void HideMinigameView();
+		
+	UFUNCTION(BlueprintCallable, Category = "AR Puppet")
+	void ShouldActivateARPuppet(bool bShouldActivate); 
 
 protected:
 	// Called when the game starts or when spawned

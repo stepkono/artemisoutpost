@@ -276,6 +276,10 @@ void ACoupledAxisMinigameActor::RotateAxis(const FString& UPID, int32 AxisIndex,
 	const float Step = FMath::Clamp(DeltaDegrees, -MaxStepPerInputDeg, MaxStepPerInputDeg);
 	FAxisData& Axis = Axes[AxisIndex];
 	Axis.Value = NormalizeDeg(Axis.Value + Step);
+
+	// Keep the verdict in the same packet as the value it judges, so a client never sees a new angle
+	// with a stale colour for a frame.
+	RefreshAlignmentFlags();
 }
 
 // ---- Dwell + completion (server tick) ----
@@ -284,7 +288,20 @@ void ACoupledAxisMinigameActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!HasAuthority() || GetState() != EMinigameState::Active)
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	// The "on target" verdict is a fact about the angle, independent of who is playing, so it is kept
+	// current in every state. A flip is rare (crossing the tolerance edge), so notifying on it is cheap
+	// and keeps a listen host's local View in step; remote clients get the flag through replication.
+	if (RefreshAlignmentFlags())
+	{
+		NotifyAxesUpdated();
+	}
+
+	if (GetState() != EMinigameState::Active)
 	{
 		return;
 	}
@@ -303,16 +320,33 @@ void ACoupledAxisMinigameActor::Tick(float DeltaTime)
 	}
 }
 
-// Per-tick BOOKKEEPING only. It keeps InToleranceTime current so the UI can show "you are on
-// target / holding steady". It deliberately does NOT finish the game: that decision is a per-game
-// policy (SolvesAxisOnLeave / EvaluateCompletion).
-void ACoupledAxisMinigameActor::UpdateAlignment(float DeltaTime)
+bool ACoupledAxisMinigameActor::RefreshAlignmentFlags()
 {
+	bool bChanged = false;
 	for (int32 i = 0; i < Axes.Num(); ++i)
 	{
 		FAxisData& Axis = Axes[i];
 		const bool bInTol = AngularDistanceDeg(Axis.Value, GetAxisTarget(i)) <= AxisToleranceDeg;
-		Axis.InToleranceTime = bInTol ? Axis.InToleranceTime + DeltaTime : 0.0f;
+		if (bInTol != Axis.bAligned)
+		{
+			Axis.bAligned = bInTol;
+			bChanged = true;
+
+			UE_LOG(LogMinigame, Verbose, TEXT("[Align] %s: axis %d is now %s (value=%.1f, target=%.1f, tolerance=%.1f)."),
+				*GetName(), i, bInTol ? TEXT("ALIGNED") : TEXT("off target"), Axis.Value, GetAxisTarget(i), AxisToleranceDeg);
+		}
+	}
+	return bChanged;
+}
+
+// Per-tick BOOKKEEPING only. It keeps InToleranceTime current so the UI can show "you are on
+// target / holding steady". It deliberately does NOT finish the game: that decision is a per-game
+// policy (SolvesAxisOnLeave / EvaluateCompletion). Relies on RefreshAlignmentFlags having run first.
+void ACoupledAxisMinigameActor::UpdateAlignment(float DeltaTime)
+{
+	for (FAxisData& Axis : Axes)
+	{
+		Axis.InToleranceTime = Axis.bAligned ? Axis.InToleranceTime + DeltaTime : 0.0f;
 	}
 }
 
@@ -540,6 +574,7 @@ TSharedRef<FJsonObject> ACoupledAxisMinigameActor::BuildSnapshot() const
 		A->SetNumberField(TEXT("value"), Axis.Value);
 		A->SetNumberField(TEXT("target"), GetAxisTarget(i));
 		A->SetStringField(TEXT("owner"), Axis.OwnerUPID);
+		A->SetBoolField(TEXT("aligned"), Axis.bAligned);
 		A->SetBoolField(TEXT("solved"), Axis.bSolved);
 		AxisArray.Add(MakeShared<FJsonValueObject>(A));
 	}

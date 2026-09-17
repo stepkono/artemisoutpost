@@ -33,12 +33,12 @@ void UCoupledAxisMinigameUI::HandleStateChanged(EMinigameState NewState)
 
 void UCoupledAxisMinigameUI::Refresh()
 {
-	const TArray<FMinigameAxisOption> PrevOptions = AxisOptions;
+	const TArray<FMinigameAxisView> PrevViews = AxisViews;
 	const int32 PrevHighlight = HighlightIndex;
 	const EMinigameAxisUIScreen PrevScreen = CurrentScreen;
 	const bool bFirst = !bInitialBroadcastDone;
 
-	RebuildOptions();
+	RebuildAxisViews();
 	UpdateScreen();
 
 	// Page first, so the correct page is already visible when its contents update.
@@ -47,81 +47,36 @@ void UCoupledAxisMinigameUI::Refresh()
 		OnScreenChanged(CurrentScreen);
 	}
 
-	// Only when someone claimed or released an axis. A rotation tick leaves this untouched.
-	if (bFirst || !OptionsEqual(PrevOptions, AxisOptions))
+	// Selection page: only when someone claimed or released an axis, or one got solved.
+	if (bFirst || !SelectionEqual(PrevViews, AxisViews))
 	{
-		OnAxisOptionsChanged(AxisOptions);
+		OnSelectionOptionsChanged(AxisViews);
 	}
 
-	// Only when the selection frame actually moved (here: auto-preselect after an ownership change).
+	// Selection frame: only when it actually moved (here: auto-preselect after an ownership change).
 	if (bFirst || HighlightIndex != PrevHighlight)
 	{
-		OnHighlightChanged(HighlightIndex, bFirst ? INDEX_NONE : PrevHighlight);
+		OnSelectionHighlightChanged(HighlightIndex, bFirst ? INDEX_NONE : PrevHighlight);
 	}
 
-	BroadcastRotation();
+	// Rotation page: any angle, dwell, aligned flag or ownership moved. Fires with an empty array on
+	// the very first refresh if the axes have not arrived yet; the BP simply has nothing to draw then.
+	if (bFirst || !RotationEqual(PrevViews, AxisViews))
+	{
+		OnRotationAxesUpdated(AxisViews);
+	}
 
-	// Game-specific read-outs last, so the shared page/list state is already final when they fire.
+	// Game-specific read-outs last, so the shared page state is already final when they fire.
 	BroadcastGameSpecific(bFirst);
 
 	bInitialBroadcastDone = true;
 }
 
-void UCoupledAxisMinigameUI::BroadcastRotation()
+// ---- Per-axis view data ----
+
+void UCoupledAxisMinigameUI::RebuildAxisViews()
 {
-	int32 AxisIndex = INDEX_NONE;
-	float ValueDeg = 0.0f;
-	float DwellProgress = 0.0f;
-
-	// bOwnedByLocal was already resolved in RebuildOptions, so the UPID compare happens once.
-	for (const FMinigameAxisOption& Option : AxisOptions)
-	{
-		if (!Option.bOwnedByLocal || !CachedAxes.IsValidIndex(Option.AxisIndex))
-		{
-			continue;
-		}
-
-		AxisIndex = Option.AxisIndex;
-		ValueDeg = CachedAxes[Option.AxisIndex].Value;
-		DwellProgress = GetDwellProgress(Option.AxisIndex);
-		break;
-	}
-
-	// Nothing owned (selection screen) -> stay silent instead of firing zeroes at the ring.
-	if (AxisIndex == INDEX_NONE)
-	{
-		LastRotationAxis = INDEX_NONE;
-		return;
-	}
-
-	if (AxisIndex == LastRotationAxis
-		&& ValueDeg == LastRotationValue
-		&& DwellProgress == LastRotationDwell)
-	{
-		return;
-	}
-
-	LastRotationAxis = AxisIndex;
-	LastRotationValue = ValueDeg;
-	LastRotationDwell = DwellProgress;
-
-	OnRotationUpdated(AxisIndex, ValueDeg, DwellProgress);
-}
-
-float UCoupledAxisMinigameUI::GetDwellProgress(int32 AxisIndex) const
-{
-	if (!CachedAxes.IsValidIndex(AxisIndex) || DwellSeconds <= 0.0f)
-	{
-		return 0.0f;
-	}
-	return FMath::Clamp(CachedAxes[AxisIndex].InToleranceTime / DwellSeconds, 0.0f, 1.0f);
-}
-
-// ---- Option list ----
-
-void UCoupledAxisMinigameUI::RebuildOptions()
-{
-	AxisOptions.Reset();
+	AxisViews.Reset();
 
 	// Array position IS the axis index throughout the model (ACoupledAxisMinigameActor indexes Axes
 	// directly), so the loop index is what a ClaimAxis intent must carry.
@@ -129,47 +84,54 @@ void UCoupledAxisMinigameUI::RebuildOptions()
 	{
 		const FAxisData& Axis = CachedAxes[i];
 
-		FMinigameAxisOption Option;
-		Option.AxisIndex = i;
+		FMinigameAxisView View;
+		View.AxisIndex = i;
 
 		if (AxisLabels.IsValidIndex(i) && !AxisLabels[i].IsEmpty())
 		{
-			Option.Label = AxisLabels[i];
+			View.Label = AxisLabels[i];
 		}
 		else
 		{
-			Option.Label = FText::Format(LOCTEXT("AxisFallback", "Achse {0}"), FText::AsNumber(i + 1));
+			View.Label = FText::Format(LOCTEXT("AxisFallback", "Achse {0}"), FText::AsNumber(i + 1));
 		}
 
-		Option.bOwnedByLocal = !LocalUPID.IsEmpty() && Axis.OwnerUPID == LocalUPID;
-		Option.bSolved = Axis.bSolved;
+		View.ValueDeg = Axis.Value;
+		View.SignedDeg = FMath::UnwindDegrees(Axis.Value);
+		View.DwellProgress = DwellSeconds > 0.0f
+			? FMath::Clamp(Axis.InToleranceTime / DwellSeconds, 0.0f, 1.0f)
+			: 0.0f;
+		View.bAligned = Axis.bAligned;
+
+		View.bOwnedByLocal = !LocalUPID.IsEmpty() && Axis.OwnerUPID == LocalUPID;
+		View.bSolved = Axis.bSolved;
 
 		// Solved wins over ownership: a finished axis is never selectable again, by anyone.
 		// Otherwise: free, or already mine. Held by another participant means greyed out.
-		if (Option.bSolved)
+		if (View.bSolved)
 		{
-			Option.bEnabled = false;
-			Option.DisabledReason = AxisSolvedReason;
+			View.bEnabled = false;
+			View.DisabledReason = AxisSolvedReason;
 		}
 		else
 		{
-			Option.bEnabled = Axis.OwnerUPID.IsEmpty() || Option.bOwnedByLocal;
-			Option.DisabledReason = Option.bEnabled ? FText::GetEmpty() : AxisTakenReason;
+			View.bEnabled = Axis.OwnerUPID.IsEmpty() || View.bOwnedByLocal;
+			View.DisabledReason = View.bEnabled ? FText::GetEmpty() : AxisTakenReason;
 		}
 
-		AxisOptions.Add(Option);
+		AxisViews.Add(View);
 	}
 
 	// Preselect: keep the current highlight while it is still selectable, otherwise fall to the first
 	// enabled option. When one axis is taken by someone else exactly one option remains, so the only
 	// viable choice ends up preselected without needing a separate rule for it.
-	if (!AxisOptions.IsValidIndex(HighlightIndex) || !AxisOptions[HighlightIndex].bEnabled)
+	if (!AxisViews.IsValidIndex(HighlightIndex) || !AxisViews[HighlightIndex].bEnabled)
 	{
 		HighlightIndex = FindEnabledIndex(0, 1);
 	}
 }
 
-bool UCoupledAxisMinigameUI::OptionsEqual(const TArray<FMinigameAxisOption>& A, const TArray<FMinigameAxisOption>& B)
+bool UCoupledAxisMinigameUI::SelectionEqual(const TArray<FMinigameAxisView>& A, const TArray<FMinigameAxisView>& B)
 {
 	if (A.Num() != B.Num())
 	{
@@ -179,7 +141,7 @@ bool UCoupledAxisMinigameUI::OptionsEqual(const TArray<FMinigameAxisOption>& A, 
 	for (int32 i = 0; i < A.Num(); ++i)
 	{
 		// Labels come from a design-time array and never change at runtime, so only the mutable
-		// fields decide whether the list would render differently.
+		// fields the selection page reads decide whether it would render differently.
 		if (A[i].AxisIndex != B[i].AxisIndex
 			|| A[i].bEnabled != B[i].bEnabled
 			|| A[i].bOwnedByLocal != B[i].bOwnedByLocal
@@ -191,9 +153,43 @@ bool UCoupledAxisMinigameUI::OptionsEqual(const TArray<FMinigameAxisOption>& A, 
 	return true;
 }
 
+bool UCoupledAxisMinigameUI::RotationEqual(const TArray<FMinigameAxisView>& A, const TArray<FMinigameAxisView>& B)
+{
+	if (A.Num() != B.Num())
+	{
+		return false;
+	}
+
+	for (int32 i = 0; i < A.Num(); ++i)
+	{
+		if (A[i].ValueDeg != B[i].ValueDeg
+			|| A[i].DwellProgress != B[i].DwellProgress
+			|| A[i].bAligned != B[i].bAligned
+			|| A[i].bOwnedByLocal != B[i].bOwnedByLocal)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool UCoupledAxisMinigameUI::GetOwnAxis(FMinigameAxisView& OutAxis) const
+{
+	for (const FMinigameAxisView& View : AxisViews)
+	{
+		if (View.bOwnedByLocal)
+		{
+			OutAxis = View;
+			return true;
+		}
+	}
+	OutAxis = FMinigameAxisView();
+	return false;
+}
+
 int32 UCoupledAxisMinigameUI::FindEnabledIndex(int32 StartIndex, int32 Dir) const
 {
-	const int32 Num = AxisOptions.Num();
+	const int32 Num = AxisViews.Num();
 	if (Num == 0 || Dir == 0)
 	{
 		return INDEX_NONE;
@@ -202,7 +198,7 @@ int32 UCoupledAxisMinigameUI::FindEnabledIndex(int32 StartIndex, int32 Dir) cons
 	for (int32 Step = 0; Step < Num; ++Step)
 	{
 		const int32 Index = (((StartIndex + Step * Dir) % Num) + Num) % Num;
-		if (AxisOptions[Index].bEnabled)
+		if (AxisViews[Index].bEnabled)
 		{
 			return Index;
 		}
@@ -224,9 +220,9 @@ void UCoupledAxisMinigameUI::UpdateScreen()
 	// Owning an axis IS the transition. Deriving the page from the replicated ownership (rather than
 	// switching optimistically on the button press) means a claim that loses the race against another
 	// participant simply leaves this player on the selection screen, with that option now greyed out.
-	for (const FMinigameAxisOption& Option : AxisOptions)
+	for (const FMinigameAxisView& View : AxisViews)
 	{
-		if (Option.bOwnedByLocal)
+		if (View.bOwnedByLocal)
 		{
 			CurrentScreen = EMinigameAxisUIScreen::Rotate;
 			return;
@@ -245,7 +241,7 @@ bool UCoupledAxisMinigameUI::WantsNavigationInput() const
 
 void UCoupledAxisMinigameUI::HandleNavigate(FVector2D Axis)
 {
-	if (CurrentScreen != EMinigameAxisUIScreen::AxisSelection || AxisOptions.Num() == 0)
+	if (CurrentScreen != EMinigameAxisUIScreen::AxisSelection || AxisViews.Num() == 0)
 	{
 		return;
 	}
@@ -281,7 +277,7 @@ void UCoupledAxisMinigameUI::HandleNavigate(FVector2D Axis)
 
 	// Start one step away and walk on until an ENABLED option is found, so the highlight can never
 	// land on a greyed-out axis.
-	const int32 Start = AxisOptions.IsValidIndex(HighlightIndex) ? HighlightIndex + Dir : 0;
+	const int32 Start = AxisViews.IsValidIndex(HighlightIndex) ? HighlightIndex + Dir : 0;
 	const int32 Next = FindEnabledIndex(Start, Dir);
 
 	if (Next == INDEX_NONE || Next == HighlightIndex)
@@ -292,7 +288,7 @@ void UCoupledAxisMinigameUI::HandleNavigate(FVector2D Axis)
 	// Nothing else changed here, so ONLY the frame event fires. No list rebuild, no page check.
 	const int32 OldIndex = HighlightIndex;
 	HighlightIndex = Next;
-	OnHighlightChanged(HighlightIndex, OldIndex);
+	OnSelectionHighlightChanged(HighlightIndex, OldIndex);
 }
 
 EMiniGameUIAction UCoupledAxisMinigameUI::ConfirmHighlighted()
@@ -309,25 +305,25 @@ EMiniGameUIAction UCoupledAxisMinigameUI::ConfirmHighlighted()
 
 	// --- Axis selection ---
 
-	if (!AxisOptions.IsValidIndex(HighlightIndex))
+	if (!AxisViews.IsValidIndex(HighlightIndex))
 	{
 		// No selectable axis (empty list, or both taken). Swallow the press so it cannot fall
 		// through to the hand tool while the minigame HUD is up.
 		return EMiniGameUIAction::Handled;
 	}
 
-	const FMinigameAxisOption& Option = AxisOptions[HighlightIndex];
+	const FMinigameAxisView& View = AxisViews[HighlightIndex];
 
-	OnAxisOptionConfirmed(HighlightIndex, Option.bEnabled);
+	OnSelectionConfirmed(HighlightIndex, View.bEnabled);
 
-	if (!Option.bEnabled)
+	if (!View.bEnabled)
 	{
 		return EMiniGameUIAction::Handled;
 	}
 
 	FMinigameInput In;
 	In.Type = EMinigameInputType::ClaimAxis;
-	In.AxisIndex = Option.AxisIndex;
+	In.AxisIndex = View.AxisIndex;
 	EmitInput(In);
 
 	// No optimistic page switch. The switch happens in UpdateScreen once the server's ownership

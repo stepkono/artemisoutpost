@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 #include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/MiniGameInteraction/MinigamePlayerController.h"
+#include "ArtemisOutpost/MiniGames/MiniGameComponents/ConnectionComponent/ConnectionComponent.h"
+#include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "GameFramework/PlayerController.h"
 
 
@@ -47,12 +49,18 @@ void UMiniGameConnectionUIComponent::BeginPlay()
 
 	if (UMiniGameConnectionUI* ConnectionUI = Cast<UMiniGameConnectionUI>(GetWidget()))
 	{
-		ConnectionUI->SetButtonText(ButtonText); 
+		ConnectionUI->SetButtonText(ButtonText);
 		ConnectionUI->OnConnectClicked.AddDynamic(this, &UMiniGameConnectionUIComponent::RequestEnter);
+
+		UE_LOG(LogMinigame, Log, TEXT("[Prompt] %s (%s): connect prompt widget %s bound. A click on it must produce a '[Prompt] ... CLICK' line below."),
+			*Owner->GetName(), ArtemisNet::RoleName(GetNetMode()), *ConnectionUI->GetClass()->GetName());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("ConnectionUIComponent: Failed to cast Widget to MiniGameConnectionUI."));
+		// GetWidget() is null on a dedicated server (no UI) and on a client whose WidgetClass is unset.
+		UE_LOG(LogMinigame, Error, TEXT("[Prompt] %s (%s): widget is %s -> the connect prompt can never be clicked on this peer. Check WidgetClass on the ConnectionUI component of the actor BP."),
+			*Owner->GetName(), ArtemisNet::RoleName(GetNetMode()),
+			GetWidget() ? *FString::Printf(TEXT("a %s, not a UMiniGameConnectionUI"), *GetWidget()->GetClass()->GetName()) : TEXT("null"));
 	}
 	
 	SetWorldLocation(Owner->GetActorLocation());
@@ -169,19 +177,45 @@ void UMiniGameConnectionUIComponent::SetShowConnectionUI(bool ShowConnectionUI)
 
 void UMiniGameConnectionUIComponent::RequestEnter()
 {
+	// FIRST C++ point of the enter chain on the client. If a press produces no line here, the failure
+	// is in front of C++: the widget interaction ray, the button, or WBP_MiniGameConnectionUI not
+	// firing OnConnectClicked.
 	if (!Owner)
 	{
+		UE_LOG(LogMinigame, Error, TEXT("[Prompt] CLICK received but the component has no AMinigameActor owner -> nothing to enter."));
 		return;
 	}
 
 	APawnController* Controller = GetLocalController();
 	if (!Controller)
 	{
+		UE_LOG(LogMinigame, Error, TEXT("[Prompt] %s (%s): CLICK received but there is no local APawnController -> cannot send the request."),
+			*Owner->GetName(), ArtemisNet::RoleName(GetNetMode()));
 		return;
 	}
 
-	if (UMinigamePlayerController* MPC = Controller->GetMinigamePlayerController())
+	UMinigamePlayerController* MPC = Controller->GetMinigamePlayerController();
+	if (!MPC)
 	{
-		MPC->ServerRequestEnter(Owner);
+		UE_LOG(LogMinigame, Error, TEXT("[Prompt] %s (%s): CLICK received but %s has no UMinigamePlayerController component -> cannot send the request."),
+			*Owner->GetName(), ArtemisNet::RoleName(GetNetMode()), *Controller->GetName());
+		return;
 	}
-}
+
+	const UConnectionComponent* Connection = Owner->GetConnectionComponent();
+	UE_LOG(LogMinigame, Log, TEXT("[Prompt] %s (%s): CLICK by local '%s' -> sending ServerRequestEnter. Local view: state=%s, slots %d/%d, participant=%s, canConnect=%s, promptShown=%s."),
+		*Owner->GetName(), ArtemisNet::RoleName(GetNetMode()), *Controller->GetPlayerUPID(),
+		*UEnum::GetValueAsString(Owner->GetState()),
+		Connection ? Connection->GetParticipantCount() : -1, Connection ? Connection->GetMaxSlots() : -1,
+		Owner->IsLocalPlayerParticipant() ? TEXT("yes") : TEXT("no"),
+		Owner->CanLocalPlayerConnect() ? TEXT("yes") : TEXT("no"),
+		bShowConnectionUI ? TEXT("yes") : TEXT("no"));
+
+	if (Controller->GetPlayerUPID().IsEmpty())
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Prompt] %s: the local UPID is EMPTY. The server will still receive the request under ITS UPID for this connection, but this client can never recognise its own slot -> the View will not open. See the [UPID] lines."),
+			*Owner->GetName());
+	}
+
+	MPC->ServerRequestEnter(Owner);
+}
