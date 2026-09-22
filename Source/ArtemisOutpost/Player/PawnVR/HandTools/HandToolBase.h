@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "ArtemisOutpost/Player/PlayerCues/PlayerCueTypes.h"
 #include "HandToolBase.generated.h"
 
 class APawn;
@@ -53,6 +54,14 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Hand Tool")
 	void OnToolDeactivated();
+
+	// Which awareness activity this tool represents while drawn. Override per tool; the resource tool
+	// answers from its current scan mode. Reported to the server on activate (kind) / deactivate (None).
+	virtual EToolActivity GetToolActivity() const { return EToolActivity::None; }
+
+	// Push the current tool activity to the owning player's UPlayerCuesManager (local owner only).
+	// Called by Activate/DeactivateTool; call it again when the kind changes while active.
+	void ReportToolActivity(bool bActive) const;
 
 	// The pawn holding this tool (owner, or the ChildActorComponent's parent actor).
 	APawn* GetOwningPawn() const;

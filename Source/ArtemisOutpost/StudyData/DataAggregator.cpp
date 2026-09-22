@@ -56,6 +56,12 @@ void UDataAggregator::OnWorldBeginPlay(UWorld& InWorld)
 void UDataAggregator::HandleNewGameEvent(UProviderDataBase& ProviderData, const EGameEventType GameEvent)
 {	
 	const TSharedPtr<FJsonObject> MiniGameDataObject = ProviderData.BuildJsonFromData(GameEvent);
+	if (!MiniGameDataObject.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DataAggregator: no payload for GameEvent %s, dropping."), *UEnum::GetValueAsString(GameEvent));
+		return;
+	}
+	
 	const FString DataString = JSONToString(MiniGameDataObject);
 
 	// Log the arrival unconditionally (Warning, so it matches the rest of the system and is not

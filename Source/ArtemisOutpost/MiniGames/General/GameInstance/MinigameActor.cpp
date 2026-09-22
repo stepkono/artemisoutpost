@@ -8,6 +8,7 @@
 #include "ArtemisOutpost/Player/PawnVR/ACharVR.h"
 #include "ArtemisOutpost/Player/PlayerController/PawnController.h"
 #include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/MiniGameInteraction/MinigamePlayerController.h"
+#include "ArtemisOutpost/GameData/ArtemisPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Dom/JsonObject.h"
@@ -319,7 +320,13 @@ void AMinigameActor::ServerHandleParticipantJoined(const FString& UPID)
 		OnStart();
 	}
 	
-	ActivePlayers.Add(UPID); 
+	ActivePlayers.Add(UPID);
+
+	// Awareness: this player is now "in minigame X" for every HUD.
+	if (AArtemisPlayerState* PS = AArtemisPlayerState::FindByUPID(GetWorld(), UPID))
+	{
+		PS->ServerSetMinigame(true, MiniGameType);
+	}
 
 	OnParticipantJoined(UPID);
 	PublishSnapshot();
@@ -330,6 +337,11 @@ void AMinigameActor::ServerHandleParticipantLeft(const FString& UPID)
 	OnParticipantLeft(UPID);
 
 	ActivePlayers.Remove(UPID);
+
+	if (AArtemisPlayerState* PS = AArtemisPlayerState::FindByUPID(GetWorld(), UPID))
+	{
+		PS->ServerSetMinigame(false, MiniGameType);
+	}
 		
 	if (GameConnection && GameConnection->GetParticipantCount() == 0 && State != EMinigameState::Completed)
 	{

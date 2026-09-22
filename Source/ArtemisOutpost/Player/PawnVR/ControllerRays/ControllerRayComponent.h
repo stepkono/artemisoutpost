@@ -20,7 +20,7 @@ enum class EControllerRayHand : uint8
 	Right
 };
 
-// Runtime state for one hand's ray. The interaction component is authored in BP_VRChar and only
+// Runtime state for one hand's ray. The interaction component is authored in the pawn BP and only
 // resolved here; the Niagara visual is created at runtime so its asset (the "design") can be swapped.
 USTRUCT()
 struct FControllerRayState
@@ -29,11 +29,11 @@ struct FControllerRayState
 
 	EControllerRayHand Hand = EControllerRayHand::Right;
 
-	// Which RayDesigns entry this hand currently shows. Per-hand so e.g. only the grabbing hand can
+	// Which RayDesigns entry this hand currently shows. Per-hand so e.g. only the pointing hand can
 	// switch design while the other stays on the default.
 	int32 DesignIndex = 0;
 
-	// Configured in BP_VRChar (its debug ray already hits WBP_MiniGameConnectionUI). Resolved by tag
+	// Configured in the pawn BP (its debug ray already hits WBP_MiniGameConnectionUI). Resolved by tag
 	// so the designer keeps ownership of interaction distance / trace channel.
 	UPROPERTY(Transient)
 	TObjectPtr<UWidgetInteractionComponent> Interaction = nullptr;
@@ -44,25 +44,33 @@ struct FControllerRayState
 	TObjectPtr<UNiagaraComponent> Visual = nullptr;
 
 	bool bEnabled = true;
+
+	// ---- Pointer mode (the shared "look where I point" ray) ----
+	bool bPointerMode = false;
+
+	// What to restore when pointer mode ends.
+	float SavedInteractionDistance = 0.0f;
+	int32 SavedDesignIndex = 0;
+	bool  bPointerForcedEnable = false;
 };
 
 /**
- * Permanent laser-pointer rays out of the VR controllers for interacting with WORLD-space widgets.
+ * Laser-pointer rays out of the controllers for interacting with WORLD-space widgets, plus the
+ * opt-in POINTER MODE that turns one hand's ray into the shared "look where I am pointing" cue.
  *
- * Client-local and non-replicated: a UWidgetInteractionComponent per hand (authored + configured in
- * BP_VRChar, resolved here by tag) does the actual trace + pointer events; this component only drives
- * the VISUAL — a Niagara system fed a [Start, End] point array each frame — and forwards the trigger
- * to Press/ReleasePointerKey. The visual "design" is one of RayDesigns and can be switched at runtime.
+ * The trace is done by a UWidgetInteractionComponent per hand (authored + configured in the pawn BP,
+ * resolved here by tag). This component only drives the VISUAL — a Niagara system fed a [Start, End]
+ * point array each frame — and forwards the trigger to Press/ReleasePointerKey. The visual "design"
+ * is one of RayDesigns and can be switched at runtime.
  *
- * Separate from the two other controller systems: the Tools-HUD (joystick navigation, no pointer) and
- * the hand tools (building arc). The RIGHT ray shares its controller with those, so callers should
- * suppress it via SetRayEnabled while a hand tool is active or the HUD is open; the LEFT ray is
- * normally permanent.
+ * Pointer mode (SetPointerMode) runs IDENTICAL code on every machine: it swaps that hand to
+ * PointerDesignIndex and raises the interaction distance to PointerInteractionDistance, and restores
+ * both when it ends. The owning client turns it on from input (via UPlayerCuesManager), every other
+ * peer turns it on from the replicated AArtemisPlayerState, so a remote proxy draws the same laser
+ * from its interpolated hand. Nothing here replicates.
  *
- * NOTE (future): a shared "show others where I'm pointing" ray is a separate, opt-in feature. Because
- * the pawn is effectively server-driven for RPC purposes (project convention: client->server input
- * routes through the client-owned APawnController), that replicated design belongs on APawnController,
- * not here. This component stays purely local.
+ * Tick guard: the locally controlled pawn always ticks (widget rays); any other instance ticks only
+ * while a hand is in pointer mode. The listen-server host never draws (no headset).
  */
 UCLASS(ClassGroup = (ControllerRays), meta = (BlueprintSpawnableComponent))
 class ARTEMISOUTPOST_API UControllerRayComponent : public UActorComponent
@@ -74,10 +82,9 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	// Called from ACharVR::SetupPlayerInputComponent (local player only). Binds the per-hand click to
+	// Called from the pawn's SetupPlayerInputComponent (local player only). Binds the per-hand click to
 	// the WidgetInteraction pointer. The mapping context carrying these actions is managed in Blueprint
-	// (BP_PawnController) so it can be prioritised BELOW the HUD / hand-tool contexts — those consume
-	// the trigger when active, so the ray click only fires when neither is holding it.
+	// (BP_PawnController) so it can be prioritised BELOW the HUD / hand-tool contexts.
 	void BindInput(UEnhancedInputComponent* EnhancedInputComponent);
 
 	// Show/hide + enable/disable one hand's ray. Use to suppress the RIGHT ray while a hand tool is
@@ -93,7 +100,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Controller Rays")
 	void SetDesign(int32 DesignIndex);
 
-	// Switch the design on ONE hand only (e.g. grab-and-hold on that controller swaps just its ray).
+	// Switch the design on ONE hand only.
 	UFUNCTION(BlueprintCallable, Category = "Controller Rays")
 	void SetHandDesign(EControllerRayHand Hand, int32 DesignIndex);
 
@@ -103,6 +110,22 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Controller Rays")
 	int32 GetHandDesignIndex(EControllerRayHand Hand) const;
+
+	// ---- Pointer mode ----
+
+	// Turn the shared pointer ray on/off for one hand. Idempotent; safe before setup (remembered).
+	// Do NOT call this from input directly — go through UPlayerCuesManager::SetPointing so the state
+	// reaches the server and the other peers. The cue manager calls this on every machine.
+	UFUNCTION(BlueprintCallable, Category = "Controller Rays|Pointer")
+	void SetPointerMode(EControllerRayHand Hand, bool bOn);
+
+	UFUNCTION(BlueprintPure, Category = "Controller Rays|Pointer")
+	bool IsPointerModeActive(EControllerRayHand Hand) const;
+
+	// The current ray of one hand: origin, direction and the interaction component's last hit. Used by
+	// UPlayerCuesManager on the owning client to resolve the pointing target. Returns false when the
+	// hand's ray is not set up.
+	bool GetRayHit(EControllerRayHand Hand, FVector& OutStart, FVector& OutDirection, FHitResult& OutHit) const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -118,17 +141,35 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Setup")
 	int32 DefaultDesignIndex = 0;
 
-	// Tags on the WidgetInteractionComponents authored under each controller in BP_VRChar.
+	// Tags on the WidgetInteractionComponents authored under each controller in the pawn BP.
 	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Setup")
 	FName LeftInteractionTag = TEXT("Ray_Left");
 
 	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Setup")
 	FName RightInteractionTag = TEXT("Ray_Right");
 
+	// ---- Pointer mode ----
+
+	// RayDesigns entry shown while a hand is in pointer mode (the "Design 2" look).
+	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Pointer")
+	int32 PointerDesignIndex = 1;
+
+	// Interaction distance (cm) applied to the pointing hand's WidgetInteractionComponent while in
+	// pointer mode. Must be larger than the widget reach configured in the BP (750 today) so the
+	// pointer reaches buildings far away. Restored on exit.
+	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Pointer", meta = (ClampMin = "100.0"))
+	float PointerInteractionDistance = 10000.0f;
+
+	// Feed PointArray / EndPoint in the Niagara COMPONENT's local space instead of world space. World
+	// positions on the georeferenced moon are at ~1700 km, which a float Vector parameter cannot hold
+	// at centimetre precision (LogNiagara "does not fit into a FVector3f" spam, beam collapses). In
+	// local space the start is ~0 and the end a few metres away. OPT-IN: it REQUIRES every emitter in
+	// the RayDesigns systems to be set to Local Space (emitter properties), otherwise the beam draws
+	// at the world origin and every ray vanishes. Switch the assets first, then tick this.
+	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Niagara")
+	bool bFeedPointsInLocalSpace = false;
+
 	// Niagara User parameters the designs expose. Names must match the User parameters in the systems.
-	//   PointArray (Vector array) = the [Start, End] polyline (world space) — the beam path.
-	//   EndPoint   (Vector)       = the beam's end / impact point — position an endpoint sphere here.
-	//   HitState   (float)        = 1 when the ray is on a widget else 0 — wire to colour.
 	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Niagara")
 	FName PointArrayParamName = TEXT("PointArray");
 
@@ -147,8 +188,8 @@ protected:
 	TObjectPtr<UInputAction> RightClickAction;
 
 private:
-	// Deferred until local control exists (networked possession lands after BeginPlay). Resolves the
-	// interaction components and spawns the visuals. Returns true once at least one ray is set up.
+	// Deferred until the BP components exist. Resolves the interaction components and spawns the
+	// visuals. Returns true once at least one ray is set up.
 	bool EnsureSetup();
 
 	// Per-frame: push [Start, End] + hit state into a ray's Niagara.
@@ -157,7 +198,16 @@ private:
 	// Apply a RayDesigns entry to a visual and (de)activate it accordingly.
 	void ApplyDesignToVisual(UNiagaraComponent* Visual, int32 DesignIndex) const;
 
+	// Apply the visual/interaction enable state to a ray (shared by SetRayEnabled and pointer mode).
+	void ApplyEnabled(FControllerRayState& Ray, bool bEnabled) const;
+
+	void ApplyPointerMode(FControllerRayState& Ray, bool bOn);
+
 	FControllerRayState* FindRay(EControllerRayHand Hand);
+	const FControllerRayState* FindRay(EControllerRayHand Hand) const;
+
+	bool IsOwnerLocallyControlled() const;
+	bool HasAnyPointerModeDesired() const { return bDesiredLeftPointer || bDesiredRightPointer; }
 
 	// Input handlers -> drive the matching WidgetInteraction pointer.
 	void PressPointer(EControllerRayHand Hand);
@@ -172,9 +222,11 @@ private:
 
 	int32 CurrentDesignIndex = 0;
 
-	// Desired enable state per hand, so SetRayEnabled works before setup and survives (re)setup.
+	// Desired states per hand, so the setters work before setup and survive (re)setup.
 	bool bDesiredLeftEnabled = true;
 	bool bDesiredRightEnabled = true;
+	bool bDesiredLeftPointer = false;
+	bool bDesiredRightPointer = false;
 
 	bool bSetupDone = false;
 };

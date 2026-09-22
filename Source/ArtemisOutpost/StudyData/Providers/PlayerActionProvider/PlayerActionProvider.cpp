@@ -18,3 +18,16 @@ void UPlayerActionProvider::ServerReportHmdState(const FString& InUPID, bool bWo
 
 	OnPlayerActionEvent.Broadcast(*Data, Event);
 }
+
+void UPlayerActionProvider::ServerReportCueEvent(const FString& InUPID, const FPlayerCueState& State, EGameEventType Event)
+{
+	UPlayerActionProviderData* Data = NewObject<UPlayerActionProviderData>(this);
+	Data->UPID     = InUPID;
+	Data->bWorn    = State.bHmdWorn;
+	Data->CueState = State;
+
+	UE_LOG(LogTemp, Log, TEXT("[Cues] Provider broadcasting %s for '%s' (bound=%d)"),
+		*UEnum::GetValueAsString(Event), *InUPID, OnPlayerActionEvent.IsBound() ? 1 : 0);
+
+	OnPlayerActionEvent.Broadcast(*Data, Event);
+}

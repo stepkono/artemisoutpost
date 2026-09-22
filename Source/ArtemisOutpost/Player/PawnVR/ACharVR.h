@@ -11,6 +11,8 @@
 
 class UToolsHUDComponent;
 class UControllerRayComponent;
+class UPlayerCuesManager;
+class UAwarenessHUDComponent;
 class UWidgetComponent;
 class UUserWidget;
 class AHandToolBase;
@@ -115,6 +117,13 @@ private:
 	// Per-frame roof/ceiling avoidance for the HMD view. Local + HMD only.
 	void UpdateHeadCollision(float DeltaTime);
 
+	// Anomaly-gated diagnostics for the intermittent motion bugs (random speed spikes / fly-up when
+	// the HMD rests on a table / occasional jump-and-sprint). Every frame on the local VR pawn it
+	// compares a handful of motion signals against thresholds and, when any trips, prints one rich
+	// [VRMotion] line plus a short burst of the following frames so we can see which signal moved
+	// FIRST. Local + HMD only, called after UpdateCapsuleFollowsHMD.
+	void LogVRMotionAnomalies(float DeltaTime);
+
 protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Player Height")
 	float Height = 180;
@@ -173,6 +182,25 @@ protected:
 	// How quickly the push-down offset eases in/out. Higher = snappier, lower = smoother
 	UPROPERTY(EditDefaultsOnly, Category = "VR|Head Collision", meta = (ClampMin = "0.0"))
 	float HeadCollisionInterpSpeed = 15.0f;
+
+	// ---- Motion anomaly thresholds (cm and cm/s) — tune live in PIE / on device ----
+	// A frame that exceeds any of these opens a logging burst. Start loose, tighten once we see the
+	// baseline noise floor in the logs.
+	UPROPERTY(EditAnywhere, Category = "VR|Motion Diagnostics")
+	float MotionLogActorJumpCm = 30.0f;
+
+	UPROPERTY(EditAnywhere, Category = "VR|Motion Diagnostics")
+	float MotionLogSpeedCmS = 400.0f;
+
+	UPROPERTY(EditAnywhere, Category = "VR|Motion Diagnostics")
+	float MotionLogHalfHeightDeltaCm = 15.0f;
+
+	UPROPERTY(EditAnywhere, Category = "VR|Motion Diagnostics")
+	float MotionLogHmdJumpCm = 20.0f;
+
+	// How many frames to keep logging after an anomaly trips, so we capture the event's evolution.
+	UPROPERTY(EditAnywhere, Category = "VR|Motion Diagnostics")
+	int32 MotionLogBurstLength = 20;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Possession")
 	bool bIsPossessed = false;
@@ -186,6 +214,16 @@ protected:
 	// WidgetInteractionComponents it drives are authored/tagged in BP_VRChar. See UControllerRayComponent.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Controller Rays")
 	TObjectPtr<UControllerRayComponent> ControllerRayComponent;
+
+	// Awareness cues producer (pointer/gaze traces + talk on the owning client, Walking on the server,
+	// laser relay everywhere). See UPlayerCuesManager.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Cues")
+	TObjectPtr<UPlayerCuesManager> PlayerCuesManager;
+
+	// Hold-to-view HUD overview of all players. Renders into a WidgetComponent tagged Awareness_HUD
+	// authored under VRCamera in BP_VRChar. See UAwarenessHUDComponent.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Cues")
+	TObjectPtr<UAwarenessHUDComponent> AwarenessHUDComponent;
 
 	// The hand tool the trigger currently drives (Building/Scanning). Maintained by AHandToolBase's
 	// Activate/DeactivateTool; read via GetActiveTool() from BP_VRChar's trigger routing.
@@ -207,6 +245,20 @@ private:
 
 	// Accumulator to throttle LogVRTransforms to ~1 Hz.
 	float VRDebugLogTimer = 0.0f;
+
+	// ---- Motion-anomaly baselines (previous-frame values) + capsule-follow capture ----
+	FVector PrevActorLocation     = FVector::ZeroVector;
+	FVector PrevHmdPos            = FVector::ZeroVector;
+	FVector PrevCameraWorld       = FVector::ZeroVector;
+	float   PrevCapsuleHalfHeight = 0.0f;
+	bool    bMotionBaselineValid  = false;
+	int32   MotionLogBurstFrames  = 0;
+
+	// Written by UpdateCapsuleFollowsHMD each frame so the anomaly logger can see the capsule-follow
+	// input (how far the HMD drifted), how far the swept move actually got, and whether it was blocked.
+	float   LastHorizOffsetSize       = 0.0f;
+	float   LastCapsuleFollowMoved    = 0.0f;
+	bool    bLastCapsuleFollowBlocked = false;
 	
 	UPROPERTY()
 	USkeletalMeshComponent* SkeletalMesh; 

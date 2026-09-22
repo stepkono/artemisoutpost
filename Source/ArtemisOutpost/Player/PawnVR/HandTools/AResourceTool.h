@@ -42,6 +42,9 @@ public:
 	virtual void EndAction() override;
 	virtual void DeactivateTool() override;
 
+	// Awareness: the scan mode decides what the HUD shows (Umgebung / Oberfläche / Ressource).
+	virtual EToolActivity GetToolActivity() const override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -13,6 +13,7 @@
 #include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/MiniGameInteraction/MinigamePlayerController.h"
 #include "ArtemisOutpost/Moon/MoonResources/MoonResourcesManager.h"
 #include "ArtemisOutpost/StudyData/Providers/PlayerActionProvider/PlayerActionProvider.h"
+#include "ArtemisOutpost/GameData/ArtemisPlayerState.h"
 
 APawnController::APawnController()
 {
@@ -68,6 +69,38 @@ void APawnController::SetUPID(const FString& InUPID)
 	UE_LOG(LogMinigame, Log, TEXT("[UPID] %s (%s): identity set to '%s' (was '%s')."),
 		*GetName(), ArtemisNet::RoleName(GetNetMode()), *InUPID, *UPID);
 	UPID = InUPID;
+
+	// Server: stamp the identity onto the replicated PlayerState so every client can map it back.
+	if (HasAuthority())
+	{
+		if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+		{
+			PS->ServerSetUPID(UPID);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Cues] %s: SetUPID before the PlayerState exists or PlayerStateClass is not AArtemisPlayerState. Check the GameMode's PlayerStateClass."), *GetName());
+		}
+	}
+}
+
+AArtemisPlayerState* APawnController::GetArtemisPlayerState() const
+{
+	return GetPlayerState<AArtemisPlayerState>();
+}
+
+void APawnController::SetXRMode(EXRMode Mode)
+{
+	CurrentXRMode = Mode;
+
+	if (HasAuthority())
+	{
+		ServerReportXRMode_Implementation(Mode);
+	}
+	else
+	{
+		ServerReportXRMode(Mode);
+	}
 }
 
 void APawnController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -86,12 +119,22 @@ void APawnController::OnPossess(APawn* InPawn)
 	Super::OnPossess(InPawn);
 	SetViewTarget(InPawn); // TODO: do we have to do that? 
 	
-	if (!ARPawn)
+	// The mode switch spawns a NEW AR pawn on every switch to AR, so always track the current one.
+	if (APawnAR* AR = Cast<APawnAR>(InPawn))
 	{
-		if (APawnAR* AR = Cast<APawnAR>(InPawn))
+		if (ARPawn != AR)
 		{
-			UE_LOG(LogTemp, Log, TEXT("PawnController: AR Pawn was possessed and set."))
-			ARPawn = AR;
+			UE_LOG(LogTemp, Log, TEXT("PawnController: AR Pawn was possessed and set (%s)."), *AR->GetName());
+		}
+		ARPawn = AR;
+	}
+
+	// Server: let every peer resolve "this actor belongs to that player" (pointing at players).
+	if (HasAuthority() && ARPawn)
+	{
+		if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+		{
+			PS->ServerSetPawns(nullptr, ARPawn, nullptr);
 		}
 	}
 }
@@ -115,7 +158,15 @@ void APawnController::InitializePawns(ACharVR* InVRChar, AMasterRover* InMasterR
 	
 	VRPawn = InVRChar;
 	MasterRover = InMasterRover;
-	
+
+	if (HasAuthority())
+	{
+		if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+		{
+			PS->ServerSetPawns(VRPawn, nullptr, MasterRover);
+		}
+	}
+
 	AServerGameMode* ServerGameMode = Cast<AServerGameMode>(GetWorld()->GetAuthGameMode());
 	if (!ServerGameMode)
 	{
@@ -192,6 +243,12 @@ void APawnController::ServerReportHmdState_Implementation(bool bWorn)
 	// the client never has to send it. Route to the player-action provider for aggregation.
 	UE_LOG(LogTemp, Warning, TEXT("[HMD] Server RPC received: worn=%d, UPID=%s"), bWorn ? 1 : 0, *UPID);
 
+	// Context: a doffed HMD puts the player into "R" until it is donned again.
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetHmdWorn(bWorn);
+	}
+
 	UPlayerActionProvider* Provider = GetWorld() ? GetWorld()->GetSubsystem<UPlayerActionProvider>() : nullptr;
 	if (!Provider)
 	{
@@ -256,6 +313,60 @@ void APawnController::ShouldActivateVRCharPuppet(bool bShouldActivate) const
 	
 	if (CurrentXRMode == VR)
 	{
-		VRPawn->ShouldActivateARPuppet(bShouldActivate); 	
+		VRPawn->ShouldActivateARPuppet(bShouldActivate);
+	}
+}
+
+// ---- Awareness cues: client -> server -> PlayerState ----
+
+void APawnController::ServerReportXRMode_Implementation(EXRMode Mode)
+{
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetXRMode(Mode);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cues] %s: ServerReportXRMode without an AArtemisPlayerState — context not updated."), *GetName());
+	}
+}
+
+void APawnController::ServerSetTalking_Implementation(bool bTalking)
+{
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetTalking(bTalking);
+	}
+}
+
+void APawnController::ServerSetPointing_Implementation(EPointingHand Hand, bool bPointing)
+{
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetPointing(Hand, bPointing);
+	}
+}
+
+void APawnController::ServerReportPointerTarget_Implementation(FPointingTarget Target)
+{
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetPointerTarget(Target);
+	}
+}
+
+void APawnController::ServerReportGazeTarget_Implementation(FPointingTarget Target)
+{
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetGazeTarget(Target);
+	}
+}
+
+void APawnController::ServerReportToolActivity_Implementation(EToolActivity Tool)
+{
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetToolActivity(Tool);
 	}
 }

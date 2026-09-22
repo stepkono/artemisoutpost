@@ -225,6 +225,16 @@ enum EGameEventType
 	// mean the client has dropped its connection.
 	HMDDonned            UMETA(DisplayName = "HMD Donned"),
 	HMDDoffed            UMETA(DisplayName = "HMD Doffed"),
+
+	// Awareness cues (see AArtemisPlayerState). Event stream, produced server-side on every change of
+	// the replicated cue state; PointingUpdate is the only rate-limited one.
+	PlayerContextChanged  UMETA(DisplayName = "Player Context Changed"),
+	PlayerActivityChanged UMETA(DisplayName = "Player Activity Changed"),
+	PlayerPointingStart   UMETA(DisplayName = "Player Pointing Start"),
+	PlayerPointingUpdate  UMETA(DisplayName = "Player Pointing Update"),
+	PlayerPointingFinish  UMETA(DisplayName = "Player Pointing Finish"),
+	PlayerTalkStart       UMETA(DisplayName = "Player Talk Start"),
+	PlayerTalkFinish      UMETA(DisplayName = "Player Talk Finish"),
 };
 
 /**

@@ -123,6 +123,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 		// The WTM change has now taken effect, so the anchors' world positions reflect the new scale.
 		// Notify listeners (cutout material) to re-push them.
 		//UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Scale committed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"), OnCutoutNeedsUpdate.IsBound() ? 1 : 0); // TODO
+		OnWTMShouldResize.Broadcast(CurrentMoonVisualScale); 
 		OnCutoutNeedsUpdate.Broadcast();
 	}
 
@@ -193,11 +194,8 @@ void UTransformationsManager::Tick(float DeltaTime)
 		{
 			const FTransform Cached = XRUtils->GetXRTransform();
 			const FTransform Live = UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(GetWorld());
-			const bool bEqual = Cached.GetLocation().Equals(Live.GetLocation(), 1.0f)
-				&& Cached.GetRotation().AngularDistance(Live.GetRotation()) < FMath::DegreesToRadians(0.5f);
-			UE_LOG(LogTemp, Warning, TEXT("[TM][ZoomStart] cachedXR=%s | liveXR=%s | equal=%d | liveWTM=%.2f trackedWTM=%.2f"),
-				*Cached.ToString(), *Live.ToString(), bEqual ? 1 : 0,
-				UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()), BaseWorldScale * CurrentMoonVisualScale);
+			const bool bEqual = Cached.GetLocation().Equals(Live.GetLocation(), 1.0f) && Cached.GetRotation().AngularDistance(Live.GetRotation()) < FMath::DegreesToRadians(0.5f);
+			UE_LOG(LogTemp, Warning, TEXT("[TM][ZoomStart] cachedXR=%s | liveXR=%s | equal=%d | liveWTM=%.2f trackedWTM=%.2f"), *Cached.ToString(), *Live.ToString(), bEqual ? 1 : 0, UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetWorld()), BaseWorldScale * CurrentMoonVisualScale);
 		}
 
 		CurrentMoonVisualScale = CalcInterpolatedScale(DeltaTime);
@@ -218,31 +216,6 @@ void UTransformationsManager::Tick(float DeltaTime)
 	bWasScaling = bScalingThisFrame;
 
 	const FTransform MoonAfter = ARGeoRef->GetActorTransform();
-
-	// Update rover transform 
-	/*
-	if (bRoverLocalInitialized)
-	{
-		// Position
-		// UE_LOG(LogTemp, Warning, TEXT("Delta Absolute: %s"), *DeltaLocalAbsolute.ToString())
-		const FVector RoverNewLocalPos = RoverInitialLocalPos + DeltaLocalAbsolute; 
-		const FVector RoverNewWorldPos = MoonAfter.TransformPosition(RoverNewLocalPos);
-		
-		// Rotation 
-		const FQuat RoverNewLocalRot = (RoverInitialLocalRot * DeltaRoverRotation).GetNormalized(); 
-		const FQuat RoverNewWorldRot = MoonAfter.TransformRotation(RoverNewLocalRot);
-		
-		// Set
-		Rover->SetActorLocationAndRotation(RoverNewWorldPos, RoverNewWorldRot, false, nullptr, ETeleportType::TeleportPhysics);
-	}
-	else
-	{
-		const FVector RoverNewWorldPos = MoonAfter.TransformPosition(RoverInitialLocalPositionFallback);
-		Rover->SetActorLocationAndRotation(RoverNewWorldPos, RoverInitialLocalRotationFallback, false, nullptr, ETeleportType::TeleportPhysics); 
-	}
-	
-	GeoRoverPos = GetGeodeticPosition(Rover->GetActorLocation());
-	*/
 	
 	// Keep ticking until the final queued reposition has been committed (bScaleApplyPending),
 	// otherwise the last WTM change would land with no matching moon move and re-introduce the jump.
@@ -448,8 +421,8 @@ void UTransformationsManager::ProcessBaseCoordinates_GameThread()
 		}
 		
 		// Get the table corners coordinates on the moon surface
-		FVector UpLeftPoint = GeoToUnreal(CoordinatesToVector(LatestBaseCoordinates.UpLeft));
-		FVector BottomLeftPoint = GeoToUnreal(CoordinatesToVector(LatestBaseCoordinates.BottomLeft));
+		FVector UpLeftPoint      = GeoToUnreal(CoordinatesToVector(LatestBaseCoordinates.UpLeft));
+		FVector BottomLeftPoint  = GeoToUnreal(CoordinatesToVector(LatestBaseCoordinates.BottomLeft));
 		FVector BottomRightPoint = GeoToUnreal(CoordinatesToVector(LatestBaseCoordinates.BottomRight));
 		
 		/*-----------Prepare data for interpolation-----------*/
@@ -515,6 +488,7 @@ FMatrix UTransformationsManager::BuildRotationMatrix(const FVector &UpLeft, cons
 
 bool UTransformationsManager::UpdateTargetFrame(FCalibratedData& CalibratedAnchors) 
 {
+	// TODO: maybe we should updatetargetframe now only once after init but after every reattachmenet or something. However not sure if it would break things
 	if (!AnchorsManager)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("TransformationsManager: UpdateTargetFrame: Anchors Manager not initialized."))
@@ -526,9 +500,9 @@ bool UTransformationsManager::UpdateTargetFrame(FCalibratedData& CalibratedAncho
 	// B(top-left)     C(top-right)
 	// A(bottom-left)  D(bottom-right)
 	CalibratedAnchors = UGeoUtils::CalibrateAnchors(
-		Anchors[0]->GetActorLocation(),   // A (bottom-left)  
-		Anchors[1]->GetActorLocation(),   // B (top-left)    
-		Anchors[3]->GetActorLocation()    // D (bottom-right) 
+			Anchors[0]->GetActorLocation(),   // A (bottom-left)  
+			Anchors[1]->GetActorLocation(),   // B (top-left)    
+			Anchors[3]->GetActorLocation()    // D (bottom-right) 
 		);
 	
 	const FVector XAxis = CalibratedAnchors.BAnchorPos - CalibratedAnchors.AAnchorPos;
@@ -580,7 +554,7 @@ float UTransformationsManager::CalcTargetRelativeMoonScale(const FVector &UpLeft
 	//UE_LOG(LogTemp, Log, TEXT("ScaleOnVirtualMoon: %f"), ScaleOnVirtualMoon);
 
 	// Relative scale factor is a mapping of moon vector to the table edge length
-	// TODO: make sure this vector is correct for correct proportional scale and should the acnhors be scaling?
+	// TODO: make sure this vector is correct for correct proportional scale and should the anchors be scaling?
 	return ScaleOnVirtualMoon / (SpatialAnchors.InitialAnchorA - SpatialAnchors.InitialAnchorD).Length();
 }
 
@@ -675,6 +649,7 @@ void UTransformationsManager::RecalibrateFromAnchors()
 	//TODO: we have to examine this deeper
 	//UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Re-seed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"), OnCutoutNeedsUpdate.IsBound() ? 1 : 0);
 	OnCutoutNeedsUpdate.Broadcast();
+	OnWTMShouldResize.Broadcast(CurrentMoonVisualScale); 
 	//UE_LOG(LogTemp, Warning, TEXT("[TM][Recalib] Re-seeded from anchors. TableCenter=%s"), *TableCenter.ToString());
 }
 

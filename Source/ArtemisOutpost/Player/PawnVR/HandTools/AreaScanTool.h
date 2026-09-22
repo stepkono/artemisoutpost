@@ -22,4 +22,6 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	virtual EToolActivity GetToolActivity() const override { return EToolActivity::ScanArea; }
 };

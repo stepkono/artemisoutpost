@@ -6,6 +6,10 @@
 #include "EngineUtils.h"
 #include "ArtemisOutpost/XR/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
+#include "ArtemisOutpost/Player/PawnVR/ControllerRays/ControllerRayComponent.h"
+#include "ArtemisOutpost/Player/PlayerCues/PlayerCuesManager.h"
+#include "ArtemisOutpost/Player/PlayerCues/AwarenessHUD/AwarenessHUDComponent.h"
+#include "EnhancedInputComponent.h"
 
 
 // Sets default values
@@ -14,7 +18,15 @@ APawnAR::APawnAR()
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	PrimaryActorTick.bCanEverTick = true;
-	bAlwaysRelevant = true; 
+	bAlwaysRelevant = true;
+
+	ControllerRayComponent = CreateDefaultSubobject<UControllerRayComponent>(TEXT("ControllerRayComponent"));
+
+	// Awareness cues: the AR pawn points at and looks at the table moon.
+	PlayerCuesManager = CreateDefaultSubobject<UPlayerCuesManager>(TEXT("PlayerCuesManager"));
+	PlayerCuesManager->SetUsesARMoon(true);
+
+	AwarenessHUDComponent = CreateDefaultSubobject<UAwarenessHUDComponent>(TEXT("AwarenessHUDComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -86,6 +98,24 @@ void APawnAR::Tick(float DeltaTime)
 void APawnAR::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// Runs on the locally controlled AR pawn after possession (the mode switch re-possesses on every
+	// switch, so a freshly spawned AR pawn binds here as well).
+	if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		if (ControllerRayComponent)
+		{
+			ControllerRayComponent->BindInput(EIC);
+		}
+		if (PlayerCuesManager)
+		{
+			PlayerCuesManager->BindInput(EIC);
+		}
+		if (AwarenessHUDComponent)
+		{
+			AwarenessHUDComponent->BindInput(EIC);
+		}
+	}
 }
 
 bool APawnAR::IsAuthoritativeClient() const

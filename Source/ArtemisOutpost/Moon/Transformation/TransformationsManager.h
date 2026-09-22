@@ -20,6 +20,7 @@ class UMoonScannedAreaManager;
 // re-seeded from a re-localization — i.e. whenever their world positions changed and any cutout
 // material driven by those positions must be re-pushed.
 DECLARE_MULTICAST_DELEGATE(FOnCutoutNeedsUpdate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWTMShouldResize, float, AbsoluteScalingFactor);
 
 USTRUCT(BlueprintType)
 struct FSpatialAnchors
@@ -74,6 +75,9 @@ public:
 	// Fired when the anchors' world positions have changed (zoom-scale commit or re-localization
 	// re-seed). MapCutoutManager binds this to re-push anchor positions to its MaterialParameterCollection.
 	FOnCutoutNeedsUpdate OnCutoutNeedsUpdate;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Transformations Manager")
+	FOnWTMShouldResize OnWTMShouldResize;
 #pragma endregion
 	
 #pragma region Getters

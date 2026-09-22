@@ -25,4 +25,6 @@ public:
 	// Geodetic (Lon, Lat, Height) positions of the samples that flipped, for both discovered and mined.
 	UPROPERTY()
 	TArray<FVector> GeoPositions;
+	
+	virtual TSharedPtr<FJsonObject> BuildJsonFromData(const EGameEventType GameEventType) override;
 };

@@ -8,6 +8,7 @@
 #include "OculusXRAnchors.h"
 #include "OculusXRAnchorsRequests.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
+#include "ArtemisOutpost/Moon/Cesium/GeoTools/GeoUtils.h"
 
 void UAnchorsManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -604,4 +605,69 @@ AActor* UAnchorsManagerSubsystem::GetBaseAnchor()
 TArray<AActor*> UAnchorsManagerSubsystem::GetAnchors()
 {
 	return SpawnedAnchors;
+}
+
+bool UAnchorsManagerSubsystem::TryGetAnchorsFrame(FTransform& OutFrame) const
+{
+	if (SpawnedAnchors.Num() < 4 ||
+		!IsValid(SpawnedAnchors[0]) || !IsValid(SpawnedAnchors[1]) || !IsValid(SpawnedAnchors[3]))
+	{
+		return false;
+	}
+
+	// B(top-left)     C(top-right)
+	// A(bottom-left)  D(bottom-right)
+	const FCalibratedData Calib = UGeoUtils::CalibrateAnchors(
+		SpawnedAnchors[0]->GetActorLocation(),   // A (bottom-left)
+		SpawnedAnchors[1]->GetActorLocation(),   // B (top-left)
+		SpawnedAnchors[3]->GetActorLocation());  // D (bottom-right)
+
+	const FVector XAxis = Calib.BAnchorPos - Calib.AAnchorPos;
+	const FVector YAxis = Calib.DAnchorPos - Calib.AAnchorPos;
+
+	// Uniform scale = table edge length. The anchors scale with WorldToMeters, so dividing positions
+	// by this edge length turns them into WTM-invariant fractions of the table that line up across
+	// colocated clients regardless of each client's zoom level.
+	const float EdgeLen = XAxis.Length();
+	if (EdgeLen <= KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	// Orthonormal table orientation. Scale is carried separately, not baked into the basis, so all
+	// three axes scale uniformly and the resulting local coordinate is a pure ratio.
+	const FMatrix Basis = UGeoUtils::BuildMatrixFromVectors(XAxis, YAxis);
+
+	OutFrame = FTransform(Basis.ToQuat(), Calib.PlaneCenter, FVector(EdgeLen));
+	return true;
+}
+
+FTransform UAnchorsManagerSubsystem::GetRelativeToAnchorsFrame(const FTransform& WorldTransform) const
+{
+	FTransform Frame;
+	if (!TryGetAnchorsFrame(Frame))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AnchorsManager] GetRelativeToAnchorsFrame: anchors not ready, returning input unchanged."));
+		return WorldTransform;
+	}
+	
+	const FVector LocalPos = Frame.InverseTransformPosition(WorldTransform.GetLocation());
+	const FQuat   LocalRot = Frame.GetRotation().Inverse() * WorldTransform.GetRotation();
+
+	return FTransform(LocalRot, LocalPos, WorldTransform.GetScale3D());
+}
+
+FTransform UAnchorsManagerSubsystem::GetWorldFromAnchorsFrame(const FTransform& LocalTransform) const
+{
+	FTransform Frame;
+	if (!TryGetAnchorsFrame(Frame))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AnchorsManager] GetWorldFromAnchorsFrame: anchors not ready, returning input unchanged."));
+		return LocalTransform;
+	}
+
+	const FVector WorldPos = Frame.TransformPosition(LocalTransform.GetLocation());
+	const FQuat   WorldRot = Frame.GetRotation() * LocalTransform.GetRotation();
+
+	return FTransform(WorldRot, WorldPos, LocalTransform.GetScale3D());
 }

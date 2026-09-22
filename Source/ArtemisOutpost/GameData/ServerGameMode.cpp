@@ -7,6 +7,14 @@
 #include "ArtemisOutpost/Player/PlayerController/PawnController.h"
 #include "GameFramework/OnlineReplStructs.h"
 #include "Kismet/GameplayStatics.h"
+#include "ArtemisOutpost/GameData/ArtemisPlayerState.h"
+
+AServerGameMode::AServerGameMode()
+{
+	// Per-player awareness state replicated to everyone (see AArtemisPlayerState). If BP_GameMode has
+	// an explicit PlayerStateClass override it wins; make sure it is this class or a child of it.
+	PlayerStateClass = AArtemisPlayerState::StaticClass();
+}
 
 void AServerGameMode::BeginPlay()
 {
@@ -117,7 +125,14 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		}
 		
 		Existing->PawnController = PlayerController;
-		
+
+		// A reconnect gets a FRESH PlayerState; give it the same number so the colour tag is stable.
+		if (AArtemisPlayerState* PS = PlayerController->GetArtemisPlayerState())
+		{
+			PS->ServerSetPlayerNumber(Existing->PlayerNumber);
+			PS->ServerSetPawns(Existing->VRChar, nullptr, Existing->MasterRover);
+		}
+
 		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Reconnect for UPID %s (player #%d) — re-attaching existing pawns."), *UPID, Existing->PlayerNumber);
 		
 		PlayerReconnectedDelegate.Broadcast(PlayerController, *Existing);
@@ -129,6 +144,15 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		NewPlayer.PawnController = PlayerController;
 		NewPlayer.PlayerNumber = PlayersInGame.Num() + 1;
 		PlayersInGame.Add(UPID, NewPlayer);
+
+		if (AArtemisPlayerState* PS = PlayerController->GetArtemisPlayerState())
+		{
+			PS->ServerSetPlayerNumber(NewPlayer.PlayerNumber);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("ServerGameMode: %s has no AArtemisPlayerState. Set PlayerStateClass on BP_GameMode to AArtemisPlayerState, awareness cues will not work otherwise."), *PlayerController->GetName());
+		}
 		
 		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: First join for UPID %s (player #%d)."), *UPID, NewPlayer.PlayerNumber);
 		

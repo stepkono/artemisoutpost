@@ -17,7 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnchorsSharedResult, bool, bSucce
  * Service subsystem responsible for spatial anchor discovery, sharing, and spawning.
  * Lives on GameInstance — survives level loads.
  */
-UCLASS()
+UCLASS(BlueprintType)
 class ARTEMISOUTPOST_API UAnchorsManagerSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
@@ -61,7 +61,20 @@ public:
 	UFUNCTION()
 	TArray<AActor*> GetAnchors(); 
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Spatial Anchors")
+	FTransform GetRelativeToAnchorsFrame(const FTransform& WorldTransform) const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Spatial Anchors")
+	FTransform GetWorldFromAnchorsFrame(const FTransform& LocalTransform) const;
+
 private:
+	/**
+	 * Builds the shared table frame as a similarity transform: orthonormal basis oriented by the
+	 * table edges, translation at the table center, uniform scale = table edge length. Returns
+	 * false when the anchors are not spawned/located yet.
+	 */
+	bool TryGetAnchorsFrame(FTransform& OutFrame) const;
+
 	UFUNCTION()
 	void OnAnchorDiscovered(const TArray<FOculusXRAnchorsDiscoverResult>& DiscoveredAnchors);
 

@@ -19,7 +19,10 @@
 #include "ArtemisOutpost/Moon/Cesium/GeoTools/GeoUtils.h"
 #include "ToolsHUD/ToolsHUDComponent.h"
 #include "ControllerRays/ControllerRayComponent.h"
+#include "ArtemisOutpost/Player/PlayerCues/PlayerCuesManager.h"
+#include "ArtemisOutpost/Player/PlayerCues/AwarenessHUD/AwarenessHUDComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
 // Sets default values
@@ -43,7 +46,13 @@ ACharVR::ACharVR()
 	// Client-local controller rays (both hands). A plain ActorComponent; it resolves the
 	// WidgetInteractionComponents authored in BP_VRChar and spawns the Niagara visuals at runtime.
 	ControllerRayComponent = CreateDefaultSubobject<UControllerRayComponent>(TEXT("ControllerRayComponent"));
-	
+
+	// Awareness cues: this pawn's hits are expressed against the VR moon.
+	PlayerCuesManager = CreateDefaultSubobject<UPlayerCuesManager>(TEXT("PlayerCuesManager"));
+	PlayerCuesManager->SetUsesARMoon(false);
+
+	AwarenessHUDComponent = CreateDefaultSubobject<UAwarenessHUDComponent>(TEXT("AwarenessHUDComponent"));
+
 	this->Tags.AddUnique(FName("Blocking"));
 }
 
@@ -153,6 +162,7 @@ void ACharVR::Tick(float DeltaTime)
 		bXRBaseIsReset = false;
 		UpdateVRViewTilt();
 		UpdateCapsuleFollowsHMD();
+		LogVRMotionAnomalies(DeltaTime);
 		// NOTE: UpdateHeadCollision is temporarily not called — it re-homes VROrigin's full relative
 		// location every frame, which would fight UpdateCapsuleFollowsHMD's horizontal offset. Roof
 		// avoidance needs to be folded into the capsule-follow step before re-enabling.
@@ -222,6 +232,14 @@ void ACharVR::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		if (ControllerRayComponent)
 		{
 			ControllerRayComponent->BindInput(EIC);
+		}
+		if (PlayerCuesManager)
+		{
+			PlayerCuesManager->BindInput(EIC);
+		}
+		if (AwarenessHUDComponent)
+		{
+			AwarenessHUDComponent->BindInput(EIC);
 		}
 	}
 }
@@ -499,8 +517,13 @@ void ACharVR::UpdateCapsuleFollowsHMD()
 	const FVector Delta      = CamWorld - GetActorLocation();
 	const FVector HorizOffset = Delta - FVector::DotProduct(Delta, Up) * Up;
 
+	// Record the capsule-follow input for the motion diagnostics BEFORE the early-out, so a frame
+	// with (correctly) no drift resets the captured values instead of leaving last frame's stale ones.
+	LastHorizOffsetSize = HorizOffset.Size();
 	if (HorizOffset.SizeSquared() < KINDA_SMALL_NUMBER)
 	{
+		LastCapsuleFollowMoved = 0.0f;
+		bLastCapsuleFollowBlocked = false;
 		return;
 	}
 
@@ -514,8 +537,128 @@ void ACharVR::UpdateCapsuleFollowsHMD()
 	// slightly — for wall-stop comfort, counter-slide by the ACTUAL moved delta instead; (2) networked
 	// room-scale movement / head-through-wall fade are handled robustly by VRExpansion if this proves
 	// insufficient.
-	AddActorWorldOffset(HorizOffset, /*bSweep=*/true);
+	// Capture how far the swept move ACTUALLY got (vs the requested HorizOffset) and whether it was
+	// blocked. A follow that is repeatedly blocked while the counter-slide still applies the full
+	// offset is a prime suspect for the intermittent runaway drift, so the diagnostics must see it.
+	const FVector FollowBeforeLoc = GetActorLocation();
+	FHitResult FollowHit;
+	AddActorWorldOffset(HorizOffset, /*bSweep=*/true, &FollowHit);
+	LastCapsuleFollowMoved = (GetActorLocation() - FollowBeforeLoc).Size();
+	bLastCapsuleFollowBlocked = FollowHit.bBlockingHit;
 	CachedVROrigin->AddWorldOffset(-HorizOffset);
+}
+
+void ACharVR::LogVRMotionAnomalies(float DeltaTime)
+{
+	if (!CachedVRCamera)
+	{
+		return;
+	}
+
+	const FVector Up         = GetActorUpVector();
+	const FVector ActorLoc   = GetActorLocation();
+	const FVector CamWorld   = CachedVRCamera->GetComponentLocation();
+	const float   HalfHeight = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.0f;
+	const FVector Velocity   = GetVelocity();
+	const float   Speed      = Velocity.Size();
+	const float   VertSpeed  = FVector::DotProduct(Velocity, Up); // + = moving along the surface normal (up)
+
+	// Raw HMD pose in tracking space. A doffed headset on a table can jump/reset this, which is what
+	// we suspect drives the fly-up, so we watch its per-frame delta directly.
+	FVector  HmdPos = FVector::ZeroVector;
+	FRotator HmdRot = FRotator::ZeroRotator;
+	if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())
+	{
+		UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HmdRot, HmdPos);
+	}
+
+	// First valid frame: seed baselines and skip (frame deltas would be meaningless).
+	if (!bMotionBaselineValid)
+	{
+		PrevActorLocation     = ActorLoc;
+		PrevHmdPos            = HmdPos;
+		PrevCameraWorld       = CamWorld;
+		PrevCapsuleHalfHeight = HalfHeight;
+		bMotionBaselineValid  = true;
+		return;
+	}
+
+	const float ActorMove       = (ActorLoc - PrevActorLocation).Size();
+	const float HmdMove         = (HmdPos - PrevHmdPos).Size();
+	const float CamMove         = (CamWorld - PrevCameraWorld).Size();
+	const float HalfHeightDelta = FMath::Abs(HalfHeight - PrevCapsuleHalfHeight);
+
+	const UCharacterMovementComponent* CMC = GetCharacterMovement();
+	const bool  bFalling  = CMC ? CMC->IsFalling() : false;
+	const int32 MoveMode  = CMC ? static_cast<int32>(CMC->MovementMode.GetValue()) : -1; // 1=Walking 3=Falling 4=Flying
+
+	// Floor + gravity-alignment state — the crux of the fall/fly-up. If FloorHit=0 while Falling, the
+	// CMC has no ground under the capsule (Cesium collision missing/late, or the capsule is penetrating).
+	// If FloorHit=1 but Walkable=0, the floor IS there but rejected (slope/perch). GravVsUpDeg should be
+	// ~0 (custom gravity aligned to the pawn up); a large value means the CMC up-axis and the pawn up
+	// disagree. FloorNvsUpDeg is the terrain slope the CMC sees relative to the pawn up.
+	const bool  bOnGround      = CMC ? CMC->IsMovingOnGround() : false;
+	const bool  bFloorHit      = CMC ? CMC->CurrentFloor.bBlockingHit : false;
+	const bool  bFloorWalkable = CMC ? CMC->CurrentFloor.bWalkableFloor : false;
+	const float FloorDist      = bFloorHit ? CMC->CurrentFloor.GetDistanceToFloor() : -1.0f;
+	const FVector GravDir      = CMC ? CMC->GetGravityDirection() : FVector::DownVector;
+	const float GravVsUpDeg    = CMC ? FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(-GravDir, Up), -1.0f, 1.0f))) : -1.0f;
+	const float FloorNvsUpDeg  = bFloorHit ? FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(CMC->CurrentFloor.HitResult.ImpactNormal, Up), -1.0f, 1.0f))) : -1.0f;
+
+	// Any threshold tripped this frame opens a short logging burst so we can watch the event evolve
+	// over the following frames, not just the single spike.
+	const bool bAnomaly =
+		ActorMove       > MotionLogActorJumpCm       ||
+		Speed           > MotionLogSpeedCmS          ||
+		HalfHeightDelta > MotionLogHalfHeightDeltaCm ||
+		HmdMove         > MotionLogHmdJumpCm         ||
+		bFalling;
+
+	if (bAnomaly)
+	{
+		MotionLogBurstFrames = FMath::Max(MotionLogBurstFrames, MotionLogBurstLength);
+	}
+
+	if (MotionLogBurstFrames > 0)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[VRMotion] dt=%.4f ActorMove=%.1f Speed=%.1f VertSpeed=%.1f Falling=%d MoveMode=%d | HalfH=%.1f dHalfH=%.1f | HMDmove=%.1f CamMove=%.1f | FollowOffset=%.1f FollowMoved=%.1f FollowBlocked=%d"),
+			DeltaTime, ActorMove, Speed, VertSpeed, bFalling ? 1 : 0, MoveMode,
+			HalfHeight, HalfHeightDelta, HmdMove, CamMove,
+			LastHorizOffsetSize, LastCapsuleFollowMoved, bLastCapsuleFollowBlocked ? 1 : 0);
+		UE_LOG(LogTemp, Warning,
+			TEXT("[VRFloor]  OnGround=%d FloorHit=%d Walkable=%d FloorDist=%.1f | GravVsUpDeg=%.1f FloorNvsUpDeg=%.1f"),
+			bOnGround ? 1 : 0, bFloorHit ? 1 : 0, bFloorWalkable ? 1 : 0, FloorDist, GravVsUpDeg, FloorNvsUpDeg);
+
+		// Name the "invisible wall". When we have velocity, sweep the capsule a short way along it using
+		// the capsule's OWN collision profile, so we hit exactly what the CMC move would hit. Prints the
+		// blocking actor + component: our own VRCharPuppet, the rover, another pawn, or terrain geometry.
+		FString BlockerName = TEXT("none");
+		FString BlockerComp = TEXT("-");
+		UWorld* World = GetWorld();
+		UCapsuleComponent* Capsule = GetCapsuleComponent();
+		if (World && Capsule && Speed > 5.0f)
+		{
+			const FVector Dir      = Velocity.GetSafeNormal();
+			const FVector ProbeEnd = ActorLoc + Dir * 20.0f;
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(VRBlockerProbe), /*bTraceComplex=*/false, this);
+			FHitResult BlockHit;
+			const FCollisionShape Shape = FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight());
+			if (World->SweepSingleByProfile(BlockHit, ActorLoc, ProbeEnd, GetActorQuat(), Capsule->GetCollisionProfileName(), Shape, Params))
+			{
+				BlockerName = BlockHit.GetActor() ? BlockHit.GetActor()->GetName() : TEXT("unknown");
+				BlockerComp = BlockHit.GetComponent() ? BlockHit.GetComponent()->GetName() : TEXT("-");
+			}
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[VRBlock]  Blocker=%s Comp=%s"), *BlockerName, *BlockerComp);
+
+		--MotionLogBurstFrames;
+	}
+
+	PrevActorLocation     = ActorLoc;
+	PrevHmdPos            = HmdPos;
+	PrevCameraWorld       = CamWorld;
+	PrevCapsuleHalfHeight = HalfHeight;
 }
 
 void ACharVR::LogVRTransforms(float DeltaTime)

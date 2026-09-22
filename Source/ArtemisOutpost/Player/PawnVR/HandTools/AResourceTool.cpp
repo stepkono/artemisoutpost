@@ -80,7 +80,23 @@ void AResourceTool::BeginScan(EScanMode Mode)
 	CurrentScanMode = Mode;
 	if (!bToolActive)
 	{
-		ActivateTool();
+		ActivateTool(); // reports the activity itself
+	}
+	else
+	{
+		// Already drawn, only the mode changed: the HUD text must follow.
+		ReportToolActivity(true);
+	}
+}
+
+EToolActivity AResourceTool::GetToolActivity() const
+{
+	switch (CurrentScanMode)
+	{
+	case EScanMode::Area:    return EToolActivity::ScanArea;
+	case EScanMode::Mining:  return EToolActivity::CollectResource;
+	case EScanMode::Surface:
+	default:                 return EToolActivity::ScanSurface;
 	}
 }
 

@@ -55,6 +55,8 @@ public:
 	// possession (and therefore the owning connection) only arrives after BeginPlay.
 	virtual void ActivateTool() override;
 
+	virtual EToolActivity GetToolActivity() const override { return EToolActivity::Building; }
+
 	// Geodetic "up" (moon surface normal) at a world position, via the VR-moon georeference.
 	UFUNCTION(BlueprintPure, Category = "Building Tool")
 	FVector GetSurfaceUp(FVector WorldPos) const;

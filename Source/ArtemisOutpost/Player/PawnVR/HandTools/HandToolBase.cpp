@@ -4,6 +4,7 @@
 
 #include "GameFramework/Pawn.h"
 #include "ArtemisOutpost/Player/PawnVR/ACharVR.h"
+#include "ArtemisOutpost/Player/PlayerCues/PlayerCuesManager.h"
 
 AHandToolBase::AHandToolBase()
 {
@@ -37,7 +38,24 @@ void AHandToolBase::ActivateTool()
 		VR->SetActiveHandTool(this);
 	}
 
+	ReportToolActivity(true);
+
 	OnToolActivated();
+}
+
+void AHandToolBase::ReportToolActivity(bool bActive) const
+{
+	// Only the player holding the tool reports; every other instance just shows the mesh.
+	if (!IsOwnerLocallyControlled())
+	{
+		return;
+	}
+	const APawn* Pawn = GetOwningPawn();
+	UPlayerCuesManager* Cues = Pawn ? Pawn->FindComponentByClass<UPlayerCuesManager>() : nullptr;
+	if (Cues)
+	{
+		Cues->ReportToolActivity(bActive ? GetToolActivity() : EToolActivity::None);
+	}
 }
 
 void AHandToolBase::DeactivateTool()
@@ -55,6 +73,8 @@ void AHandToolBase::DeactivateTool()
 			VR->SetActiveHandTool(nullptr);
 		}
 	}
+
+	ReportToolActivity(false);
 
 	OnToolDeactivated();
 }

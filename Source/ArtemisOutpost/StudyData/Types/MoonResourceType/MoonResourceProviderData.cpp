@@ -2,3 +2,8 @@
 
 
 #include "MoonResourceProviderData.h"
+
+TSharedPtr<FJsonObject> UMoonResourceProviderData::BuildJsonFromData(const EGameEventType GameEventType)
+{
+	return TSharedPtr<FJsonObject>(new FJsonObject());
+}

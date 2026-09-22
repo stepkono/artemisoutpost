@@ -23,7 +23,11 @@ class ARTEMISOUTPOST_API AServerGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 	
-public: 
+public:
+	// Sets AArtemisPlayerState as the PlayerStateClass default (the BP child inherits it unless it
+	// overrides the property).
+	AServerGameMode();
+
 	virtual void BeginPlay() override;
 	
 	// Called by the BP after it spawns a first-time player's pawns, so the slot remembers them and a

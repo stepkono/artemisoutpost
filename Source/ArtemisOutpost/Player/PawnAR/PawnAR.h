@@ -9,6 +9,10 @@
 #include "GameFramework/Pawn.h"
 #include "PawnAR.generated.h"
 
+class UControllerRayComponent;
+class UPlayerCuesManager;
+class UAwarenessHUDComponent;
+
 UCLASS()
 class ARTEMISOUTPOST_API APawnAR : public APawn
 {
@@ -23,20 +27,34 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
+
 	virtual void NotifyControllerChanged() override;
-	
+
 	UFUNCTION(BlueprintCallable, Category = "AR Moon")
-	ACesium3DTileset* GetARTileset(); 
-	
+	ACesium3DTileset* GetARTileset();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-private: 
+	// Controller rays for the AR hands (widget click + the shared pointer). The
+	// WidgetInteractionComponents it drives must be authored under MotionControllerL/R in BP_ARPawn
+	// and tagged Ray_Left / Ray_Right. See UControllerRayComponent.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Controller Rays")
+	TObjectPtr<UControllerRayComponent> ControllerRayComponent;
+
+	// Awareness cues producer; this pawn's hits are expressed against the AR table moon.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Cues")
+	TObjectPtr<UPlayerCuesManager> PlayerCuesManager;
+
+	// Hold-to-view HUD overview. Renders into a WidgetComponent tagged Awareness_HUD under Camera.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Cues")
+	TObjectPtr<UAwarenessHUDComponent> AwarenessHUDComponent;
+
+private:
 	UFUNCTION(BlueprintCallable)
-	bool IsAuthoritativeClient() const; 
-	
+	bool IsAuthoritativeClient() const;
+
 	UFUNCTION(Server, Reliable)
 	void ShareAnchorsWithServer(FOrderedAnchors RawAnchors);
 
@@ -44,11 +62,11 @@ private:
 	 *  ShareAnchorsWithServer so the group UUID is set on the GameState before the anchors. */
 	UFUNCTION(Server, Reliable)
 	void ShareGroupUUIDWithServer(FOculusXRUUID GroupUUID);
-	
-private: 
+
+private:
 	UPROPERTY()
-	UArtemisGameInstance* GI; 
-	
+	UArtemisGameInstance* GI;
+
 	UPROPERTY()
 	ACesium3DTileset* ARTileSet;
 };
