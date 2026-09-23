@@ -51,60 +51,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 	{
 		return;
 	}
-
-	// Sample params before any transform
-	const FTransform MoonNow = ARGeoRef->GetActorTransform();
 	
-	//GeoRoverPos = GetGeodeticPosition(Rover->GetActorLocation());
-	
-	// Detect controlled rover movement via control inputs
-	/*
-	bool bRoverIsControlled = false;
-	if (WheeledVehComp)
-	{
-		const float Throttle = FMath::Abs(WheeledVehComp->GetThrottleInput());
-		const float Brake = FMath::Abs(WheeledVehComp->GetBrakeInput());
-		bRoverIsControlled = (Throttle > KINDA_SMALL_NUMBER) || (Brake > KINDA_SMALL_NUMBER);
-	}
-	*/
-	// Initialize rover tracking when wheels are on the ground and not being controlled
-	/*
-	if (!bRoverLocalInitialized)
-	{
-		if (IsRoverGrounded())
-		{
-			RoverInitialLocalPos = CaptureRoverLocalPosition(MoonNow);
-			RoverInitialLocalRot = MoonNow.InverseTransformRotation(Rover->GetActorRotation().Quaternion());
-			bRoverLocalInitialized = true;
-
-			// Also set as first valid grounded position
-			LastValidGroundedLocalPos = RoverInitialLocalPos;
-			LastValidGroundedLocalRot = RoverInitialLocalRot;
-			bHasValidGroundedPos = true;
-
-			UE_LOG(LogTemp, Warning, TEXT("[RoverSettle] GROUNDED | Wheels=%d | Frame=%u | InitLocalPos=%s"),
-				WheeledVehComp ? WheeledVehComp->GetNumWheels() : 0, GFrameNumber, *RoverInitialLocalPos.ToString());
-		}
-	}
-	
-	
-	// Capture rover location when rover is moving
-	// TODO: this might stale 
-	if (bRoverIsControlled && bRoverLocalInitialized)
-	{
-		DeltaLocalAbsolute = CaptureRoverLocalPosition(MoonNow) - RoverInitialLocalPos;
-		DeltaRoverRotation = (RoverInitialLocalRot.Inverse() * GetLocalRoverRotation(MoonNow));
-	}
-
-	// Track last valid grounded position for recovery after clip-through
-	if (bRoverLocalInitialized && IsRoverGrounded())
-	{
-		LastValidGroundedLocalPos = CaptureRoverLocalPosition(MoonNow);
-		LastValidGroundedLocalRot = GetLocalRoverRotation(MoonNow);
-		bHasValidGroundedPos = true;
-	}
-	*/
-
 	// ---- Commit the WTM-dependent reposition queued on the PREVIOUS frame ----
 	// SetWorldToMetersScale only reframes the camera on the NEXT tracking update, so the moon/table
 	// reposition that matches a WTM change is deliberately applied one frame later — in lockstep with
@@ -182,8 +129,8 @@ void UTransformationsManager::Tick(float DeltaTime)
 	// Zoom is done via WorldToMeters scaling: a uniform world scale that keeps the surface in the table plane.
 	// We queue the WTM change for end-of-frame and stash the matching reposition (PendingTableCenter);
 	// it is committed next frame, when the camera actually adopts the new scale (see commit block above).
-	const bool bScalingThisFrame = IsNewScaleAvailable();
-	if (bScalingThisFrame)
+	const bool bWTMStepQueued = IsNewScaleAvailable();
+	if (bWTMStepQueued)
 	{
 		// The precompensation in CalcNewTableCenter scales TableCenter around the tracking origin that
 		// UXRUtilsSubsystem cached once at anchor seed (the AR pawn's camera parent, which never moves).
@@ -212,10 +159,9 @@ void UTransformationsManager::Tick(float DeltaTime)
 		// keep the moon glued to the current table center. No WTM change → no latency to pipeline.
 		ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
 		CurrentMoonPosition = ARGeoRef->GetActorLocation();
+		XRUtils->SetScaleFactor(1);
 	}
-	bWasScaling = bScalingThisFrame;
-
-	const FTransform MoonAfter = ARGeoRef->GetActorTransform();
+	bWasScaling = bWTMStepQueued;
 	
 	// Keep ticking until the final queued reposition has been committed (bScaleApplyPending),
 	// otherwise the last WTM change would land with no matching moon move and re-introduce the jump.

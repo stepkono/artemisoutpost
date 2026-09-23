@@ -9,6 +9,7 @@
 #include "ArtemisOutpost/Player/PawnVR/ControllerRays/ControllerRayComponent.h"
 #include "ArtemisOutpost/Player/PlayerCues/PlayerCuesManager.h"
 #include "ArtemisOutpost/Player/PlayerCues/AwarenessHUD/AwarenessHUDComponent.h"
+#include "ArtemisOutpost/Player/PawnAR/TrackerPoseCache/TrackerPoseCacheComponent.h"
 #include "EnhancedInputComponent.h"
 
 
@@ -27,6 +28,8 @@ APawnAR::APawnAR()
 	PlayerCuesManager->SetUsesARMoon(true);
 
 	AwarenessHUDComponent = CreateDefaultSubobject<UAwarenessHUDComponent>(TEXT("AwarenessHUDComponent"));
+
+	TrackerPoseCache = CreateDefaultSubobject<UTrackerPoseCacheComponent>(TEXT("TrackerPoseCache"));
 }
 
 // Called when the game starts or when spawned

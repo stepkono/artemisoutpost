@@ -86,6 +86,25 @@ void UControllerRayComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 }
 
+void UControllerRayComponent::ScaleRay(float AbsoluteScalingFactor)
+{
+	CurrentRayScale = FMath::Max(AbsoluteScalingFactor, 0.01f);
+
+	// Push immediately so a scale set from Blueprint is visible this frame, not on the next tick.
+	for (FControllerRayState& Ray : Rays)
+	{
+		if (Ray.Visual && Ray.Visual->GetAsset())
+		{
+			Ray.Visual->SetVariableFloat(RayScaleParamName, CurrentRayScale);
+		}
+		// Only the pointer reach follows the scale; the widget reach stays as authored in the BP.
+		if (Ray.bPointerMode && Ray.Interaction)
+		{
+			Ray.Interaction->InteractionDistance = PointerInteractionDistance * CurrentRayScale;
+		}
+	}
+}
+
 // ---- Setup ----
 
 bool UControllerRayComponent::EnsureSetup()
@@ -130,6 +149,7 @@ bool UControllerRayComponent::EnsureSetup()
 		Ray.Hand = Hand;
 		Ray.Interaction = Found;
 		Ray.DesignIndex = CurrentDesignIndex;
+		Ray.AuthoredInteractionDistance = Found->InteractionDistance;
 
 		UNiagaraComponent* NC = NewObject<UNiagaraComponent>(Owner, NAME_None, RF_Transient);
 		NC->SetAutoActivate(false);
@@ -189,6 +209,8 @@ void UControllerRayComponent::ApplyDesignToVisual(UNiagaraComponent* Visual, int
 	}
 	else
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[ControllerRays] %s: design index %d has no Niagara system (RayDesigns has %d entries). That ray draws nothing."),
+			*GetNameSafe(GetOwner()), DesignIndex, RayDesigns.Num());
 		Visual->Deactivate();
 	}
 }
@@ -199,6 +221,13 @@ void UControllerRayComponent::UpdateRayVisual(const FControllerRayState& Ray) co
 {
 	UWidgetInteractionComponent* WI = Ray.Interaction;
 	UNiagaraComponent* NC = Ray.Visual;
+
+	// No design assigned (invalid index into RayDesigns): nothing to feed, and feeding an assetless
+	// component spams "OverrideParameter(PointArray) System(None) ... was not found".
+	if (!NC->GetAsset())
+	{
+		return;
+	}
 
 	const FVector Start = WI->GetComponentLocation();
 	const FHitResult Hit = WI->GetLastHitResult();
@@ -231,6 +260,7 @@ void UControllerRayComponent::UpdateRayVisual(const FControllerRayState& Ray) co
 
 	NC->SetVariableVec3(EndPointParamName, FeedEnd);
 	NC->SetVariableFloat(HitStateParamName, bHit ? 1.0f : 0.0f);
+	NC->SetVariableFloat(RayScaleParamName, CurrentRayScale);
 }
 
 bool UControllerRayComponent::GetRayHit(EControllerRayHand Hand, FVector& OutStart, FVector& OutDirection, FHitResult& OutHit) const
@@ -385,8 +415,7 @@ void UControllerRayComponent::ApplyPointerMode(FControllerRayState& Ray, bool bO
 	{
 		if (Ray.Interaction)
 		{
-			Ray.SavedInteractionDistance = Ray.Interaction->InteractionDistance;
-			Ray.Interaction->InteractionDistance = PointerInteractionDistance;
+			Ray.Interaction->InteractionDistance = PointerInteractionDistance * CurrentRayScale;
 		}
 
 		Ray.SavedDesignIndex = Ray.DesignIndex;
@@ -412,7 +441,8 @@ void UControllerRayComponent::ApplyPointerMode(FControllerRayState& Ray, bool bO
 	{
 		if (Ray.Interaction)
 		{
-			Ray.Interaction->InteractionDistance = Ray.SavedInteractionDistance;
+			// Back to the BP-authored widget reach.
+			Ray.Interaction->InteractionDistance = Ray.AuthoredInteractionDistance;
 		}
 
 		Ray.DesignIndex = Ray.SavedDesignIndex;

@@ -27,11 +27,6 @@ void AServerGameMode::BeginPlay()
 		return; 
 	}
 	
-	if (!World->SpawnActor<AWebsocketManager>(AWebsocketManager::StaticClass()))
-	{
-		UE_LOG(LogTemp, Error, TEXT("ServerGameMode: Failed to spawn the WS-Manager."))
-	}
-	
 	AGeoRefsManager* GRM = Cast<AGeoRefsManager>(UGameplayStatics::GetActorOfClass(World, AGeoRefsManager::StaticClass()));
 	if (!GRM)
 	{
@@ -48,8 +43,6 @@ void AServerGameMode::BeginPlay()
 		ProcessNewPlayer(Player);
 		CachedPlayers.RemoveAt(0, EAllowShrinking::Yes); 
 	}
-	
-	World->SpawnActor(AWebsocketManager::StaticClass()); 
 }
 
 FString AServerGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal)
@@ -76,14 +69,14 @@ FString AServerGameMode::InitNewPlayer(APlayerController* NewPlayerController, c
 
 void AServerGameMode::OnPostLogin(AController* NewPlayer)
 {
-	Super::OnPostLogin(NewPlayer);
-	
 	// The client on the listen server itself not allowed to connect
-	if (NewPlayer->IsLocalPlayerController())
+	if (NewPlayer && NewPlayer->IsLocalController() && NewPlayer->PlayerState)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Local client tried to connect to server, since listen server. Aborting. This message should not normally appear."))
-		return; 
+		NewPlayer->PlayerState->SetIsOnlyASpectator(true);
 	}
+	
+	Super::OnPostLogin(NewPlayer);
 	
 	APawnController* PawnController = Cast<APawnController>(NewPlayer);
 	if (!PawnController)
@@ -120,6 +113,13 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		APawnController* OldController = Existing->PawnController;
 		if (OldController && OldController != PlayerController)
 		{
+			// Per-connection AR pawn is disposable, the new controller already got a fresh default pawn.
+			APawnAR* OldAR = OldController->GetARPawn();
+			if (IsValid(OldAR))
+			{
+				OldAR->Destroy();
+			}
+			
 			OldController->UnPossess();
 			OldController->Destroy();
 		}

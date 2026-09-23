@@ -12,6 +12,7 @@
 class UControllerRayComponent;
 class UPlayerCuesManager;
 class UAwarenessHUDComponent;
+class UTrackerPoseCacheComponent;
 
 UCLASS()
 class ARTEMISOUTPOST_API APawnAR : public APawn
@@ -50,6 +51,11 @@ protected:
 	// Hold-to-view HUD overview. Renders into a WidgetComponent tagged Awareness_HUD under Camera.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Cues")
 	TObjectPtr<UAwarenessHUDComponent> AwarenessHUDComponent;
+
+	// Send side of tracker replication: caches last frame's camera/controller poses so they are converted
+	// against anchors that share their WTM space. Driven from BP_ARPawn's OnPossess / ReplicateTransforms.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tracker Replication")
+	TObjectPtr<UTrackerPoseCacheComponent> TrackerPoseCache;
 
 private:
 	UFUNCTION(BlueprintCallable)

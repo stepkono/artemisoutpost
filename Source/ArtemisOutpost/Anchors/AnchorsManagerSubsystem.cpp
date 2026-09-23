@@ -609,18 +609,19 @@ TArray<AActor*> UAnchorsManagerSubsystem::GetAnchors()
 
 bool UAnchorsManagerSubsystem::TryGetAnchorsFrame(FTransform& OutFrame) const
 {
-	if (SpawnedAnchors.Num() < 4 ||
-		!IsValid(SpawnedAnchors[0]) || !IsValid(SpawnedAnchors[1]) || !IsValid(SpawnedAnchors[3]))
+	if (SpawnedAnchors.Num() < 4 || !IsValid(SpawnedAnchors[0]) || !IsValid(SpawnedAnchors[1]) || !IsValid(SpawnedAnchors[3]))
 	{
+		UE_LOG(LogTemp, Error, TEXT("[AnchorsManager] TryGetAnchorsFrame: Some anchors are not valid."));
 		return false;
 	}
 
 	// B(top-left)     C(top-right)
 	// A(bottom-left)  D(bottom-right)
 	const FCalibratedData Calib = UGeoUtils::CalibrateAnchors(
-		SpawnedAnchors[0]->GetActorLocation(),   // A (bottom-left)
-		SpawnedAnchors[1]->GetActorLocation(),   // B (top-left)
-		SpawnedAnchors[3]->GetActorLocation());  // D (bottom-right)
+			SpawnedAnchors[0]->GetActorLocation(),   // A (bottom-left)
+			SpawnedAnchors[1]->GetActorLocation(),   // B (top-left)
+			SpawnedAnchors[3]->GetActorLocation()
+		);  // D (bottom-right)
 
 	const FVector XAxis = Calib.BAnchorPos - Calib.AAnchorPos;
 	const FVector YAxis = Calib.DAnchorPos - Calib.AAnchorPos;
@@ -631,6 +632,7 @@ bool UAnchorsManagerSubsystem::TryGetAnchorsFrame(FTransform& OutFrame) const
 	const float EdgeLen = XAxis.Length();
 	if (EdgeLen <= KINDA_SMALL_NUMBER)
 	{
+		UE_LOG(LogTemp, Error, TEXT("[AnchorsManager] TryGetAnchorsFrame: EdgeLength is 0."));
 		return false;
 	}
 
@@ -640,6 +642,12 @@ bool UAnchorsManagerSubsystem::TryGetAnchorsFrame(FTransform& OutFrame) const
 
 	OutFrame = FTransform(Basis.ToQuat(), Calib.PlaneCenter, FVector(EdgeLen));
 	return true;
+}
+
+bool UAnchorsManagerSubsystem::HasValidAnchorsFrame() const
+{
+	FTransform Frame;
+	return TryGetAnchorsFrame(Frame);
 }
 
 FTransform UAnchorsManagerSubsystem::GetRelativeToAnchorsFrame(const FTransform& WorldTransform) const

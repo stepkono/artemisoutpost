@@ -203,7 +203,7 @@ protected:
 	int32 MotionLogBurstLength = 20;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Possession")
-	bool bIsPossessed = false;
+	bool bIsLocallyPossessed = false;
 
 	// Client-local wrist Tools-HUD (open/close, navigate, dispatch). Created in the ctor; only does
 	// anything on the locally-controlled pawn. See UToolsHUDComponent.
@@ -240,6 +240,10 @@ protected:
 	void SetVRCharPuppet(AVRCharPuppet* VRCharPuppet);
 
 private:
+	// Maps this pawn's VR-moon pose onto ARPuppet on the AR moon. Runs on every client instance
+	// (remote proxies included) since other players' puppets are driven by those proxies.
+	void UpdateARPuppetTransform();
+
 	// One-shot guard so the local floor/origin setup is applied exactly once.
 	bool bLocalVRSetupApplied = false;
 

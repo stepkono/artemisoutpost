@@ -67,6 +67,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Spatial Anchors")
 	FTransform GetWorldFromAnchorsFrame(const FTransform& LocalTransform) const;
 
+	/** True when the anchors frame can be built, i.e. the frame conversions return meaningful values. */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Spatial Anchors")
+	bool HasValidAnchorsFrame() const;
+
 private:
 	/**
 	 * Builds the shared table frame as a similarity transform: orthonormal basis oriented by the

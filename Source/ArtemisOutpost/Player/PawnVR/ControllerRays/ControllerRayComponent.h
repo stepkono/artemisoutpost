@@ -48,8 +48,8 @@ struct FControllerRayState
 	// ---- Pointer mode (the shared "look where I point" ray) ----
 	bool bPointerMode = false;
 
-	// What to restore when pointer mode ends.
-	float SavedInteractionDistance = 0.0f;
+	// The widget reach authored in the BP, captured at setup. Restored when pointer mode ends.
+	float AuthoredInteractionDistance = 0.0f;
 	int32 SavedDesignIndex = 0;
 	bool  bPointerForcedEnable = false;
 };
@@ -127,6 +127,17 @@ public:
 	// hand's ray is not set up.
 	bool GetRayHit(EControllerRayHand Hand, FVector& OutStart, FVector& OutDirection, FHitResult& OutHit) const;
 
+	// Uniformly scale the ray by an ABSOLUTE factor relative to the authored size (1 = authored, not
+	// cumulative). Pushes the factor into the designs' RayScale User parameter (multiply Ribbon Width
+	// and the endpoint sprite size by it inside Niagara) and scales PointerInteractionDistance by it,
+	// so a zoomed AR ray keeps its real thickness and its real reach. The widget reach authored in
+	// the BP is not touched. Call from Blueprint whenever the AR zoom (WorldToMeters) changes.
+	UFUNCTION(BlueprintCallable, Category = "Controller Rays|Scale")
+	void ScaleRay(float AbsoluteScalingFactor);
+
+	UFUNCTION(BlueprintPure, Category = "Controller Rays|Scale")
+	float GetRayScale() const { return CurrentRayScale; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -168,6 +179,11 @@ protected:
 	// at the world origin and every ray vanishes. Switch the assets first, then tick this.
 	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Niagara")
 	bool bFeedPointsInLocalSpace = false;
+
+	// Float User parameter in the designs that receives the ScaleRay factor (no-op if the design
+	// lacks it). Multiply Ribbon Width and the endpoint sprite size by it inside the system.
+	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Niagara")
+	FName RayScaleParamName = TEXT("RayScale");
 
 	// Niagara User parameters the designs expose. Names must match the User parameters in the systems.
 	UPROPERTY(EditDefaultsOnly, Category = "Controller Rays|Niagara")
@@ -221,6 +237,9 @@ private:
 	TArray<FControllerRayState> Rays;
 
 	int32 CurrentDesignIndex = 0;
+
+	// Absolute scale set by ScaleRay (1 = authored). Fed to RayScale and applied to the pointer reach.
+	float CurrentRayScale = 1.0f;
 
 	// Desired states per hand, so the setters work before setup and survive (re)setup.
 	bool bDesiredLeftEnabled = true;

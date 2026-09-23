@@ -68,7 +68,7 @@ void ACharVR::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
+	//SetIsPossessed(true); //TODO: TestLvl Only, remove in game 
 
 	// Resolve/cache the VR rig (safe on every instance), then attempt the local floor-level setup.
 	// On a networked client possession usually hasn't happened yet at BeginPlay, so this attempt
@@ -114,6 +114,10 @@ void ACharVR::Tick(float DeltaTime)
 	// (which system is moving the rig, and where the capsule/origin/camera actually end up).
 	LogVRTransforms(DeltaTime);
 
+	// Must run before the bLocalVRSetupApplied gate below: the puppets other players see are driven
+	// by the REMOTE proxies of this pawn, which never pass that gate.
+	UpdateARPuppetTransform();
+
 	// Only the pawn that set up the local VR view manages the GLOBAL XR base orientation.
 	// bLocalVRSetupApplied is true ONLY for our own HMD pawn (set in ApplyLocalVRSetup) and stays
 	// true across possess/unpossess. This is what keeps a remote player's proxy ACharVR — which also
@@ -141,8 +145,8 @@ void ACharVR::Tick(float DeltaTime)
 	{
 		bModeIsVR = (PC->GetXRMode() == EXRMode::VR);
 	}
-	const bool bDrivesLocalView = bIsPossessed && IsLocallyControlled() && bModeIsVR;
-	if (bIsPossessed && !bDrivesLocalView)
+	const bool bDrivesLocalView = bIsLocallyPossessed && IsLocallyControlled() && bModeIsVR;
+	if (bIsLocallyPossessed && !bDrivesLocalView)
 	{
 		if (!bTiltSuppressedLogged)
 		{
@@ -179,7 +183,10 @@ void ACharVR::Tick(float DeltaTime)
 		}
 		bXRBaseIsReset = true;
 	}
-	
+}
+
+void ACharVR::UpdateARPuppetTransform()
+{
 	if (!ARPuppet || !GeoRefsManager)
 	{
 		return;
@@ -796,7 +803,7 @@ void ACharVR::UpdateHeadCollision(float DeltaTime)
 
 void ACharVR::SetIsPossessed(const bool InIsPossessed)
 {
-	bIsPossessed = InIsPossessed;
+	bIsLocallyPossessed = InIsPossessed;
 }
 
 void ACharVR::SetShouldReplicateTransform(bool bReplicateTransform)
