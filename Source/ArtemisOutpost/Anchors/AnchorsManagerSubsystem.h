@@ -58,7 +58,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Spatial Anchors")
 	FOnAnchorsSharedResult OnAnchorsSharedResult;
 	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category="Spatial Anchors")
 	TArray<AActor*> GetAnchors(); 
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Spatial Anchors")
@@ -70,6 +70,21 @@ public:
 	/** True when the anchors frame can be built, i.e. the frame conversions return meaningful values. */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Spatial Anchors")
 	bool HasValidAnchorsFrame() const;
+
+	/**
+	 * The shared table frame: rotation oriented by the table edges, translation at the table center, uniform
+	 * scale = table edge length in UE units (a mesh of size 1 on X spans one table edge). False when not ready.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Spatial Anchors")
+	bool GetAnchorsFrameTransform(FTransform& OutFrame) const;
+
+	/**
+	 * Converts a pose read from a raw anchor ACTOR into the space the HMD and controllers live in. In VR the actors carry
+	 * the base-orientation tilt artemis.AnchorTiltApplications times (MetaXR bug: 2), the tracked devices once, so the
+	 * difference is removed (in tracking space). Identity in AR. Not needed for anything from the anchors frame.
+	 */
+	UFUNCTION(BlueprintPure, Category="Spatial Anchors")
+	static FTransform RawAnchorToTrackedSpace(const FTransform& RawAnchorTransform);
 
 private:
 	/**

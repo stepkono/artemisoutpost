@@ -21,6 +21,7 @@
 #include "ControllerRays/ControllerRayComponent.h"
 #include "ArtemisOutpost/Player/PlayerCues/PlayerCuesManager.h"
 #include "ArtemisOutpost/Player/PlayerCues/AwarenessHUD/AwarenessHUDComponent.h"
+#include "ArtemisOutpost/Player/PlayerCues/VRCues/VRCuesPresenterComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -160,13 +161,17 @@ void ACharVR::Tick(float DeltaTime)
 		bTiltSuppressedLogged = false;
 	}
 
+	// The VR cue visualizers exist exactly while this pawn renders the local VR view.
+	UpdateVRCuesPresenter(bDrivesLocalView);
+
 	if (bDrivesLocalView)
 	{
 		// VR mode: tilt the horizon to the surface and keep the body under the HMD.
 		bXRBaseIsReset = false;
 		UpdateVRViewTilt();
 		UpdateCapsuleFollowsHMD();
-		LogVRMotionAnomalies(DeltaTime);
+		// LogVRMotionAnomalies(DeltaTime);
+		
 		// NOTE: UpdateHeadCollision is temporarily not called — it re-homes VROrigin's full relative
 		// location every frame, which would fight UpdateCapsuleFollowsHMD's horizontal offset. Roof
 		// avoidance needs to be folded into the capsule-follow step before re-enabling.
@@ -509,6 +514,39 @@ void ACharVR::UpdateVRViewTilt()
 	GEngine->XRSystem->SetBaseOrientation(TiltQ);
 }
 
+FRotator ACharVR::GetTrackingSpaceTilt() const
+{
+	// The runtime applies the base orientation inverted (see bInvertVRViewTilt: reported = Base^-1 * device),
+	// so the inverse of the base is the rotation actually applied to every tracked pose.
+	if (GEngine && GEngine->XRSystem.IsValid())
+	{
+		return GEngine->XRSystem->GetBaseOrientation().Inverse().Rotator();
+	}
+	return FRotator::ZeroRotator;
+}
+
+FVector ACharVR::GetTrackingSpacePivot() const
+{
+	return UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(const_cast<ACharVR*>(this)).GetLocation();
+}
+
+void ACharVR::UpdateVRCuesPresenter(bool bShouldPresent)
+{
+	if (bShouldPresent == bVRCuesPresenting)
+	{
+		return;
+	}
+	bVRCuesPresenting = bShouldPresent;
+
+	UVRCuesPresenterComponent* Presenter = FindComponentByClass<UVRCuesPresenterComponent>();
+	if (!Presenter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ACharVR: %s has no UVRCuesPresenterComponent, VR cue visualizers stay off (add it in BP_VRChar)."), *GetName());
+		return;
+	}
+	Presenter->SetPresenting(bShouldPresent);
+}
+
 void ACharVR::UpdateCapsuleFollowsHMD()
 {
 	if (!bLocalVRSetupApplied || !CachedVROrigin || !CachedVRCamera)
@@ -519,9 +557,9 @@ void ACharVR::UpdateCapsuleFollowsHMD()
 	// How far the HMD/camera has physically drifted from the capsule centre, measured in the surface
 	// tangent plane (perpendicular to the moon-up axis). This is the horizontal "you walked away from
 	// your body" component — vertical head movement (sit/stand/crouch) is intentionally left alone.
-	const FVector Up        = GetActorUpVector();
-	const FVector CamWorld   = CachedVRCamera->GetComponentLocation();
-	const FVector Delta      = CamWorld - GetActorLocation();
+	const FVector Up          = GetActorUpVector();
+	const FVector CamWorld    = CachedVRCamera->GetComponentLocation();
+	const FVector Delta       = CamWorld - GetActorLocation();
 	const FVector HorizOffset = Delta - FVector::DotProduct(Delta, Up) * Up;
 
 	// Record the capsule-follow input for the motion diagnostics BEFORE the early-out, so a frame
@@ -549,7 +587,7 @@ void ACharVR::UpdateCapsuleFollowsHMD()
 	// offset is a prime suspect for the intermittent runaway drift, so the diagnostics must see it.
 	const FVector FollowBeforeLoc = GetActorLocation();
 	FHitResult FollowHit;
-	AddActorWorldOffset(HorizOffset, /*bSweep=*/true, &FollowHit);
+	AddActorWorldOffset(HorizOffset,true, &FollowHit);
 	LastCapsuleFollowMoved = (GetActorLocation() - FollowBeforeLoc).Size();
 	bLastCapsuleFollowBlocked = FollowHit.bBlockingHit;
 	CachedVROrigin->AddWorldOffset(-HorizOffset);
@@ -828,7 +866,7 @@ void ACharVR::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ACharVR::ShouldActivateARPuppet(bool bShouldActivate)
+void ACharVR::ToggleVRCharPuppet(bool bShouldActivate)
 {
 	if (!ARPuppet)
 	{

@@ -19,7 +19,8 @@ class UAnchorsManagerSubsystem;
  * anchors on the next frame.
  *
  * Usage from BP_ARPawn: StartCaching on possession (before starting the replication timer), StopCaching on
- * unpossession, and GetCachedPosesInAnchorsFrame inside ReplicateTransforms instead of reading LMC/RMC directly.
+ * unpossession, and GetCachedPoses inside ReplicateTransforms instead of reading LMC/RMC directly. The Blueprint
+ * then converts the returned world poses with UAnchorsManagerSubsystem::GetRelativeToAnchorsFrame.
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class ARTEMISOUTPOST_API UTrackerPoseCacheComponent : public UActorComponent
@@ -40,12 +41,13 @@ public:
 	void StopCaching();
 
 	/**
-	 * Last frame's cached poses expressed in the shared anchors frame (position as a fraction of the table edge).
+	 * Last frame's cached poses in WORLD space (not converted). Convert them with GetRelativeToAnchorsFrame on the
+	 * same frame you call this, so the pose from frame k-1 meets the anchors of frame k (same WTM space).
 	 * Returns false when there is no cached pose yet or the anchors are not ready, in which case nothing should be sent.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Tracker Replication")
-	bool GetCachedPosesInAnchorsFrame(FTransform& OutCamera, FTransform& OutLeft, FTransform& OutRight);
-
+	bool GetCachedPoses(FTransform& OutCamera, FTransform& OutLeft, FTransform& OutRight);
+	
 	UFUNCTION(BlueprintPure, Category = "Tracker Replication")
 	bool HasPose() const { return bHasPose; }
 
@@ -68,9 +70,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Replication|Debug")
 	bool bLogEveryCache = false;
 
-	/** Logs every send with the anchor-frame fractions and their change since the previous send. */
+	/**
+	 * Logs every send with the anchor-frame fractions of the returned poses and their change since the previous send.
+	 * The fractions are computed for the log only, GetCachedPoses still returns world poses.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Replication|Debug")
 	bool bLogSends = true;
+
+	/** Warn (every 5 s at most) when the head is farther than this from the table center, in physical meters. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Replication|Debug", meta = (ClampMin = "0.5"))
+	float MaxHeadToTableMeters = 5.0f;
 
 private:
 	static bool IsSourceTracked(const USceneComponent* Source);
@@ -93,11 +102,15 @@ private:
 	uint64 CachedFrame = 0;
 
 	// Pairing check: with a still controller the sent fraction must stay constant through a zoom.
-	FVector LastSentLeft  = FVector::ZeroVector;
-	FVector LastSentRight = FVector::ZeroVector;
+	// These are anchor-frame fractions (log only), not the world poses GetCachedPoses returns.
+	FVector LastSentLeftFraction  = FVector::ZeroVector;
+	FVector LastSentRightFraction = FVector::ZeroVector;
 	bool bHasLastSent = false;
 
 	// Log-once guards so a missing setup or unready anchors do not spam every frame.
 	bool bWarnedMissingTrackers  = false;
 	bool bWarnedAnchorsNotReady  = false;
+
+	// Throttle for the head-far-from-table warning (world seconds).
+	double LastFarFromTableWarnTime = -1000.0;
 };

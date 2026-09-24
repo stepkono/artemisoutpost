@@ -72,8 +72,10 @@ void AServerGameMode::OnPostLogin(AController* NewPlayer)
 	// The client on the listen server itself not allowed to connect
 	if (NewPlayer && NewPlayer->IsLocalController() && NewPlayer->PlayerState)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Local client tried to connect to server, since listen server. Aborting. This message should not normally appear."))
+		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Local client tried to connect to server, since listen server. Aborting."))
 		NewPlayer->PlayerState->SetIsOnlyASpectator(true);
+		Super::OnPostLogin(NewPlayer);
+		return; 
 	}
 	
 	Super::OnPostLogin(NewPlayer);
@@ -108,6 +110,7 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 	
 	PlayerController->SetGeoRefsManager(GeoRefsManager);
 
+	// Player Reconnect
 	if (FArtemisPlayer* Existing = PlayersInGame.Find(UPID))
 	{ 
 		APawnController* OldController = Existing->PawnController;
@@ -137,12 +140,13 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		
 		PlayerReconnectedDelegate.Broadcast(PlayerController, *Existing);
 	}
+	// Player first connect
 	else
 	{
-		// First connect: create the slot, let the BP spawn the pawns (it then calls RegisterPlayerPawns).
 		FArtemisPlayer NewPlayer;
 		NewPlayer.PawnController = PlayerController;
-		NewPlayer.PlayerNumber = PlayersInGame.Num() + 1;
+		NewPlayer.PlayerNumber   = PlayersInGame.Num() + 1;
+		NewPlayer.PlayerColor    = PlayerColors.Num() >= PlayersInGame.Num() ? PlayerColors[PlayersInGame.Num()] : FLinearColor(1, 1, 1);
 		PlayersInGame.Add(UPID, NewPlayer);
 
 		if (AArtemisPlayerState* PS = PlayerController->GetArtemisPlayerState())

@@ -19,6 +19,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogMinigame, Log, All);
 UENUM(BlueprintType)
 enum class EMiniGameType : uint8
 {
+	None         UMETA(DisplayName = "NoneMiniGame"),
 	SignalTower  UMETA(DisplayName = "SignalTower"),
 	Habitat      UMETA(DisplayName = "Habitat"),
 	SolarPanel   UMETA(DisplayName = "Solar Panel"),

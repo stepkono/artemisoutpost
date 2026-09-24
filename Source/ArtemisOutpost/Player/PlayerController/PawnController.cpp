@@ -313,7 +313,7 @@ void APawnController::ShouldActivateVRCharPuppet(bool bShouldActivate) const
 	
 	if (CurrentXRMode == VR)
 	{
-		VRPawn->ShouldActivateARPuppet(bShouldActivate);
+		VRPawn->ToggleVRCharPuppet(bShouldActivate);
 	}
 }
 

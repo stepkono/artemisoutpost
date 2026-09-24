@@ -136,6 +136,9 @@ struct FArtemisPlayer
 
 	UPROPERTY(BlueprintReadOnly)
 	ACharVR* VRChar = nullptr;
+	
+	UPROPERTY(BlueprintReadOnly)
+	FLinearColor PlayerColor; 
 };
 
 UENUM(BlueprintType)

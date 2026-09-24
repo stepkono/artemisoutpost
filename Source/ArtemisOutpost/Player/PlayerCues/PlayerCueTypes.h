@@ -22,10 +22,10 @@ UENUM(BlueprintType)
 enum class EToolActivity : uint8
 {
 	None            UMETA(DisplayName = "None"),
-	ScanArea        UMETA(DisplayName = "Umgebung scannen"),
-	ScanSurface     UMETA(DisplayName = "Oberfläche scannen"),
-	CollectResource UMETA(DisplayName = "Ressource abbauen"),
-	Building        UMETA(DisplayName = "Bauen"),
+	ScanArea        UMETA(DisplayName = "ScanArea"),
+	ScanSurface     UMETA(DisplayName = "canSurface"),
+	CollectResource UMETA(DisplayName = "CollectResource"),
+	Building        UMETA(DisplayName = "Building"),
 };
 
 // The single activity shown in the HUD row. Derived from the raw facts in FPlayerCueState by
@@ -35,9 +35,9 @@ UENUM(BlueprintType)
 enum class EPlayerActivity : uint8
 {
 	Idle       UMETA(DisplayName = "Idle"),
-	Walking    UMETA(DisplayName = "Geht"),
-	UsingTool  UMETA(DisplayName = "Werkzeug"),
-	Pointing   UMETA(DisplayName = "Zeigt"),
+	Walking    UMETA(DisplayName = "Walking"),
+	UsingTool  UMETA(DisplayName = "UsingTool"),
+	Pointing   UMETA(DisplayName = "Pointing"),
 	InMinigame UMETA(DisplayName = "Minigame"),
 };
 
@@ -48,15 +48,16 @@ UENUM(BlueprintType)
 enum class EPointingTargetKind : uint8
 {
 	None     UMETA(DisplayName = "None"),
-	Surface  UMETA(DisplayName = "Oberfläche"),
-	Minigame UMETA(DisplayName = "Gebäude"),
-	Player   UMETA(DisplayName = "Spieler"),
+	Surface  UMETA(DisplayName = "Surface"),
+	Minigame UMETA(DisplayName = "Minigame"),
+	Player   UMETA(DisplayName = "Player"),
 	Rover    UMETA(DisplayName = "Rover"),
 };
 
 UENUM(BlueprintType)
 enum class EPointingHand : uint8
 {
+	None  UMETA(DisplayName = "None"),
 	Left  UMETA(DisplayName = "Left"),
 	Right UMETA(DisplayName = "Right"),
 };
@@ -130,7 +131,7 @@ struct ARTEMISOUTPOST_API FPlayerCueState
 	bool bInMinigame = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Player Cues")
-	EMiniGameType MinigameType = EMiniGameType::SignalTower;
+	EMiniGameType MinigameType = EMiniGameType::None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Player Cues")
 	EToolActivity ToolActivity = EToolActivity::None;
@@ -147,7 +148,7 @@ struct ARTEMISOUTPOST_API FPlayerCueState
 	bool bPointing = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Player Cues")
-	EPointingHand PointingHand = EPointingHand::Left;
+	EPointingHand PointingHand = EPointingHand::None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Player Cues")
 	FPointingTarget PointerTarget;

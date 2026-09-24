@@ -50,6 +50,9 @@ private:
 	void ProcessNewPlayer(APawnController* PlayerController);
 	
 protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Players Management")
+	TArray<FLinearColor> PlayerColors;
+	
 	UPROPERTY(BlueprintReadOnly, Category="Players Management")
 	TMap<FString, FArtemisPlayer> PlayersInGame; 
 

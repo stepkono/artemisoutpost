@@ -9,6 +9,63 @@
 #include "OculusXRAnchorsRequests.h"
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "ArtemisOutpost/Moon/Cesium/GeoTools/GeoUtils.h"
+#include "Engine/Engine.h"
+#include "HAL/IConsoleManager.h"
+#include "IXRTrackingSystem.h"
+
+// How many times the anchor actors carry the XR base orientation (the VR surface tilt). HMD and controllers carry it
+// once: Epic's OpenXR plugin bakes the base pose into the tracking space. MetaXR's FAnchorsXR::TryGetAnchorTransform
+// (Plugins/MetaXR/Source/OculusXRAnchors/Private/openxr/OculusXRAnchorsXR.cpp) locates the anchor in that already
+// rotated space and applies Base^-1 a SECOND time by hand. Verified on device 2026-09-24 (80 deg tilt). Set to 1 once
+// the plugin is patched or fixed upstream, the presenter's "AnchorsTilt" log line reports the current value.
+static TAutoConsoleVariable<int32> CVarAnchorTiltApplications(
+	TEXT("artemis.AnchorTiltApplications"),
+	2,
+	TEXT("How many times the spatial anchor actors carry the XR base orientation (MetaXR double-applies it: 2)."),
+	ECVF_Default);
+
+namespace
+{
+	// The rotation the XR runtime applies to tracked device poses (the VR surface tilt). Identity in AR.
+	FQuat GetTrackedDeviceTilt()
+	{
+		return (GEngine && GEngine->XRSystem.IsValid()) ? GEngine->XRSystem->GetBaseOrientation().Inverse() : FQuat::Identity;
+	}
+
+	FTransform GetTrackingToWorld()
+	{
+		return (GEngine && GEngine->XRSystem.IsValid()) ? GEngine->XRSystem->GetTrackingToWorldTransform() : FTransform::Identity;
+	}
+
+	int32 GetAnchorTiltApplications()
+	{
+		return FMath::Clamp(CVarAnchorTiltApplications.GetValueOnGameThread(), 0, 3);
+	}
+
+	// Tilt^Power, a negative power composes the inverse.
+	FQuat TiltPower(const FQuat& Tilt, int32 Power)
+	{
+		FQuat Result = FQuat::Identity;
+		for (int32 Index = 0; Index < FMath::Abs(Power); ++Index)
+		{
+			Result = (Power > 0 ? Tilt : Tilt.Inverse()) * Result;
+		}
+		return Result;
+	}
+
+	// Rotates in TRACKING space (around the tracking origin), where the base orientation acts. Exact even if
+	// TrackingToWorld carries a rotation.
+	FVector RotatePositionInTrackingSpace(const FVector& WorldPosition, const FQuat& Rotation, const FTransform& TrackingToWorld)
+	{
+		return TrackingToWorld.TransformPosition(Rotation.RotateVector(TrackingToWorld.InverseTransformPosition(WorldPosition)));
+	}
+
+	FQuat RotateOrientationInTrackingSpace(const FQuat& WorldOrientation, const FQuat& Rotation, const FTransform& TrackingToWorld)
+	{
+		const FQuat TrackingRotation = TrackingToWorld.GetRotation();
+		return TrackingRotation * Rotation * TrackingRotation.Inverse() * WorldOrientation;
+	}
+}
 
 void UAnchorsManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -615,13 +672,35 @@ bool UAnchorsManagerSubsystem::TryGetAnchorsFrame(FTransform& OutFrame) const
 		return false;
 	}
 
+	FVector AnchorA = SpawnedAnchors[0]->GetActorLocation();   // A (bottom-left)
+	FVector AnchorB = SpawnedAnchors[1]->GetActorLocation();   // B (top-left)
+	FVector AnchorD = SpawnedAnchors[3]->GetActorLocation();   // D (bottom-right)
+
+	// ---- VR surface tilt compensation (identity, and skipped, in AR) ----
+	// The XR base orientation rotates the tracked poses in TRACKING space (around the tracking origin). HMD and
+	// controllers carry it once (Tilt), the anchor actors carry it CVarAnchorTiltApplications times (MetaXR bug, 2).
+	// 1. Bring the anchors back to the physical, untilted table, so CalibrateAnchors' world-horizontal flattening
+	//    is valid (the physical table is level).
+	// 2. Build the frame there.
+	// 3. Tilt the finished frame ONCE, into the space the HMD and controllers live in.
+	// Result: tracked poses and frame share one space, so the tilt cancels in GetRelativeToAnchorsFrame (physical
+	// fractions on the sender) and GetWorldFromAnchorsFrame lands in the tilted camera space (on the receiver).
+	// No tilt handling is needed anywhere else, and each client only ever uses its own tilt.
+	const FQuat Tilt = GetTrackedDeviceTilt();
+	const bool bTilted = !Tilt.Equals(FQuat::Identity, 1.e-6);
+	const FTransform TrackingToWorld = bTilted ? GetTrackingToWorld() : FTransform::Identity;
+	if (bTilted)
+	{
+		// Step 1: remove every application the anchor actors carry.
+		const FQuat Untilt = TiltPower(Tilt, -GetAnchorTiltApplications());
+		AnchorA = RotatePositionInTrackingSpace(AnchorA, Untilt, TrackingToWorld);
+		AnchorB = RotatePositionInTrackingSpace(AnchorB, Untilt, TrackingToWorld);
+		AnchorD = RotatePositionInTrackingSpace(AnchorD, Untilt, TrackingToWorld);
+	}
+
 	// B(top-left)     C(top-right)
 	// A(bottom-left)  D(bottom-right)
-	const FCalibratedData Calib = UGeoUtils::CalibrateAnchors(
-			SpawnedAnchors[0]->GetActorLocation(),   // A (bottom-left)
-			SpawnedAnchors[1]->GetActorLocation(),   // B (top-left)
-			SpawnedAnchors[3]->GetActorLocation()
-		);  // D (bottom-right)
+	const FCalibratedData Calib = UGeoUtils::CalibrateAnchors(AnchorA, AnchorB, AnchorD);
 
 	const FVector XAxis = Calib.BAnchorPos - Calib.AAnchorPos;
 	const FVector YAxis = Calib.DAnchorPos - Calib.AAnchorPos;
@@ -640,14 +719,46 @@ bool UAnchorsManagerSubsystem::TryGetAnchorsFrame(FTransform& OutFrame) const
 	// three axes scale uniformly and the resulting local coordinate is a pure ratio.
 	const FMatrix Basis = UGeoUtils::BuildMatrixFromVectors(XAxis, YAxis);
 
-	OutFrame = FTransform(Basis.ToQuat(), Calib.PlaneCenter, FVector(EdgeLen));
+	FQuat   FrameRotation = Basis.ToQuat();
+	FVector FrameCenter   = Calib.PlaneCenter;
+	if (bTilted)
+	{
+		// Step 3: physical table -> the tilted space of the HMD and controllers (one application, in tracking space).
+		FrameCenter   = RotatePositionInTrackingSpace(FrameCenter, Tilt, TrackingToWorld);
+		FrameRotation = RotateOrientationInTrackingSpace(FrameRotation, Tilt, TrackingToWorld);
+	}
+
+	OutFrame = FTransform(FrameRotation, FrameCenter, FVector(EdgeLen));
 	return true;
+}
+
+FTransform UAnchorsManagerSubsystem::RawAnchorToTrackedSpace(const FTransform& RawAnchorTransform)
+{
+	const FQuat Tilt = GetTrackedDeviceTilt();
+	if (Tilt.Equals(FQuat::Identity, 1.e-6))
+	{
+		return RawAnchorTransform;
+	}
+
+	// The raw actor carries the tilt GetAnchorTiltApplications() times, the HMD and controllers once: remove the rest.
+	const FTransform TrackingToWorld = GetTrackingToWorld();
+	const FQuat Correction = TiltPower(Tilt, 1 - GetAnchorTiltApplications());
+
+	FTransform Out = RawAnchorTransform;
+	Out.SetLocation(RotatePositionInTrackingSpace(RawAnchorTransform.GetLocation(), Correction, TrackingToWorld));
+	Out.SetRotation(RotateOrientationInTrackingSpace(RawAnchorTransform.GetRotation(), Correction, TrackingToWorld));
+	return Out;
 }
 
 bool UAnchorsManagerSubsystem::HasValidAnchorsFrame() const
 {
 	FTransform Frame;
 	return TryGetAnchorsFrame(Frame);
+}
+
+bool UAnchorsManagerSubsystem::GetAnchorsFrameTransform(FTransform& OutFrame) const
+{
+	return TryGetAnchorsFrame(OutFrame);
 }
 
 FTransform UAnchorsManagerSubsystem::GetRelativeToAnchorsFrame(const FTransform& WorldTransform) const

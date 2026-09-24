@@ -95,7 +95,7 @@ void UTrackerPoseCacheComponent::TickComponent(float DeltaTime, ELevelTick TickT
 	}
 }
 
-bool UTrackerPoseCacheComponent::GetCachedPosesInAnchorsFrame(FTransform& OutCamera, FTransform& OutLeft, FTransform& OutRight)
+bool UTrackerPoseCacheComponent::GetCachedPoses(FTransform& OutCamera, FTransform& OutLeft, FTransform& OutRight)
 {
 	OutCamera = FTransform::Identity;
 	OutLeft   = FTransform::Identity;
@@ -130,29 +130,55 @@ bool UTrackerPoseCacheComponent::GetCachedPosesInAnchorsFrame(FTransform& OutCam
 		UE_LOG(LogTemp, Warning, TEXT("[TrackerPoseCache] SEND frame=%llu reads a pose cached on frame %llu (age=%llu, expected 1). Controller and anchor WTM spaces may be mismatched."), GFrameCounter, CachedFrame, Age);
 	}
 
-	OutCamera = AnchorsManager->GetRelativeToAnchorsFrame(LastCameraPose);
-	OutLeft   = AnchorsManager->GetRelativeToAnchorsFrame(LastLeftPose);
-	OutRight  = AnchorsManager->GetRelativeToAnchorsFrame(LastRightPose);
+	// World poses. The caller converts them with GetRelativeToAnchorsFrame on this same frame.
+	OutCamera = LastCameraPose;
+	OutLeft   = LastLeftPose;
+	OutRight  = LastRightPose;
+
+	// Sanity check: the head should be within a few meters of the table. Far away means this device's anchors are not
+	// at the physical table in its tracking space (not located, stale, or from a different tracking space).
+	FTransform Frame;
+	double HeadToTableMeters = -1.0;
+	if (AnchorsManager->GetAnchorsFrameTransform(Frame))
+	{
+		const double WorldToMeters = FMath::Max(1.0, (double)UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(this));
+		HeadToTableMeters = FVector::Dist(LastCameraPose.GetLocation(), Frame.GetLocation()) / WorldToMeters;
+
+		const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+		if (HeadToTableMeters > MaxHeadToTableMeters && Now - LastFarFromTableWarnTime >= 5.0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[TrackerPoseCache] %s: head is %.1f m from the anchors frame center (table). The anchors are probably not at the physical table on this device, every sent pose will be wrong. Camera=%s TableCenter=%s"),
+				*GetNameSafe(GetOwner()), HeadToTableMeters, *LastCameraPose.GetLocation().ToString(), *Frame.GetLocation().ToString());
+			LastFarFromTableWarnTime = Now;
+		}
+	}
 
 	if (bLogSends)
 	{
-		// Pairing check: hold a controller still and zoom. Its fraction change (d) must stay at tracking-noise level.
+		// Pairing check on the anchor-frame fractions, computed here for the log only. World positions change during a
+		// zoom even with a still hand (the tracked space scales), so the check is meaningless on world values.
+		// Hold a controller still and zoom: its fraction change (d) must stay at tracking-noise level.
 		// Fractions are in table-edge units, so d = 0.01 is 1 % of the table edge.
-		const double LeftDelta  = bHasLastSent ? FVector::Dist(OutLeft.GetLocation(),  LastSentLeft)  : 0.0;
-		const double RightDelta = bHasLastSent ? FVector::Dist(OutRight.GetLocation(), LastSentRight) : 0.0;
+		const FVector LeftFraction  = AnchorsManager->GetRelativeToAnchorsFrame(LastLeftPose).GetLocation();
+		const FVector RightFraction = AnchorsManager->GetRelativeToAnchorsFrame(LastRightPose).GetLocation();
 
-		UE_LOG(LogTemp, Log, TEXT("[TrackerPoseCache] SEND frame=%llu age=%llu WTM=%.2f | L=%s d=%.4f tracked=%d | R=%s d=%.4f tracked=%d"),
-			GFrameCounter, Age, UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(this),
-			*OutLeft.GetLocation().ToString(),  LeftDelta,  bLeftTracked  ? 1 : 0,
-			*OutRight.GetLocation().ToString(), RightDelta, bRightTracked ? 1 : 0);
+		const double LeftDelta  = bHasLastSent ? FVector::Dist(LeftFraction,  LastSentLeftFraction)  : 0.0;
+		const double RightDelta = bHasLastSent ? FVector::Dist(RightFraction, LastSentRightFraction) : 0.0;
+
+		UE_LOG(LogTemp, Log, TEXT("[TrackerPoseCache] SEND frame=%llu age=%llu WTM=%.2f | head-table=%.2fm | Lfrac=%s d=%.4f tracked=%d | Rfrac=%s d=%.4f tracked=%d"),
+			GFrameCounter, Age, UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(this), HeadToTableMeters,
+			*LeftFraction.ToString(),  LeftDelta,  bLeftTracked  ? 1 : 0,
+			*RightFraction.ToString(), RightDelta, bRightTracked ? 1 : 0);
+
+		LastSentLeftFraction  = LeftFraction;
+		LastSentRightFraction = RightFraction;
+		bHasLastSent = true;
 	}
-
-	LastSentLeft  = OutLeft.GetLocation();
-	LastSentRight = OutRight.GetLocation();
-	bHasLastSent  = true;
 
 	return true;
 }
+
+
 
 bool UTrackerPoseCacheComponent::IsSourceTracked(const USceneComponent* Source)
 {

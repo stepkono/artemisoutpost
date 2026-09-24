@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerState.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "ArtemisOutpost/Player/PlayerCues/PlayerCueTypes.h"
+#include "ArtemisOutpost/Player/PlayerCues/VRCues/TrackerPoseTypes.h"
 #include "ArtemisPlayerState.generated.h"
 
 class ACharVR;
@@ -83,6 +84,29 @@ public:
 	void ServerSetMinigame(bool bInMinigame, EMiniGameType Type);
 	void ServerSetWalking(bool bWalking);
 
+	// ---- Tracker pose (head + controllers in the anchors frame, drives the VR cue visualizers) ----
+
+	// Server: stores the owning client's poses (anchor-frame fractions: AR sends GetCachedPoses converted with
+	// GetRelativeToAnchorsFrame, VR removes its tilt first) and stamps the server time. Called from the
+	// Blueprint Server RPC. Kept out of CueState on purpose: it changes at send rate and must not fire
+	// OnCueStateChanged / study events. Logs the first write and then a 1 Hz summary with the write rate.
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Player Cues|Tracker Pose")
+	void ServerSetTrackerPose(const FTransform& Head, const FTransform& Left, const FTransform& Right, bool bLeftTracked, bool bRightTracked);
+
+	UFUNCTION(BlueprintPure, Category = "Player Cues|Tracker Pose")
+	const FTrackerPose& GetTrackerPose() const { return TrackerPose; }
+
+	// Seconds since the server last wrote the tracker pose (server time, valid on any peer).
+	UFUNCTION(BlueprintPure, Category = "Player Cues|Tracker Pose")
+	double GetTrackerPoseAgeSeconds() const;
+
+	// Shortcut for CueState.bHmdWorn (written by ServerSetHmdWorn from the doff/don detection).
+	UFUNCTION(BlueprintPure, Category = "Player Cues")
+	bool IsHmdWorn() const { return CueState.bHmdWorn; }
+	
+	UFUNCTION(BlueprintCallable, Category = "VR Char Rig")
+	EXRMode GetXRMode() const { return LastXRMode; }
+
 	// ---- Lookups (any peer) ----
 
 	// The PlayerState carrying this UPID, or null.
@@ -92,12 +116,22 @@ public:
 	// caller). Null when the actor belongs to no player.
 	static AArtemisPlayerState* FindForActor(const UWorld* World, const AActor* Actor);
 
+	// Blueprint access to FindForActor. Unlike APawn::PlayerState (only set while the pawn is POSSESSED, so null on
+	// a remote player's parked VR character or unused AR pawn), this works on every peer regardless of possession,
+	// because it matches the replicated pawn references written by ServerSetPawns.
+	UFUNCTION(BlueprintPure, Category = "Player Cues", meta = (WorldContext = "WorldContextObject", DisplayName = "Find Player State For Actor"))
+	static AArtemisPlayerState* FindPlayerStateForActor(const UObject* WorldContextObject, const AActor* Actor);
+
 	UPROPERTY(BlueprintAssignable, Category = "Player Cues")
 	FOnCueStateChanged OnCueStateChanged;
 
 private:
 	UFUNCTION()
 	void OnRep_CueState();
+
+	// Client: throttled log proving the pose reaches this peer (rate, age, values).
+	UFUNCTION()
+	void OnRep_TrackerPose();
 
 	// Recompute Context from bHmdWorn + LastXRMode and emit ContextChanged if it flipped.
 	void RecomputeContext();
@@ -126,6 +160,20 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_CueState)
 	FPlayerCueState CueState;
+
+	// Replicated to everyone except the owner, who never visualizes itself.
+	UPROPERTY(ReplicatedUsing = OnRep_TrackerPose)
+	FTrackerPose TrackerPose;
+
+	// ---- Tracker pose logging (server: writes, client: receives), throttled to TrackerPoseLogInterval ----
+	bool   bLoggedFirstTrackerPose       = false;
+	bool   bWarnedTrackerPoseNoAuthority = false;
+	double LastTrackerPoseLogTime        = -1000.0;
+	int32  TrackerPoseWritesSinceLog     = 0;
+	double LastTrackerPoseRepLogTime     = -1000.0;
+	int32  TrackerPoseRepsSinceLog       = 0;
+	double LastTrackerPoseSanityWarnTime = -1000.0;
+	static constexpr double TrackerPoseLogInterval = 1.0;
 
 	// Server-only bookkeeping.
 	EXRMode LastXRMode = EXRMode::AR;
