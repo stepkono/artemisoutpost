@@ -19,19 +19,19 @@ AVRCueVisualizer::AVRCueVisualizer()
 	SetRootComponent(Root);
 }
 
-void AVRCueVisualizer::SetCueVisible(bool bVisible)
+void AVRCueVisualizer::ToggleCueActivation(bool bActivate)
 {
-	if (bCueVisible == bVisible)
+	if (bCueActive == bActivate)
 	{
 		return;
 	}
-	bCueVisible = bVisible;
+	bCueActive = bActivate;
 
-	SetActorHiddenInGame(!bVisible);
-	SetActorTickEnabled(bVisible);
+	SetActorHiddenInGame(!bActivate);
+	SetActorTickEnabled(bActivate);
 
-	UE_LOG(LogTemp, Log, TEXT("[VRCues] %s visible=%d"), *GetName(), bVisible ? 1 : 0);
-	OnCueVisibilityChanged(bVisible);
+	UE_LOG(LogTemp, Log, TEXT("[VRCues] %s active=%d"), *GetName(), bActivate ? 1 : 0);
+	OnCueActivationChanged(bActivate);
 }
 
 void AVRCueVisualizer::SetXRTrackingRotation(FVector Pivot, FRotator Tilt)

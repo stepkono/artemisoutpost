@@ -113,8 +113,8 @@ void UVRCuesPresenterComponent::LogSummary() const
 		}
 
 		
-		UE_LOG(LogTemp, Log, TEXT("[VRCues]   Anchors | visible=%d frame=%d | frameCenter=%s (%.2fm from pivot, tilt moves it ~%.2fm) | AnchorA comp=%s | raw anchor0=%s | comp-raw=%.2fm"),
-			AnchorsVisualizer->IsCueVisible() ? 1 : 0, AnchorsVisualizer->bHasAnchorsFrame ? 1 : 0,
+		UE_LOG(LogTemp, Log, TEXT("[VRCues]   Anchors | active=%d frame=%d | frameCenter=%s (%.2fm from pivot, tilt moves it ~%.2fm) | AnchorA comp=%s | raw anchor0=%s | comp-raw=%.2fm"),
+			AnchorsVisualizer->IsCueActive() ? 1 : 0, AnchorsVisualizer->bHasAnchorsFrame ? 1 : 0,
 			*FrameCenter.ToString(), TableDistance, TiltOffsetAtTable,
 			VisA ? *VisAWorld.ToString() : TEXT("none"),
 			bHasRawA0 ? *RawA0.ToString() : TEXT("none"),
@@ -151,11 +151,11 @@ void UVRCuesPresenterComponent::LogSummary() const
 		const FVector RightWorld = RightComp ? RightComp->GetComponentLocation() : FVector::ZeroVector;
 
 		// "source" = what the PlayerState holds now, "pulled" = what the visualizer copied (PullPoseFromSource).
-		UE_LOG(LogTemp, Log, TEXT("[VRCues]   PlayerId=%d UPID='%s' ctx=%s hmd=%d | source written=%d age=%.2fs | pulled written=%d age=%.2fs active(0.5)=%d visible=%d | tracked L=%d R=%d | frac H=%s | world H=%s (%.2fm) L=%s (%.2fm) R=%s (%.2fm)"),
+		UE_LOG(LogTemp, Log, TEXT("[VRCues]   PlayerId=%d UPID='%s' ctx=%s hmd=%d | source written=%d age=%.2fs | pulled written=%d age=%.2fs sourceActive(0.5)=%d cueActive=%d | tracked L=%d R=%d | frac H=%s | world H=%s (%.2fm) L=%s (%.2fm) R=%s (%.2fm)"),
 			PlayerId, *PlayerState->GetUPID(), *UEnum::GetValueAsString(PlayerState->GetCueState().Context), PlayerState->IsHmdWorn() ? 1 : 0,
 			SourcePose.HasBeenWritten() ? 1 : 0, PlayerState->GetTrackerPoseAgeSeconds(),
 			Visualizer->Pose.HasBeenWritten() ? 1 : 0, Visualizer->GetPoseAgeSeconds(),
-			Visualizer->IsSourceActive(0.5f) ? 1 : 0, Visualizer->IsCueVisible() ? 1 : 0,
+			Visualizer->IsSourceActive(0.5f) ? 1 : 0, Visualizer->IsCueActive() ? 1 : 0,
 			Visualizer->Pose.bLeftTracked ? 1 : 0, Visualizer->Pose.bRightTracked ? 1 : 0,
 			*Visualizer->Pose.Head.GetLocation().ToString(),
 			*HeadWorld.ToString(), MetersFromPivot(HeadWorld),
