@@ -43,7 +43,7 @@ bool AAnchorsCueVisualizer::RefreshAnchorsFrame()
 	const bool bNowHasFrame = AnchorsManager && AnchorsManager->GetAnchorsFrameTransform(Frame);
 	if (bNowHasFrame != bHasAnchorsFrame)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[VRCues] %s anchors frame %s"), *GetName(), bNowHasFrame ? TEXT("ready") : TEXT("lost"));
+		//UE_LOG(LogTemp, Log, TEXT("[VRCues] %s anchors frame %s"), *GetName(), bNowHasFrame ? TEXT("ready") : TEXT("lost"));
 	}
 
 	bHasAnchorsFrame = bNowHasFrame;

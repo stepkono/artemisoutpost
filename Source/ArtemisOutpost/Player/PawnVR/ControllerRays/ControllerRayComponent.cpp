@@ -124,7 +124,7 @@ bool UControllerRayComponent::EnsureSetup()
 
 	if (RayDesigns.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ControllerRays] No RayDesigns assigned on %s; rays will trace but draw nothing."), *Owner->GetName());
+		// UE_LOG(LogTemp, Warning, TEXT("[ControllerRays] No RayDesigns assigned on %s; rays will trace but draw nothing."), *Owner->GetName());
 	}
 
 	auto AddRay = [&](EControllerRayHand Hand, FName Tag)
@@ -166,8 +166,7 @@ bool UControllerRayComponent::EnsureSetup()
 
 	bSetupDone = true;
 
-	UE_LOG(LogTemp, Log, TEXT("[ControllerRays] %s: set up %d ray(s), %d design(s), pointerDesign=%d, local=%d."),
-		*Owner->GetName(), Rays.Num(), RayDesigns.Num(), PointerDesignIndex, IsOwnerLocallyControlled() ? 1 : 0);
+	// UE_LOG(LogTemp, Log, TEXT("[ControllerRays] %s: set up %d ray(s), %d design(s), pointerDesign=%d, local=%d."), *Owner->GetName(), Rays.Num(), RayDesigns.Num(), PointerDesignIndex, IsOwnerLocallyControlled() ? 1 : 0);
 
 	// Apply the desired states now that the rays exist (callers may have set them before setup).
 	SetRayEnabled(EControllerRayHand::Left, bDesiredLeftEnabled);
@@ -393,9 +392,7 @@ void UControllerRayComponent::SetPointerMode(EControllerRayHand Hand, bool bOn)
 	(Hand == EControllerRayHand::Left ? bDesiredLeftPointer : bDesiredRightPointer) = bOn;
 
 	FControllerRayState* Ray = FindRay(Hand);
-	UE_LOG(LogTemp, Log, TEXT("[ControllerRays] %s: SetPointerMode(%s, %d) -> ray %s."),
-		*GetNameSafe(GetOwner()), Hand == EControllerRayHand::Left ? TEXT("Left") : TEXT("Right"), bOn ? 1 : 0,
-		Ray ? TEXT("found") : TEXT("NOT SET UP YET (applied once EnsureSetup runs)"));
+	//UE_LOG(LogTemp, Log, TEXT("[ControllerRays] %s: SetPointerMode(%s, %d) -> ray %s."), *GetNameSafe(GetOwner()), Hand == EControllerRayHand::Left ? TEXT("Left") : TEXT("Right"), bOn ? 1 : 0, Ray ? TEXT("found") : TEXT("NOT SET UP YET (applied once EnsureSetup runs)"));
 	if (!Ray)
 	{
 		return; // applied in EnsureSetup (the tick guard lets a remote proxy set up now if bOn).

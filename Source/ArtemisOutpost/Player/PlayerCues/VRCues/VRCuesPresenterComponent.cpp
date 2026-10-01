@@ -44,7 +44,7 @@ void UVRCuesPresenterComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		return;
 	}
 	SummaryLogTimer = 0.0f;
-	LogSummary();
+	// LogSummary();
 }
 
 void UVRCuesPresenterComponent::LogSummary() const
@@ -112,12 +112,14 @@ void UVRCuesPresenterComponent::LogSummary() const
 			}
 		}
 
+		
 		UE_LOG(LogTemp, Log, TEXT("[VRCues]   Anchors | visible=%d frame=%d | frameCenter=%s (%.2fm from pivot, tilt moves it ~%.2fm) | AnchorA comp=%s | raw anchor0=%s | comp-raw=%.2fm"),
 			AnchorsVisualizer->IsCueVisible() ? 1 : 0, AnchorsVisualizer->bHasAnchorsFrame ? 1 : 0,
 			*FrameCenter.ToString(), TableDistance, TiltOffsetAtTable,
 			VisA ? *VisAWorld.ToString() : TEXT("none"),
 			bHasRawA0 ? *RawA0.ToString() : TEXT("none"),
 			(VisA && bHasRawA0) ? FVector::Dist(VisAWorld, RawA0) / 100.0 : -1.0);
+			
 	}
 	else
 	{

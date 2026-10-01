@@ -275,6 +275,7 @@ private:
 	FVector PrevHmdPos            = FVector::ZeroVector;
 	FVector PrevCameraWorld       = FVector::ZeroVector;
 	float   PrevCapsuleHalfHeight = 0.0f;
+	TWeakObjectPtr<UPrimitiveComponent> PrevBaseComponent;	FVector PrevBaseLocation      = FVector::ZeroVector;
 	bool    bMotionBaselineValid  = false;
 	int32   MotionLogBurstFrames  = 0;
 

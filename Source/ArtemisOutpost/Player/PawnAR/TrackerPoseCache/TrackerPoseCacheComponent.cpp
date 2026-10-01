@@ -31,12 +31,14 @@ void UTrackerPoseCacheComponent::StartCaching(USceneComponent* InCamera, USceneC
 
 	SetComponentTickEnabled(true);
 
+	/*
 	UE_LOG(LogTemp, Log, TEXT("[TrackerPoseCache] StartCaching on %s | Camera=%s Left=%s (motion controller=%d) Right=%s (motion controller=%d) | frame=%llu"),
 		*GetNameSafe(GetOwner()),
 		*GetNameSafe(InCamera),
 		*GetNameSafe(InLeftController),  Cast<UMotionControllerComponent>(InLeftController)  ? 1 : 0,
 		*GetNameSafe(InRightController), Cast<UMotionControllerComponent>(InRightController) ? 1 : 0,
 		GFrameCounter);
+		*/
 }
 
 void UTrackerPoseCacheComponent::StopCaching()
@@ -45,7 +47,7 @@ void UTrackerPoseCacheComponent::StopCaching()
 	bHasPose     = false;
 	bHasLastSent = false;
 
-	UE_LOG(LogTemp, Log, TEXT("[TrackerPoseCache] StopCaching on %s | frame=%llu"), *GetNameSafe(GetOwner()), GFrameCounter);
+	// UE_LOG(LogTemp, Log, TEXT("[TrackerPoseCache] StopCaching on %s | frame=%llu"), *GetNameSafe(GetOwner()), GFrameCounter);
 }
 
 void UTrackerPoseCacheComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -60,8 +62,7 @@ void UTrackerPoseCacheComponent::TickComponent(float DeltaTime, ELevelTick TickT
 	{
 		if (!bWarnedMissingTrackers)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[TrackerPoseCache] %s: tracker references missing (Camera=%d Left=%d Right=%d). Call StartCaching with valid components."),
-				*GetNameSafe(GetOwner()), CameraComp ? 1 : 0, LeftComp ? 1 : 0, RightComp ? 1 : 0);
+			// UE_LOG(LogTemp, Warning, TEXT("[TrackerPoseCache] %s: tracker references missing (Camera=%d Left=%d Right=%d). Call StartCaching with valid components."), *GetNameSafe(GetOwner()), CameraComp ? 1 : 0, LeftComp ? 1 : 0, RightComp ? 1 : 0);
 			bWarnedMissingTrackers = true;
 		}
 		bHasPose = false;

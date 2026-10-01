@@ -24,6 +24,7 @@
 #include "ArtemisOutpost/Player/PlayerCues/VRCues/VRCuesPresenterComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Engine/OverlapResult.h"
 
 
 // Sets default values
@@ -170,7 +171,7 @@ void ACharVR::Tick(float DeltaTime)
 		bXRBaseIsReset = false;
 		UpdateVRViewTilt();
 		UpdateCapsuleFollowsHMD();
-		// LogVRMotionAnomalies(DeltaTime);
+		LogVRMotionAnomalies(DeltaTime);
 		
 		// NOTE: UpdateHeadCollision is temporarily not called — it re-homes VROrigin's full relative
 		// location every frame, which would fight UpdateCapsuleFollowsHMD's horizontal offset. Roof
@@ -675,6 +676,25 @@ void ACharVR::LogVRMotionAnomalies(float DeltaTime)
 			TEXT("[VRFloor]  OnGround=%d FloorHit=%d Walkable=%d FloorDist=%.1f | GravVsUpDeg=%.1f FloorNvsUpDeg=%.1f"),
 			bOnGround ? 1 : 0, bFloorHit ? 1 : 0, bFloorWalkable ? 1 : 0, FloorDist, GravVsUpDeg, FloorNvsUpDeg);
 
+		// Name what we stand on. A Speed=0 drift with ActorMove of 25-40 cm/frame is the CMC carrying us
+		// with a moving base (based movement never touches Velocity) or depenetrating us from something
+		// that follows us. FloorActor/Comp is what FindFloor hit, Base is what the CMC rides on.
+		{
+			const FHitResult FloorHitRes = CMC ? CMC->CurrentFloor.HitResult : FHitResult();
+			const AActor* FloorActor = bFloorHit ? FloorHitRes.GetActor() : nullptr;
+			const UPrimitiveComponent* FloorComp = bFloorHit ? FloorHitRes.GetComponent() : nullptr;
+			const UPrimitiveComponent* Base = GetMovementBase();
+			const bool bBaseMovable = Base && Base->Mobility == EComponentMobility::Movable;
+			const float BaseMove = Base ? (Base->GetComponentLocation() - PrevBaseLocation).Size() : -1.0f;
+			const bool bSameBase = Base && Base == PrevBaseComponent.Get();
+			UE_LOG(LogTemp, Warning,
+				TEXT("[VRBase]   FloorActor=%s FloorComp=%s | Base=%s/%s Movable=%d BaseMove=%.1f | StartPenetrating=%d PenDepth=%.1f"),
+				*GetNameSafe(FloorActor), *GetNameSafe(FloorComp),
+				*GetNameSafe(Base ? Base->GetOwner() : nullptr), *GetNameSafe(Base), bBaseMovable ? 1 : 0,
+				bSameBase ? BaseMove : -1.0f,
+				FloorHitRes.bStartPenetrating ? 1 : 0, FloorHitRes.PenetrationDepth);
+		}
+
 		// Name the "invisible wall". When we have velocity, sweep the capsule a short way along it using
 		// the capsule's OWN collision profile, so we hit exactly what the CMC move would hit. Prints the
 		// blocking actor + component: our own VRCharPuppet, the rover, another pawn, or terrain geometry.
@@ -697,6 +717,33 @@ void ACharVR::LogVRMotionAnomalies(float DeltaTime)
 		}
 		UE_LOG(LogTemp, Warning, TEXT("[VRBlock]  Blocker=%s Comp=%s"), *BlockerName, *BlockerComp);
 
+		// The sweep above only runs with velocity and only along it, so it is blind to a blocker that
+		// sits inside the capsule while Speed=0. List everything the capsule (inflated by 2 cm) blocks
+		// against right now, whatever the velocity.
+		if (World && Capsule)
+		{
+			TArray<FOverlapResult> Overlaps;
+			FCollisionQueryParams OverlapParams(SCENE_QUERY_STAT(VRBlockerOverlap), /*bTraceComplex=*/false, this);
+			const FCollisionShape Inflated = FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius() + 2.0f, Capsule->GetScaledCapsuleHalfHeight() + 2.0f);
+			World->OverlapMultiByProfile(Overlaps, ActorLoc, GetActorQuat(), Capsule->GetCollisionProfileName(), Inflated, OverlapParams);
+
+			FString OverlapList;
+			int32 NumBlocking = 0;
+			for (const FOverlapResult& Overlap : Overlaps)
+			{
+				if (!Overlap.bBlockingHit)
+				{
+					continue;
+				}
+				++NumBlocking;
+				if (NumBlocking <= 4)
+				{
+					OverlapList += FString::Printf(TEXT(" %s/%s"), *GetNameSafe(Overlap.GetActor()), *GetNameSafe(Overlap.GetComponent()));
+				}
+			}
+			UE_LOG(LogTemp, Warning, TEXT("[VROverlap] Blocking=%d%s"), NumBlocking, NumBlocking > 0 ? *OverlapList : TEXT(" none"));
+		}
+
 		--MotionLogBurstFrames;
 	}
 
@@ -704,6 +751,8 @@ void ACharVR::LogVRMotionAnomalies(float DeltaTime)
 	PrevHmdPos            = HmdPos;
 	PrevCameraWorld       = CamWorld;
 	PrevCapsuleHalfHeight = HalfHeight;
+	PrevBaseComponent     = GetMovementBase();
+	PrevBaseLocation      = PrevBaseComponent.IsValid() ? PrevBaseComponent->GetComponentLocation() : FVector::ZeroVector;
 }
 
 void ACharVR::LogVRTransforms(float DeltaTime)

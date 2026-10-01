@@ -38,16 +38,13 @@ bool APlayerCuesVisualizer::PullPoseFromSource()
 	{
 		if (!bLoggedWaitingForPose)
 		{
-			UE_LOG(LogTemp, Log, TEXT("[VRCues] %s (PlayerId=%d, UPID '%s'): source has no tracker pose yet (never written on the server, or not replicated here)."),
-				*GetName(), SourcePlayerId, *SourcePlayerState->GetUPID());
+			// UE_LOG(LogTemp, Log, TEXT("[VRCues] %s (PlayerId=%d, UPID '%s'): source has no tracker pose yet (never written on the server, or not replicated here)."), *GetName(), SourcePlayerId, *SourcePlayerState->GetUPID());
 			bLoggedWaitingForPose = true;
 		}
 	}
 	else if (!bHadPose)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[VRCues] %s (PlayerId=%d, UPID '%s'): first pose pulled | age=%.2fs H=%s trackedL=%d R=%d"),
-			*GetName(), SourcePlayerId, *SourcePlayerState->GetUPID(), GetPoseAgeSeconds(),
-			*Pose.Head.GetLocation().ToString(), Pose.bLeftTracked ? 1 : 0, Pose.bRightTracked ? 1 : 0);
+		// UE_LOG(LogTemp, Log, TEXT("[VRCues] %s (PlayerId=%d, UPID '%s'): first pose pulled | age=%.2fs H=%s trackedL=%d R=%d"), *GetName(), SourcePlayerId, *SourcePlayerState->GetUPID(), GetPoseAgeSeconds(), *Pose.Head.GetLocation().ToString(), Pose.bLeftTracked ? 1 : 0, Pose.bRightTracked ? 1 : 0);
 		bLoggedWaitingForPose = false;
 	}
 	return true;

@@ -97,7 +97,7 @@ void AArtemisPlayerState::RecomputeContext()
 
 	if (bChanged)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Cues] '%s' context -> %s"), *UPID, *UEnum::GetValueAsString(NewContext));
+		// UE_LOG(LogTemp, Log, TEXT("[Cues] '%s' context -> %s"), *UPID, *UEnum::GetValueAsString(NewContext));
 		EmitEvent(EGameEventType::PlayerContextChanged);
 	}
 	CommitChange();
@@ -243,8 +243,7 @@ void AArtemisPlayerState::ServerSetTrackerPose(const FTransform& Head, const FTr
 	{
 		if (!bWarnedTrackerPoseNoAuthority)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[Cues] ServerSetTrackerPose on %s (UPID '%s') called WITHOUT authority, ignored. Call it from a Run on Server event."),
-				*GetName(), *UPID);
+			// UE_LOG(LogTemp, Warning, TEXT("[Cues] ServerSetTrackerPose on %s (UPID '%s') called WITHOUT authority, ignored. Call it from a Run on Server event."), *GetName(), *UPID);
 			bWarnedTrackerPoseNoAuthority = true;
 		}
 		return;
@@ -267,8 +266,7 @@ void AArtemisPlayerState::ServerSetTrackerPose(const FTransform& Head, const FTr
 	// GameplayStatics "Get Player State (index 0)" instead of the pawn's own PlayerState.
 	if ((IsSpectator() || IsOnlyASpectator() || (!VRChar && !ARPawn)) && Now - LastTrackerPoseSanityWarnTime >= 5.0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Cues] SERVER tracker pose written into %s (PlayerId=%d, UPID '%s') which is a spectator / has no pawns. The sender resolved the WRONG PlayerState."),
-			*GetName(), GetPlayerId(), *UPID);
+		// UE_LOG(LogTemp, Warning, TEXT("[Cues] SERVER tracker pose written into %s (PlayerId=%d, UPID '%s') which is a spectator / has no pawns. The sender resolved the WRONG PlayerState."), *GetName(), GetPlayerId(), *UPID);
 		LastTrackerPoseSanityWarnTime = Now;
 	}
 
@@ -277,24 +275,20 @@ void AArtemisPlayerState::ServerSetTrackerPose(const FTransform& Head, const FTr
 	const double HeadFraction = Head.GetLocation().Size();
 	if (HeadFraction > 10.0 && Now - LastTrackerPoseSanityWarnTime >= 5.0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Cues] SERVER '%s' (%s, PlayerId=%d): head is %.0f table edges from the table center. The sender's anchors are not at the physical table, or it sent unconverted world poses. H=%s"),
-			*UPID, *GetName(), GetPlayerId(), HeadFraction, *Head.GetLocation().ToString());
+		// UE_LOG(LogTemp, Warning, TEXT("[Cues] SERVER '%s' (%s, PlayerId=%d): head is %.0f table edges from the table center. The sender's anchors are not at the physical table, or it sent unconverted world poses. H=%s"), *UPID, *GetName(), GetPlayerId(), HeadFraction, *Head.GetLocation().ToString());
 		LastTrackerPoseSanityWarnTime = Now;
 	}
 
 	// Two bit-identical controller poses are the untracked fallback (both sitting on the tracking origin).
 	if (Left.Equals(Right, 0.0) && (bLeftTracked || bRightTracked) && Now - LastTrackerPoseSanityWarnTime >= 5.0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Cues] SERVER '%s' (PlayerId=%d): left and right controller poses are identical but reported tracked (L=%d R=%d). The tracked flags do not reflect the device state."),
-			*UPID, GetPlayerId(), bLeftTracked ? 1 : 0, bRightTracked ? 1 : 0);
+		// UE_LOG(LogTemp, Warning, TEXT("[Cues] SERVER '%s' (PlayerId=%d): left and right controller poses are identical but reported tracked (L=%d R=%d). The tracked flags do not reflect the device state."), *UPID, GetPlayerId(), bLeftTracked ? 1 : 0, bRightTracked ? 1 : 0);
 		LastTrackerPoseSanityWarnTime = Now;
 	}
 
 	if (!bLoggedFirstTrackerPose)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Cues] SERVER '%s' (%s) first tracker pose | H=%s L=%s (tracked=%d) R=%s (tracked=%d)"),
-			*UPID, *GetName(), *Head.GetLocation().ToString(), *Left.GetLocation().ToString(), bLeftTracked ? 1 : 0,
-			*Right.GetLocation().ToString(), bRightTracked ? 1 : 0);
+		// UE_LOG(LogTemp, Log, TEXT("[Cues] SERVER '%s' (%s) first tracker pose | H=%s L=%s (tracked=%d) R=%s (tracked=%d)"), *UPID, *GetName(), *Head.GetLocation().ToString(), *Left.GetLocation().ToString(), bLeftTracked ? 1 : 0, *Right.GetLocation().ToString(), bRightTracked ? 1 : 0);
 		bLoggedFirstTrackerPose = true;
 		LastTrackerPoseLogTime = Now;
 		TrackerPoseWritesSinceLog = 0;
@@ -303,12 +297,14 @@ void AArtemisPlayerState::ServerSetTrackerPose(const FTransform& Head, const FTr
 	{
 		// Values are anchor-frame fractions: locations are roughly within [-1, 1] near the table. Values in the
 		// thousands mean world coordinates were sent without GetRelativeToAnchorsFrame.
+		/*
 		UE_LOG(LogTemp, Log, TEXT("[Cues] SERVER '%s' tracker pose | %d writes in %.1fs | H=%s rot=%s | L=%s rot=%s tracked=%d | R=%s rot=%s tracked=%d | t=%.2f"),
 			*UPID, TrackerPoseWritesSinceLog, Now - LastTrackerPoseLogTime,
 			*Head.GetLocation().ToString(),  *Head.Rotator().ToString(),
 			*Left.GetLocation().ToString(),  *Left.Rotator().ToString(),  bLeftTracked ? 1 : 0,
 			*Right.GetLocation().ToString(), *Right.Rotator().ToString(), bRightTracked ? 1 : 0,
 			TrackerPose.ServerWriteTime);
+			*/
 		LastTrackerPoseLogTime = Now;
 		TrackerPoseWritesSinceLog = 0;
 	}
@@ -330,12 +326,13 @@ void AArtemisPlayerState::OnRep_TrackerPose()
 
 	// Age uses the server clock estimate of this client. A large age right after the first update can mean the
 	// server time has not synced yet (AGameStateBase replicates it periodically).
+	/*
 	UE_LOG(LogTemp, Log, TEXT("[Cues] CLIENT received '%s' tracker pose | %d updates in %.1fs | age=%.2fs | H=%s | L=%s tracked=%d | R=%s tracked=%d"),
 		*UPID, TrackerPoseRepsSinceLog, Now - LastTrackerPoseRepLogTime, GetTrackerPoseAgeSeconds(),
 		*TrackerPose.Head.GetLocation().ToString(),
 		*TrackerPose.Left.GetLocation().ToString(),  TrackerPose.bLeftTracked  ? 1 : 0,
 		*TrackerPose.Right.GetLocation().ToString(), TrackerPose.bRightTracked ? 1 : 0);
-
+*/
 	LastTrackerPoseRepLogTime = Now;
 	TrackerPoseRepsSinceLog = 0;
 }
