@@ -145,7 +145,7 @@ void ACharVR::Tick(float DeltaTime)
 	bool bModeIsVR = true;
 	if (const APawnController* PC = Cast<APawnController>(GetController()))
 	{
-		bModeIsVR = (PC->GetXRMode() == EXRMode::VR);
+		bModeIsVR = (PC->GetXRMode() == ERVMode::VR);
 	}
 	const bool bDrivesLocalView = bIsLocallyPossessed && IsLocallyControlled() && bModeIsVR;
 	if (bIsLocallyPossessed && !bDrivesLocalView)

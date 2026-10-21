@@ -7,6 +7,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
+#include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "ArtemisOutpost/GameData/ArtemisPlayerState.h"
 #include "ArtemisOutpost/MiniGames/General/GameInstance/MinigameActor.h"
 #include "ArtemisOutpost/MiniGames/MiniGamePuppet/MinigamePuppet.h"
@@ -112,12 +113,12 @@ bool UPlayerCuesManager::IsLocalActivePawn() const
 	{
 		return true; // test level without our controller
 	}
-	return bUsesARMoon ? (PC->GetXRMode() == EXRMode::AR) : (PC->GetXRMode() == EXRMode::VR);
+	return bUsesARMoon ? (PC->GetXRMode() == ERVMode::AR) : (PC->GetXRMode() == ERVMode::VR);
 }
 
-bool UPlayerCuesManager::MatchesContext(EPlayerContext Context) const
+bool UPlayerCuesManager::MatchesContext(ERVMode Context) const
 {
-	return bUsesARMoon ? (Context == EPlayerContext::AR) : (Context == EPlayerContext::VR);
+	return bUsesARMoon ? (Context == ERVMode::AR) : (Context == ERVMode::VR);
 }
 
 // ---- Input ----
@@ -377,7 +378,7 @@ void UPlayerCuesManager::TickServerWalking(float DeltaTime)
 	{
 		return;
 	}
-	if (PS->GetCueState().Context != EPlayerContext::VR)
+	if (PS->GetCueState().Context != ERVMode::VR)
 	{
 		if (bServerWalking)
 		{
@@ -469,11 +470,15 @@ bool UPlayerCuesManager::ResolveTarget(const FHitResult& Hit, FPointingTarget& O
 
 	if (Actor)
 	{
-		if (const AArtemisPlayerState* PS = AArtemisPlayerState::FindForActor(GetWorld(), Actor))
+		// Roster lookup, so a disconnected player's parked VR character or rover still resolves to that
+		// player instead of falling through to Surface. UPID and number live on the record itself.
+		FArtemisPlayer Record;
+		const AArtemisGameState* GS = GetWorld() ? GetWorld()->GetGameState<AArtemisGameState>() : nullptr;
+		if (GS && GS->FindRecordForActor(Actor, Record))
 		{
 			OutTarget.Kind               = Actor->IsA<AMasterRover>() ? EPointingTargetKind::Rover : EPointingTargetKind::Player;
-			OutTarget.TargetUPID         = PS->GetUPID();
-			OutTarget.TargetPlayerNumber = PS->GetPlayerNumber();
+			OutTarget.TargetUPID         = Record.UPID;
+			OutTarget.TargetPlayerNumber = Record.PlayerNumber;
 			return true;
 		}
 	}
@@ -497,7 +502,14 @@ bool UPlayerCuesManager::EnsurePlayerState()
 		bBoundToPlayerState = false;
 	}
 
-	AArtemisPlayerState* PS = AArtemisPlayerState::FindForActor(GetWorld(), GetOwner());
+	// The roster record's PlayerState is null while the player is disconnected, then the pawn fallback below applies.
+	AArtemisPlayerState* PS = nullptr;
+	FArtemisPlayer Record;
+	const AArtemisGameState* GS = GetWorld() ? GetWorld()->GetGameState<AArtemisGameState>() : nullptr;
+	if (GS && GS->FindRecordForActor(GetOwner(), Record))
+	{
+		PS = Record.PlayerState;
+	}
 	if (!PS)
 	{
 		if (const APawn* Pawn = Cast<APawn>(GetOwner()))

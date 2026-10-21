@@ -47,7 +47,7 @@ TSharedPtr<FJsonObject> UPlayerActionProviderData::SerializeCueEvent(const EGame
 	Obj->SetStringField(TEXT("upid"),         UPID);
 	Obj->SetStringField(TEXT("event"),        StaticEnum<EGameEventType>()->GetNameStringByValue(GameEventType));
 	Obj->SetBoolField(TEXT("hmdWorn"),        CueState.bHmdWorn);
-	Obj->SetStringField(TEXT("context"),      StaticEnum<EPlayerContext>()->GetNameStringByValue(static_cast<int64>(CueState.Context)));
+	Obj->SetStringField(TEXT("context"),      StaticEnum<ERVMode>()->GetNameStringByValue(static_cast<int64>(CueState.Context)));
 	Obj->SetStringField(TEXT("activity"),     StaticEnum<EPlayerActivity>()->GetNameStringByValue(static_cast<int64>(CueState.GetActivity())));
 	Obj->SetBoolField(TEXT("inMinigame"),     CueState.bInMinigame);
 	Obj->SetStringField(TEXT("minigameType"), CueState.bInMinigame

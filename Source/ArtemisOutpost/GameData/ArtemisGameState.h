@@ -21,8 +21,12 @@ class ARTEMISOUTPOST_API AArtemisGameState : public AGameStateBase
 	GENERATED_BODY()
 	
 public:
-	AArtemisGameState(); 
+	AArtemisGameState();
 	virtual void BeginPlay() override;
+
+	/** The world's GameState as AArtemisGameState, so Blueprints need no Cast node. Null before the GameState exists. */
+	UFUNCTION(BlueprintPure, Category = "Artemis", meta = (WorldContext = "WorldContextObject"))
+	static AArtemisGameState* GetArtemisGameState(const UObject* WorldContextObject);
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION()
@@ -51,6 +55,17 @@ public:
 	 */
 	bool GetAnchorsFromCurrentSession(FOrderedAnchors& OutAnchors) const;
 
+	/** Server: adds the player to PlayersRoster or replaces the entry with the same UPID. */
+	void WritePlayer(const FArtemisPlayer& Player);
+
+	/**
+	 * The roster entry owning this actor (VRChar, MasterRover, or the AR pawn of a connected player).
+	 * Works on every peer and keeps working while the player is disconnected, then OutPlayer.PlayerState
+	 * is null. Puppets have to be unwrapped by the caller. Returns false if the actor belongs to no player.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Players Management")
+	bool FindRecordForActor(const AActor* Actor, FArtemisPlayer& OutPlayer) const;
+
 private:
 	void SaveAnchorsToDisk() const;
 
@@ -68,8 +83,16 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Rover Controls")
 	FControlCommandReceived OnControlCommandReceived;
 	FMapCoordinatesReceived OnMapCoordinatesReceived;
-	
-private: 
+
+	/**
+	 * Every player that joined this session, including disconnected ones. Unlike GameState->PlayerArray
+	 * an entry survives a disconnect, so a parked VRChar or rover can still be resolved to its player.
+	 * Written only by AServerGameMode through WritePlayer.
+	 */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Players Management")
+	TArray<FArtemisPlayer> PlayersRoster;
+
+private:
 	UPROPERTY()
 	UMoonScannedAreaManager* MoonDataManager;
 	

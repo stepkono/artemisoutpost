@@ -7,14 +7,14 @@
 
 #define LOCTEXT_NAMESPACE "AwarenessHUD"
 
-void UAwarenessHUDWidget::SetRows(const TArray<FAwarenessHUDRow>& InRows, EPlayerContext InLocalContext)
+void UAwarenessHUDWidget::SetRows(const TArray<FAwarenessHUDRow>& InRows, ERVMode InLocalContext)
 {
 	Rows = InRows;
 	LocalContext = InLocalContext;
 
-	FillBlock(EPlayerContext::AR, RowsAR, BlockRootAR, PoolAR);
-	FillBlock(EPlayerContext::VR, RowsVR, BlockRootVR, PoolVR);
-	FillBlock(EPlayerContext::R,  RowsR,  BlockRootR,  PoolR);
+	FillBlock(ERVMode::AR, RowsAR, BlockRootAR, PoolAR);
+	FillBlock(ERVMode::VR, RowsVR, BlockRootVR, PoolVR);
+	FillBlock(ERVMode::R,  RowsR,  BlockRootR,  PoolR);
 	ReorderBlocks();
 
 	OnRowsUpdated(Rows, LocalContext);
@@ -32,7 +32,7 @@ void UAwarenessHUDWidget::NotifyClosed()
 
 // ---- Automatic blocks ----
 
-void UAwarenessHUDWidget::FillBlock(EPlayerContext Context, UPanelWidget* Panel, UWidget* BlockRoot, TArray<TObjectPtr<UAwarenessHUDRowWidget>>& Pool)
+void UAwarenessHUDWidget::FillBlock(ERVMode Context, UPanelWidget* Panel, UWidget* BlockRoot, TArray<TObjectPtr<UAwarenessHUDRowWidget>>& Pool)
 {
 	if (!Panel)
 	{
@@ -93,18 +93,18 @@ void UAwarenessHUDWidget::ReorderBlocks()
 		return;
 	}
 
-	auto RootFor = [this](EPlayerContext C) -> UWidget*
+	auto RootFor = [this](ERVMode C) -> UWidget*
 	{
 		switch (C)
 		{
-		case EPlayerContext::AR: return BlockRootAR;
-		case EPlayerContext::VR: return BlockRootVR;
+		case ERVMode::AR: return BlockRootAR;
+		case ERVMode::VR: return BlockRootVR;
 		default:                 return BlockRootR;
 		}
 	};
 
 	int32 Index = 0;
-	for (const EPlayerContext C : GetBlockOrder())
+	for (const ERVMode C : GetBlockOrder())
 	{
 		UWidget* Root = RootFor(C);
 		if (Root && BlocksBox->HasChild(Root))
@@ -117,7 +117,7 @@ void UAwarenessHUDWidget::ReorderBlocks()
 
 // ---- Reads ----
 
-TArray<FAwarenessHUDRow> UAwarenessHUDWidget::GetRowsForContext(EPlayerContext Context) const
+TArray<FAwarenessHUDRow> UAwarenessHUDWidget::GetRowsForContext(ERVMode Context) const
 {
 	TArray<FAwarenessHUDRow> Result;
 	for (const FAwarenessHUDRow& Row : Rows)
@@ -131,11 +131,11 @@ TArray<FAwarenessHUDRow> UAwarenessHUDWidget::GetRowsForContext(EPlayerContext C
 	return Result;
 }
 
-TArray<EPlayerContext> UAwarenessHUDWidget::GetBlockOrder() const
+TArray<ERVMode> UAwarenessHUDWidget::GetBlockOrder() const
 {
-	TArray<EPlayerContext> Order;
+	TArray<ERVMode> Order;
 	Order.Add(LocalContext);
-	for (const EPlayerContext C : { EPlayerContext::AR, EPlayerContext::VR, EPlayerContext::R })
+	for (const ERVMode C : { ERVMode::AR, ERVMode::VR, ERVMode::R })
 	{
 		if (C != LocalContext)
 		{

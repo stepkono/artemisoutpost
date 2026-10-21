@@ -61,7 +61,7 @@ public:
 	void ServerSetPlayerNumber(int32 InNumber);
 
 	// Server: the player's actors, so any peer can resolve "which player does this hit actor belong
-	// to" (see FindForActor). Written from APawnController when it learns its pawns.
+	// to" (see AArtemisGameState::FindRecordForActor). Written from APawnController when it learns its pawns.
 	void ServerSetPawns(ACharVR* InVRChar, APawnAR* InARPawn, AMasterRover* InRover);
 
 	UFUNCTION(BlueprintPure, Category = "Player Cues")
@@ -74,7 +74,7 @@ public:
 	AMasterRover* GetMasterRover() const { return MasterRover; }
 
 	// ---- Server mutators (no-ops without authority) ----
-	void ServerSetXRMode(EXRMode Mode);
+	void ServerSetXRMode(ERVMode Mode);
 	void ServerSetHmdWorn(bool bWorn);
 	void ServerSetTalking(bool bTalking);
 	void ServerSetPointing(EPointingHand Hand, bool bPointing);
@@ -105,22 +105,12 @@ public:
 	bool IsHmdWorn() const { return CueState.bHmdWorn; }
 	
 	UFUNCTION(BlueprintCallable, Category = "VR Char Rig")
-	EXRMode GetXRMode() const { return LastXRMode; }
+	ERVMode GetXRMode() const { return LastMRMode; }
 
 	// ---- Lookups (any peer) ----
 
 	// The PlayerState carrying this UPID, or null.
 	static AArtemisPlayerState* FindByUPID(const UWorld* World, const FString& InUPID);
-
-	// The PlayerState whose VRChar / ARPawn / MasterRover is this actor (puppets are unwrapped by the
-	// caller). Null when the actor belongs to no player.
-	static AArtemisPlayerState* FindForActor(const UWorld* World, const AActor* Actor);
-
-	// Blueprint access to FindForActor. Unlike APawn::PlayerState (only set while the pawn is POSSESSED, so null on
-	// a remote player's parked VR character or unused AR pawn), this works on every peer regardless of possession,
-	// because it matches the replicated pawn references written by ServerSetPawns.
-	UFUNCTION(BlueprintPure, Category = "Player Cues", meta = (WorldContext = "WorldContextObject", DisplayName = "Find Player State For Actor"))
-	static AArtemisPlayerState* FindPlayerStateForActor(const UObject* WorldContextObject, const AActor* Actor);
 
 	UPROPERTY(BlueprintAssignable, Category = "Player Cues")
 	FOnCueStateChanged OnCueStateChanged;
@@ -176,7 +166,7 @@ private:
 	static constexpr double TrackerPoseLogInterval = 1.0;
 
 	// Server-only bookkeeping.
-	EXRMode LastXRMode = EXRMode::AR;
+	ERVMode LastMRMode = ERVMode::AR;
 	EPlayerActivity LastEmittedActivity = EPlayerActivity::Idle;
 	double LastPointingUpdateTime = -1000.0;
 

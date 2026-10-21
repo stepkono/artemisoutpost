@@ -2,7 +2,13 @@
 
 
 #include "ArtemisGameState.h"
+#include "ArtemisPlayerState.h"
+#include "ArtemisOutpost/Player/PawnVR/ACharVR.h"
+#include "ArtemisOutpost/Player/PawnAR/PawnAR.h"
+#include "ArtemisOutpost/Player/Rover/AMasterRover.h"
 #include "ArtemisOutpost/Moon/MoonScannedArea/MoonScannedAreaManager.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -11,6 +17,12 @@ static const FString AnchorSaveSlot = TEXT("ArtemisAnchorSave");
 AArtemisGameState::AArtemisGameState()
 {
 	MoonDataManager = CreateDefaultSubobject<UMoonScannedAreaManager>(TEXT("MoonDataManager"));
+}
+
+AArtemisGameState* AArtemisGameState::GetArtemisGameState(const UObject* WorldContextObject)
+{
+	const UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
+	return World ? World->GetGameState<AArtemisGameState>() : nullptr;
 }
 
 void AArtemisGameState::BeginPlay()
@@ -33,6 +45,44 @@ void AArtemisGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(AArtemisGameState, RawAnchors);
 	DOREPLIFETIME(AArtemisGameState, SharingGroupUUID);
 	DOREPLIFETIME(AArtemisGameState, MapBaseCoordinates);
+	DOREPLIFETIME(AArtemisGameState, PlayersRoster);
+}
+
+void AArtemisGameState::WritePlayer(const FArtemisPlayer& Player)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	if (FArtemisPlayer* Entry = PlayersRoster.FindByPredicate([&Player](const FArtemisPlayer& P) { return P.UPID == Player.UPID; }))
+	{
+		*Entry = Player;
+	}
+	else
+	{
+		PlayersRoster.Add(Player);
+	}
+}
+
+bool AArtemisGameState::FindRecordForActor(const AActor* Actor, FArtemisPlayer& OutPlayer) const
+{
+	if (!Actor)
+	{
+		return false;
+	}
+
+	for (const FArtemisPlayer& Player : PlayersRoster)
+	{
+		// The AR pawn is per connection and not stored in the roster, it is only known through the live PlayerState.
+		const AActor* ARPawn = Player.PlayerState ? Player.PlayerState->GetARPawn() : nullptr;
+		if ((Player.VRChar && Player.VRChar == Actor) || (Player.MasterRover && Player.MasterRover == Actor) || (ARPawn && ARPawn == Actor))
+		{
+			OutPlayer = Player;
+			return true;
+		}
+	}
+	return false;
 }
 
 void AArtemisGameState::OnRep_RawAnchors()

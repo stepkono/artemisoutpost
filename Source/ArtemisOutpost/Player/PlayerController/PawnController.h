@@ -35,13 +35,13 @@ public:
 	void SetGeoRefsManager(AGeoRefsManager* InGeoRefsManager);
 
 	UFUNCTION(BlueprintCallable, Category = "XR Mode")
-	TEnumAsByte<EXRMode> GetXRMode() const;
+	ERVMode GetXRMode() const;
 
 	// Call this from the AR/VR switch in BP_PawnController INSTEAD of writing CurrentXRMode directly.
 	// Sets the local mode and tells the server, which derives the player's context from it (see
 	// AArtemisPlayerState). Without this the server never learns which context a player is in.
 	UFUNCTION(BlueprintCallable, Category = "XR Mode")
-	void SetXRMode(EXRMode Mode);
+	void SetXRMode(ERVMode Mode);
 
 	UFUNCTION(BlueprintCallable, Category = "Player ID")
 	FString GetPlayerUPID() const;
@@ -83,7 +83,7 @@ public:
 	// pawns are effectively server-driven for RPC purposes (project convention).
 
 	UFUNCTION(Server, Reliable, Category = "Player Cues")
-	void ServerReportXRMode(EXRMode Mode);
+	void ServerReportXRMode(ERVMode Mode);
 
 	UFUNCTION(Server, Reliable, Category = "Player Cues")
 	void ServerSetTalking(bool bTalking);
@@ -166,7 +166,7 @@ protected:
 
 	// Local-only. Write it through SetXRMode so the server learns about the switch.
 	UPROPERTY(BlueprintReadWrite, Category = "XR Mode")
-	TEnumAsByte<EXRMode> CurrentXRMode = EXRMode::AR;
+	ERVMode CurrentXRMode = ERVMode::AR;
 
 	UPROPERTY(BlueprintReadWrite, Category = "XR Mode")
 	float CachedWTMValue = 100;

@@ -47,7 +47,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	if (!bCutoutSet || !ARGeoRef) return;
 	
-	if (PlayerController && PlayerController->GetXRMode() == EXRMode::VR)
+	if (PlayerController && PlayerController->GetXRMode() == ERVMode::VR)
 	{
 		return;
 	}

@@ -14,8 +14,8 @@ FVector AVRMoonVisualisationLayer::GeoToWorldOnMoon(AGeoRefsManager* GeoRefs, co
 	return GeoRefs ? GeoRefs->VRMoonCoordsToUECoords(LonLatHeight) : FVector::ZeroVector;
 }
 
-bool AVRMoonVisualisationLayer::ShouldShow(EPlayerContext SourceContext, EBeaconSource Source) const
+bool AVRMoonVisualisationLayer::ShouldShow(ERVMode SourceContext, EBeaconSource Source) const
 {
 	// VR -> VR is a laser on the character proxy, everything else lands here as a beacon.
-	return SourceContext != EPlayerContext::VR;
+	return SourceContext != ERVMode::VR;
 }

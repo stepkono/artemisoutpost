@@ -8,6 +8,7 @@
 class ACharVR;
 class AMasterRover;
 class APawnController;
+class AArtemisPlayerState;
 
 USTRUCT()
 struct FOrderedAnchorsPositions
@@ -122,8 +123,13 @@ struct FArtemisPlayer
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
+	// Server-only: a PlayerController never exists on other clients, so it is kept out of the roster replication.
+	UPROPERTY(BlueprintReadOnly, NotReplicated)
 	APawnController* PawnController = nullptr;
+
+	// The player's current PlayerState. Null while the player is disconnected, a reconnect gets a fresh one.
+	UPROPERTY(BlueprintReadOnly)
+	AArtemisPlayerState* PlayerState = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
 	FString UPID;
@@ -192,11 +198,14 @@ struct FPositionMetaData
 	TEnumAsByte<EBuildingType> BuildingType = EBuildingType::NoneBuilding;	
 };
 
+// The context a player is currently in. "R" = Reality: the HMD is doffed, we cannot know whether the
+// person sits at the PC or just took the headset off, so we do not claim more than "not in XR".
 UENUM(BlueprintType)
-enum EXRMode
+enum class ERVMode : uint8
 {
 	VR UMETA(DisplayName = "VR"),
 	AR UMETA(DisplayName = "AR"),
+	R UMETA(DisplayName = "R"),
 };
 
 UENUM(BlueprintType)

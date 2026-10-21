@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "ArtemisOutpost/Player/PlayerCues/PlayerCueTypes.h"
 #include "AwarenessHUDWidget.generated.h"
@@ -25,7 +26,7 @@ struct ARTEMISOUTPOST_API FAwarenessHUDRow
 	int32 PlayerNumber = -1;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Awareness HUD")
-	EPlayerContext Context = EPlayerContext::AR;
+	ERVMode Context = ERVMode::AR;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Awareness HUD")
 	EPlayerActivity Activity = EPlayerActivity::Idle;
@@ -71,7 +72,7 @@ class ARTEMISOUTPOST_API UAwarenessHUDWidget : public UUserWidget
 
 public:
 	// Driven by UAwarenessHUDComponent.
-	void SetRows(const TArray<FAwarenessHUDRow>& InRows, EPlayerContext InLocalContext);
+	void SetRows(const TArray<FAwarenessHUDRow>& InRows, ERVMode InLocalContext);
 	void NotifyOpened();
 	void NotifyClosed();
 
@@ -79,15 +80,15 @@ public:
 	const TArray<FAwarenessHUDRow>& GetRows() const { return Rows; }
 
 	UFUNCTION(BlueprintPure, Category = "Awareness HUD")
-	EPlayerContext GetLocalContext() const { return LocalContext; }
+	ERVMode GetLocalContext() const { return LocalContext; }
 
 	// Rows of one block, sorted by player number.
 	UFUNCTION(BlueprintPure, Category = "Awareness HUD")
-	TArray<FAwarenessHUDRow> GetRowsForContext(EPlayerContext Context) const;
+	TArray<FAwarenessHUDRow> GetRowsForContext(ERVMode Context) const;
 
 	// Block order for the view: the local context first, then the other two in AR, VR, R order.
 	UFUNCTION(BlueprintPure, Category = "Awareness HUD")
-	TArray<EPlayerContext> GetBlockOrder() const;
+	TArray<ERVMode> GetBlockOrder() const;
 
 	// The German one-liner for a player's current activity, with the pointing target folded in.
 	UFUNCTION(BlueprintPure, Category = "Awareness HUD")
@@ -101,7 +102,7 @@ protected:
 
 	// The row list was rebuilt and the bound blocks were filled (about 5 Hz while open).
 	UFUNCTION(BlueprintImplementableEvent, Category = "Awareness HUD")
-	void OnRowsUpdated(const TArray<FAwarenessHUDRow>& NewRows, EPlayerContext InLocalContext);
+	void OnRowsUpdated(const TArray<FAwarenessHUDRow>& NewRows, ERVMode InLocalContext);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Awareness HUD")
 	void OnOpened();
@@ -143,7 +144,7 @@ protected:
 
 private:
 	// Fill one block's panel from its rows, reusing pooled row widgets.
-	void FillBlock(EPlayerContext Context, UPanelWidget* Panel, UWidget* BlockRoot, TArray<TObjectPtr<UAwarenessHUDRowWidget>>& Pool);
+	void FillBlock(ERVMode Context, UPanelWidget* Panel, UWidget* BlockRoot, TArray<TObjectPtr<UAwarenessHUDRowWidget>>& Pool);
 
 	// Move the three block roots inside BlocksBox into GetBlockOrder().
 	void ReorderBlocks();
@@ -160,5 +161,5 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UAwarenessHUDRowWidget>> PoolR;
 
-	EPlayerContext LocalContext = EPlayerContext::AR;
+	ERVMode LocalContext = ERVMode::AR;
 };

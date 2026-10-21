@@ -89,7 +89,7 @@ AArtemisPlayerState* APawnController::GetArtemisPlayerState() const
 	return GetPlayerState<AArtemisPlayerState>();
 }
 
-void APawnController::SetXRMode(EXRMode Mode)
+void APawnController::SetXRMode(ERVMode Mode)
 {
 	CurrentXRMode = Mode;
 
@@ -190,7 +190,7 @@ void APawnController::SetGeoRefsManager(AGeoRefsManager* InGeoRefsManager)
 	GeoRefsManager = InGeoRefsManager;
 }
 
-TEnumAsByte<EXRMode> APawnController::GetXRMode() const 
+ERVMode APawnController::GetXRMode() const 
 {
 	return CurrentXRMode; 
 }
@@ -311,7 +311,7 @@ void APawnController::ShouldActivateVRCharPuppet(bool bShouldActivate) const
 		return; 
 	}
 	
-	if (CurrentXRMode == VR)
+	if (CurrentXRMode == ERVMode::VR)
 	{
 		VRPawn->ToggleVRCharPuppet(bShouldActivate);
 	}
@@ -319,7 +319,7 @@ void APawnController::ShouldActivateVRCharPuppet(bool bShouldActivate) const
 
 // ---- Awareness cues: client -> server -> PlayerState ----
 
-void APawnController::ServerReportXRMode_Implementation(EXRMode Mode)
+void APawnController::ServerReportXRMode_Implementation(ERVMode Mode)
 {
 	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
 	{

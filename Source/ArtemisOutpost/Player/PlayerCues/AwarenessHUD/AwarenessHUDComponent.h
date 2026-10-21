@@ -82,7 +82,7 @@ private:
 	APawnController* GetLocalController() const;
 	UPlayerCuesManager* GetCuesManager() const;
 	bool IsLocalActivePawn() const;
-	EPlayerContext GetLocalContext() const;
+	ERVMode GetLocalContext() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAwarenessHUDWidget> ActiveWidget;

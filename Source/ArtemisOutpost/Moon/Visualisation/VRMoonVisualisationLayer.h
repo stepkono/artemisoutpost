@@ -18,5 +18,5 @@ class ARTEMISOUTPOST_API AVRMoonVisualisationLayer : public AMoonVisualisationLa
 protected:
 	virtual ACesiumGeoreference* ResolveMoon(AGeoRefsManager* GeoRefs) const override;
 	virtual FVector GeoToWorldOnMoon(AGeoRefsManager* GeoRefs, const FVector& LonLatHeight) const override;
-	virtual bool ShouldShow(EPlayerContext SourceContext, EBeaconSource Source) const override;
+	virtual bool ShouldShow(ERVMode SourceContext, EBeaconSource Source) const override;
 };

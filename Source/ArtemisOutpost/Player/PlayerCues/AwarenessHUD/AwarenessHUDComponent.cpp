@@ -87,7 +87,7 @@ bool UAwarenessHUDComponent::IsLocalActivePawn() const
 	return Pawn && Pawn->IsLocallyControlled();
 }
 
-EPlayerContext UAwarenessHUDComponent::GetLocalContext() const
+ERVMode UAwarenessHUDComponent::GetLocalContext() const
 {
 	// Prefer the replicated truth; before it arrives, derive from the local XR mode.
 	if (const APawnController* PC = GetLocalController())
@@ -96,9 +96,9 @@ EPlayerContext UAwarenessHUDComponent::GetLocalContext() const
 		{
 			return PS->GetCueState().Context;
 		}
-		return PC->GetXRMode() == EXRMode::VR ? EPlayerContext::VR : EPlayerContext::AR;
+		return PC->GetXRMode() == ERVMode::VR ? ERVMode::VR : ERVMode::AR;
 	}
-	return EPlayerContext::AR;
+	return ERVMode::AR;
 }
 
 // ---- Input ----

@@ -66,13 +66,13 @@ void AArtemisPlayerState::ServerSetPawns(ACharVR* InVRChar, APawnAR* InARPawn, A
 
 // ---- Server mutators ----
 
-void AArtemisPlayerState::ServerSetXRMode(EXRMode Mode)
+void AArtemisPlayerState::ServerSetXRMode(ERVMode Mode)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
-	LastXRMode = Mode;
+	LastMRMode = Mode;
 	RecomputeContext();
 }
 
@@ -88,9 +88,7 @@ void AArtemisPlayerState::ServerSetHmdWorn(bool bWorn)
 
 void AArtemisPlayerState::RecomputeContext()
 {
-	const EPlayerContext NewContext = !CueState.bHmdWorn
-		? EPlayerContext::R
-		: (LastXRMode == EXRMode::VR ? EPlayerContext::VR : EPlayerContext::AR);
+	const ERVMode NewContext = !CueState.bHmdWorn ? ERVMode::R : LastMRMode;
 
 	const bool bChanged = (NewContext != CueState.Context);
 	CueState.Context = NewContext;
@@ -391,37 +389,6 @@ AArtemisPlayerState* AArtemisPlayerState::FindByUPID(const UWorld* World, const 
 	{
 		AArtemisPlayerState* APS = Cast<AArtemisPlayerState>(PS);
 		if (APS && APS->UPID == InUPID)
-		{
-			return APS;
-		}
-	}
-	return nullptr;
-}
-
-AArtemisPlayerState* AArtemisPlayerState::FindPlayerStateForActor(const UObject* WorldContextObject, const AActor* Actor)
-{
-	const UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) : nullptr;
-	return FindForActor(World, Actor);
-}
-
-AArtemisPlayerState* AArtemisPlayerState::FindForActor(const UWorld* World, const AActor* Actor)
-{
-	const AGameStateBase* GS = World ? World->GetGameState() : nullptr;
-	if (!GS || !Actor)
-	{
-		return nullptr;
-	}
-	for (APlayerState* PS : GS->PlayerArray)
-	{
-		AArtemisPlayerState* APS = Cast<AArtemisPlayerState>(PS);
-		if (!APS)
-		{
-			continue;
-		}
-		const AActor* VR    = APS->VRChar.Get();
-		const AActor* AR    = APS->ARPawn.Get();
-		const AActor* Rover = APS->MasterRover.Get();
-		if ((VR && VR == Actor) || (AR && AR == Actor) || (Rover && Rover == Actor))
 		{
 			return APS;
 		}

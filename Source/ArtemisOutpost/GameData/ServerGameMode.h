@@ -41,6 +41,9 @@ public:
 protected:
 	virtual void OnPostLogin(AController* NewPlayer) override;
 
+	// Timeout drop or graceful leave: the slot stays, only its PlayerState is cleared in the roster.
+	virtual void Logout(AController* Exiting) override;
+
 	// Read the client's persistent identity from the ?UPID= login option and stash it on the
 	// controller, before OnPostLogin runs, so player slots are keyed by a stable cross-session id.
 	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal) override;
@@ -48,7 +51,10 @@ protected:
 private:
 	UFUNCTION()
 	void ProcessNewPlayer(APawnController* PlayerController);
-	
+
+	// Mirrors one PlayersInGame slot into the replicated AArtemisGameState::PlayersRoster.
+	void WritePlayerToRoster(const FArtemisPlayer& Player) const;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Players Management")
 	TArray<FLinearColor> PlayerColors;

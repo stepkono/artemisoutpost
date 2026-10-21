@@ -8,6 +8,7 @@
 #include "GameFramework/OnlineReplStructs.h"
 #include "Kismet/GameplayStatics.h"
 #include "ArtemisOutpost/GameData/ArtemisPlayerState.h"
+#include "ArtemisOutpost/GameData/ArtemisGameState.h"
 
 AServerGameMode::AServerGameMode()
 {
@@ -130,11 +131,13 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		Existing->PawnController = PlayerController;
 
 		// A reconnect gets a FRESH PlayerState; give it the same number so the colour tag is stable.
-		if (AArtemisPlayerState* PS = PlayerController->GetArtemisPlayerState())
+		Existing->PlayerState = PlayerController->GetArtemisPlayerState();
+		if (AArtemisPlayerState* PS = Existing->PlayerState)
 		{
 			PS->ServerSetPlayerNumber(Existing->PlayerNumber);
 			PS->ServerSetPawns(Existing->VRChar, nullptr, Existing->MasterRover);
 		}
+		WritePlayerToRoster(*Existing);
 
 		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Reconnect for UPID %s (player #%d) — re-attaching existing pawns."), *UPID, Existing->PlayerNumber);
 		
@@ -145,11 +148,13 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 	{
 		FArtemisPlayer NewPlayer;
 		NewPlayer.PawnController = PlayerController;
+		NewPlayer.PlayerState    = PlayerController->GetArtemisPlayerState();
+		NewPlayer.UPID           = UPID;
 		NewPlayer.PlayerNumber   = PlayersInGame.Num() + 1;
-		NewPlayer.PlayerColor    = PlayerColors.Num() >= PlayersInGame.Num() ? PlayerColors[PlayersInGame.Num()] : FLinearColor(1, 1, 1);
+		NewPlayer.PlayerColor    = PlayerColors.IsValidIndex(PlayersInGame.Num()) ? PlayerColors[PlayersInGame.Num()] : FLinearColor(1, 1, 1);
 		PlayersInGame.Add(UPID, NewPlayer);
 
-		if (AArtemisPlayerState* PS = PlayerController->GetArtemisPlayerState())
+		if (AArtemisPlayerState* PS = NewPlayer.PlayerState)
 		{
 			PS->ServerSetPlayerNumber(NewPlayer.PlayerNumber);
 		}
@@ -157,6 +162,7 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		{
 			UE_LOG(LogTemp, Error, TEXT("ServerGameMode: %s has no AArtemisPlayerState. Set PlayerStateClass on BP_GameMode to AArtemisPlayerState, awareness cues will not work otherwise."), *PlayerController->GetName());
 		}
+		WritePlayerToRoster(NewPlayer);
 		
 		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: First join for UPID %s (player #%d)."), *UPID, NewPlayer.PlayerNumber);
 		
@@ -181,6 +187,7 @@ void AServerGameMode::RegisterPlayerPawns(APawnController* PlayerController, AMa
 
 	Player->MasterRover = InMasterRover;
 	Player->VRChar = InVRChar;
+	WritePlayerToRoster(*Player);
 	UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: Registered pawns for UPID %s — Master=%s VRChar=%s."),
 		*PlayerController->GetPlayerUPID(), *GetNameSafe(InMasterRover), *GetNameSafe(InVRChar));
 }
@@ -188,4 +195,45 @@ void AServerGameMode::RegisterPlayerPawns(APawnController* PlayerController, AMa
 TMap<FString, FArtemisPlayer> AServerGameMode::GetPlayersInGame()
 {
 	return PlayersInGame;
+}
+
+void AServerGameMode::Logout(AController* Exiting)
+{
+	// Match by PlayerState, not UPID: on a reconnect the old controller can log out after the slot already
+	// points at the new PlayerState, and that entry must not be cleared.
+	const APlayerState* ExitingPS = Exiting ? Exiting->PlayerState.Get() : nullptr;
+	if (ExitingPS)
+	{
+		for (TPair<FString, FArtemisPlayer>& Pair : PlayersInGame)
+		{
+			FArtemisPlayer& Player = Pair.Value;
+			if (Player.PlayerState != ExitingPS)
+			{
+				continue;
+			}
+
+			Player.PlayerState = nullptr;
+			if (Player.PawnController == Exiting)
+			{
+				Player.PawnController = nullptr;
+			}
+			WritePlayerToRoster(Player);
+			UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: UPID %s (player #%d) disconnected — slot kept, PlayerState cleared."), *Player.UPID, Player.PlayerNumber);
+			break;
+		}
+	}
+
+	Super::Logout(Exiting);
+}
+
+void AServerGameMode::WritePlayerToRoster(const FArtemisPlayer& Player) const
+{
+	if (AArtemisGameState* GS = GetGameState<AArtemisGameState>())
+	{
+		GS->WritePlayer(Player);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ServerGameMode: GameState is not AArtemisGameState — PlayersRoster not updated for UPID %s."), *Player.UPID);
+	}
 }

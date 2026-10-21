@@ -3,18 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "ArtemisOutpost/MiniGames/General/MinigameTypes.h"
 #include "PlayerCueTypes.generated.h"
-
-// The context a player is currently in. "R" = Reality: the HMD is doffed, we cannot know whether the
-// person sits at the PC or just took the headset off, so we do not claim more than "not in XR".
-UENUM(BlueprintType)
-enum class EPlayerContext : uint8
-{
-	AR UMETA(DisplayName = "AR"),
-	VR UMETA(DisplayName = "VR"),
-	R  UMETA(DisplayName = "R"),
-};
 
 // Which hand-held tool a player currently has drawn. Maps 1:1 onto the existing tools: the building
 // tool and the three EScanMode variants of the resource tool.
@@ -120,7 +111,7 @@ struct ARTEMISOUTPOST_API FPlayerCueState
 
 	// ---- Context ----
 	UPROPERTY(BlueprintReadOnly, Category = "Player Cues")
-	EPlayerContext Context = EPlayerContext::AR;
+	ERVMode Context = ERVMode::AR;
 
 	// Assumed worn until the client reports a doff (see APawnController::ServerReportHmdState).
 	UPROPERTY(BlueprintReadOnly, Category = "Player Cues")

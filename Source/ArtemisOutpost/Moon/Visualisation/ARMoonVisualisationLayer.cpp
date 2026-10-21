@@ -14,8 +14,8 @@ FVector AARMoonVisualisationLayer::GeoToWorldOnMoon(AGeoRefsManager* GeoRefs, co
 	return GeoRefs ? GeoRefs->ARMoonCoordsToUECoords(LonLatHeight) : FVector::ZeroVector;
 }
 
-bool AARMoonVisualisationLayer::ShouldShow(EPlayerContext SourceContext, EBeaconSource Source) const
+bool AARMoonVisualisationLayer::ShouldShow(ERVMode SourceContext, EBeaconSource Source) const
 {
 	// AR -> AR is a laser on the pawn, everything else lands here as a beacon.
-	return SourceContext != EPlayerContext::AR;
+	return SourceContext != ERVMode::AR;
 }

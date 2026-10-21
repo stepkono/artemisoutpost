@@ -179,7 +179,7 @@ private:
 	void ApplyPointerVisual(const FPlayerCueState& State);
 
 	// True when this pawn is the one the state's context refers to (VR char for VR, AR pawn for AR).
-	bool MatchesContext(EPlayerContext Context) const;
+	bool MatchesContext(ERVMode Context) const;
 
 	APawnController* GetLocalController() const;
 	UControllerRayComponent* GetRayComponent() const;

@@ -35,7 +35,7 @@ struct ARTEMISOUTPOST_API FMoonBeacon
 
 	// The context the pointing player is in (decides laser vs beacon per the Entwurf matrix).
 	UPROPERTY(BlueprintReadOnly, Category = "Moon Layer")
-	EPlayerContext SourceContext = EPlayerContext::VR;
+	ERVMode SourceContext = ERVMode::VR;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Moon Layer")
 	FPointingTarget Target;
@@ -90,7 +90,7 @@ protected:
 		PURE_VIRTUAL(AMoonVisualisationLayer::GeoToWorldOnMoon, return FVector::ZeroVector;);
 
 	// The Entwurf matrix: does this layer show a beacon for a cue coming from that context?
-	virtual bool ShouldShow(EPlayerContext SourceContext, EBeaconSource Source) const { return true; }
+	virtual bool ShouldShow(ERVMode SourceContext, EBeaconSource Source) const { return true; }
 
 	// ---- View hooks (implement the visuals in the BP child) ----
 
