@@ -46,6 +46,9 @@ void UTransformationsManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if (!bCutoutSet || !ARGeoRef) return;
+
+	// Before the VR gate: the targets are kept current in VR too and applied on the way back to AR.
+	PollBaseCoordinates();
 	
 	if (PlayerController && PlayerController->GetXRMode() == ERVMode::VR)
 	{
@@ -190,7 +193,7 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	if (AArtemisGameState* GameState = Cast<AArtemisGameState>(World->GetGameState()))
 	{
 		GS = GameState;
-		GS->OnMapCoordinatesReceived.AddDynamic(this, &UTransformationsManager::OnNewBaseCoordinates);
+		// No OnMapCoordinatesReceived binding: PollBaseCoordinates reads the replicated value every tick instead.
 		MoonDataManager = GS->FindComponentByClass<UMoonScannedAreaManager>();
 		UE_LOG(LogTemp, Warning, TEXT("[TransformationsManager] MoonDataManager resolved: %s"),
 			MoonDataManager ? TEXT("OK") : TEXT("NULL"));
@@ -285,6 +288,9 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	TableCenter = InTableCenter;
 	TableZ      = InTableNormal;
 
+	// Fresh constants (scale 1, initial rotation): the current map region has to be applied again.
+	bHasProcessedCoordinates = false;
+
 	bCutoutSet = true;
 }
 
@@ -351,6 +357,36 @@ void UTransformationsManager::OnNewBaseCoordinates(FMapBaseCoordinates& MapBaseC
 			ProcessBaseCoordinates_GameThread();
 		});	
 	}
+}
+
+void UTransformationsManager::PollBaseCoordinates()
+{
+	if (!GS)
+	{
+		return;
+	}
+
+	const FMapBaseCoordinates& Coordinates = GS->GetMapBaseCoordinates();
+	if (!Coordinates.IsSet())
+	{
+		return;
+	}
+	if (bHasProcessedCoordinates && Coordinates == LastProcessedCoordinates)
+	{
+		return;
+	}
+
+	if (!bHasProcessedCoordinates)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TransformationManager] Applying the current map region since (re)activation | origin lat=%.6f lon=%.6f | elevation=%.1f"),
+			Coordinates.Origin.Latitude, Coordinates.Origin.Longitude, Coordinates.TerrainElevation);
+	}
+
+	LastProcessedCoordinates = Coordinates;
+	bHasProcessedCoordinates = true;
+
+	FMapBaseCoordinates Copy = Coordinates;
+	OnNewBaseCoordinates(Copy);
 }
 
 void UTransformationsManager::ProcessBaseCoordinates_GameThread()

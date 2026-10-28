@@ -59,6 +59,12 @@ struct FCoordinates
 
 	UPROPERTY(BlueprintReadWrite)
 	float Height = 0;
+
+	bool operator==(const FCoordinates& Other) const
+	{
+		return Latitude == Other.Latitude && Longitude == Other.Longitude && Height == Other.Height;
+	}
+	bool operator!=(const FCoordinates& Other) const { return !(*this == Other); }
 };
 
 USTRUCT(BlueprintType)
@@ -79,7 +85,17 @@ struct FMapBaseCoordinates
 	FCoordinates Origin;
 
 	UPROPERTY(BlueprintReadWrite)
-	float TerrainElevation;
+	float TerrainElevation = 0;
+
+	bool operator==(const FMapBaseCoordinates& Other) const
+	{
+		return UpLeft == Other.UpLeft && BottomLeft == Other.BottomLeft && BottomRight == Other.BottomRight
+			&& Origin == Other.Origin && TerrainElevation == Other.TerrainElevation;
+	}
+	bool operator!=(const FMapBaseCoordinates& Other) const { return !(*this == Other); }
+
+	// False while nothing was received yet (all zero). A real map region never has identical corners.
+	bool IsSet() const { return *this != FMapBaseCoordinates(); }
 };
 
 USTRUCT(BlueprintType)

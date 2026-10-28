@@ -42,6 +42,10 @@ public:
 	UFUNCTION()
 	void WriteMapCoordinates(const FMapBaseCoordinates& MapCoordinates);
 
+	// The latest map region (replicated). Read by UTransformationsManager every tick, so a value that arrived before
+	// it was ready (reconnect, app restart, sleep) is never lost.
+	const FMapBaseCoordinates& GetMapBaseCoordinates() const { return MapBaseCoordinates; }
+
 	UFUNCTION()
 	void WriteControlCommand(const FControlCommand& Command);
 	

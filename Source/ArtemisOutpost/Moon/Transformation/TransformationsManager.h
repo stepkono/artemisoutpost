@@ -109,6 +109,10 @@ private:
 #pragma region Processing 
 	UFUNCTION()
 	void OnNewBaseCoordinates(FMapBaseCoordinates& MapBaseCoordinates);
+	// Level-triggered sync: compares the GameState's replicated map region with the last one processed and feeds a
+	// changed one into OnNewBaseCoordinates. Replaces the OnRep event, which fired before this manager was ready on a
+	// reconnect / app restart and was then lost.
+	void PollBaseCoordinates();
 	
 	UFUNCTION()
 	void ProcessBaseCoordinates_GameThread();
@@ -372,6 +376,14 @@ private:
 	
 	UPROPERTY()
 	TArray<FMapBaseCoordinates> PendingMapPositions;
+
+	// PollBaseCoordinates: the map region last handed to OnNewBaseCoordinates. Reset on every (re)activation, so a
+	// fresh InitConstants (scale back to 1) re-applies the current region.
+	UPROPERTY()
+	FMapBaseCoordinates LastProcessedCoordinates;
+
+	UPROPERTY()
+	bool bHasProcessedCoordinates = false;
 	
 #pragma region Table
 	UPROPERTY()
