@@ -12,9 +12,12 @@
 #include "ArtemisOutpost/GameData/ArtemisGameState.h"
 #include "ArtemisOutpost/XR/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Player/PlayerController/PawnController.h"
+#include <memory>
 #include "TransformationsManager.generated.h"
 
 class UMoonScannedAreaManager;
+class ACesium3DTileset;
+class FCutoutTileExcluder;
 
 // Broadcast on the frame the spatial anchors have adopted a new WorldToMeters scale (zoom) or were
 // re-seeded from a re-localization — i.e. whenever their world positions changed and any cutout
@@ -78,6 +81,9 @@ public:
 	
 	UPROPERTY(BlueprintAssignable, Category = "Transformations Manager")
 	FOnWTMShouldResize OnWTMShouldResize;
+
+	// artemis.CutoutCulling changed: turns the tile excluder on or off.
+	void OnCutoutCullingSettingChanged();
 #pragma endregion
 	
 #pragma region Getters
@@ -159,6 +165,16 @@ private:
 
 	UFUNCTION()
 	void MoveAndExpandCutout();
+#pragma endregion
+
+#pragma region CutoutCulling
+	// Writes the current cutout (corners scaled by the margin around TableCenter) into the tile excluder and makes
+	// sure it is registered on the AR tileset. Called whenever the moon or the cutout moved.
+	void UpdateCutoutExcluder();
+
+	// Adds the excluder to the native AR tileset. Cesium recreates its native tileset on some property changes, which
+	// drops the registration, so this runs on every update.
+	bool RegisterCutoutExcluder();
 #pragma endregion
 	
 #pragma region Elevation 
@@ -405,7 +421,16 @@ private:
 	FMatrix TargetFrame; 
 	
 	UPROPERTY()
-	FVector TableZ = FVector::ZeroVector; 
+	FVector TableZ = FVector::ZeroVector;
+#pragma endregion
+
+#pragma region CutoutCulling
+	// AR moon tileset (tag "AR_TILESET") whose tiles outside the table cutout are excluded.
+	UPROPERTY()
+	ACesium3DTileset* ARTileset = nullptr;
+
+	// Shared with the native tileset's excluder list, so it stays valid as long as the tileset uses it.
+	std::shared_ptr<FCutoutTileExcluder> CutoutExcluder;
 #pragma endregion
 #pragma endregion
 };

@@ -15,6 +15,44 @@
 #include "ArtemisOutpost/XR/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Moon/CutoutAR/MapCutoutManager.h"
 #include "ArtemisOutpost/Moon/MoonScannedArea/MoonScannedAreaManager.h"
+#include "ArtemisOutpost/Moon/CutoutAR/CutoutTileExcluder.h"
+#include "Cesium3DTileset.h"
+#include "Engine/Engine.h"
+#include <Cesium3DTilesSelection/Tileset.h>
+#include <algorithm>
+
+static void OnCutoutCullingCVarChanged(IConsoleVariable* Var);
+
+static TAutoConsoleVariable<int32> CVarCutoutCulling(
+	TEXT("artemis.CutoutCulling"),
+	1,
+	TEXT("1: AR moon tiles completely outside the table cutout are neither loaded nor rendered. 0: all tiles render, for A/B tests."),
+	FConsoleVariableDelegate::CreateStatic(&OnCutoutCullingCVarChanged),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarCutoutCullingMargin(
+	TEXT("artemis.CutoutCullingMargin"),
+	1.25f,
+	TEXT("Size of the culled region relative to the table cutout, around the table center. Covers terrain seen at an angle through the cutout edge."),
+	ECVF_Default);
+
+static void OnCutoutCullingCVarChanged(IConsoleVariable* Var)
+{
+	if (!GEngine)
+	{
+		return;
+	}
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (UWorld* World = Context.World())
+		{
+			if (UTransformationsManager* TM = World->GetSubsystem<UTransformationsManager>())
+			{
+				TM->OnCutoutCullingSettingChanged();
+			}
+		}
+	}
+}
 
 #pragma region Constructors
 void UTransformationsManager::OnWorldBeginPlay(UWorld& InWorld)
@@ -34,6 +72,15 @@ void UTransformationsManager::Initialize(FSubsystemCollectionBase& Collection)
 
 void UTransformationsManager::Deinitialize()
 {
+	// The tileset can outlive this subsystem (e.g. on a seamless travel), so stop culling its tiles.
+	Cesium3DTilesSelection::Tileset* NativeTileset = (CutoutExcluder && IsValid(ARTileset)) ? ARTileset->GetTileset() : nullptr;
+	if (NativeTileset)
+	{
+		std::vector<std::shared_ptr<Cesium3DTilesSelection::ITileExcluder>>& Excluders = NativeTileset->getOptions().excluders;
+		Excluders.erase(std::remove(Excluders.begin(), Excluders.end(), CutoutExcluder), Excluders.end());
+	}
+	CutoutExcluder.reset();
+
 	Super::Deinitialize();
 }
 
@@ -176,6 +223,8 @@ void UTransformationsManager::Tick(float DeltaTime)
 	// The moon transform changed this frame (rotation / scale-commit / position) -> re-push scan
 	// world positions into the fog texture so the fog stays glued to the surface during the transform.
 	RefreshFogTexture();
+	// Same for the tile culling: the cutout's region on the moon moved with it.
+	UpdateCutoutExcluder();
 }
 #pragma endregion
 
@@ -292,6 +341,22 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 	bHasProcessedCoordinates = false;
 
 	bCutoutSet = true;
+
+	// The moon is already in the table plane (MapCutoutManager), so the first cutout region is valid.
+	ARTileset = nullptr;
+	for (ACesium3DTileset* Tileset : TActorRange<ACesium3DTileset>(World))
+	{
+		if (Tileset->ActorHasTag(FName("AR_TILESET")))
+		{
+			ARTileset = Tileset;
+			break;
+		}
+	}
+	if (!ARTileset)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[TransformationManager][CutoutCulling] No tileset tagged AR_TILESET. All AR moon tiles render."));
+	}
+	UpdateCutoutExcluder();
 }
 
 void UTransformationsManager::SetRoverOnInitialSet()
@@ -580,6 +645,66 @@ bool UTransformationsManager::IsNewScaleAvailable() const
 }
 #pragma endregion
 
+#pragma region CutoutCulling
+void UTransformationsManager::OnCutoutCullingSettingChanged()
+{
+	if (bCutoutSet)
+	{
+		UpdateCutoutExcluder();
+	}
+}
+
+bool UTransformationsManager::RegisterCutoutExcluder()
+{
+	Cesium3DTilesSelection::Tileset* NativeTileset = IsValid(ARTileset) ? ARTileset->GetTileset() : nullptr;
+	if (!NativeTileset)
+	{
+		return false;
+	}
+
+	if (!CutoutExcluder)
+	{
+		CutoutExcluder = std::make_shared<FCutoutTileExcluder>(NativeTileset->getOptions().ellipsoid);
+	}
+
+	std::vector<std::shared_ptr<Cesium3DTilesSelection::ITileExcluder>>& Excluders = NativeTileset->getOptions().excluders;
+	if (std::find(Excluders.begin(), Excluders.end(), CutoutExcluder) == Excluders.end())
+	{
+		Excluders.push_back(CutoutExcluder);
+		UE_LOG(LogTemp, Log, TEXT("[TransformationManager][CutoutCulling] Excluder registered on %s."), *ARTileset->GetName());
+	}
+	return true;
+}
+
+void UTransformationsManager::UpdateCutoutExcluder()
+{
+	if (!ARGeoRef || !RegisterCutoutExcluder())
+	{
+		return;
+	}
+
+	CutoutExcluder->SetEnabled(CVarCutoutCulling.GetValueOnGameThread() != 0);
+
+	// Same chain Cesium uses for its own tile bounds: world -> tileset local -> earth-centered, in meters.
+	const float Margin = FMath::Max(1.0f, CVarCutoutCullingMargin.GetValueOnGameThread());
+	// Loop order A (bottom-left), B (top-left), C (top-right), D (bottom-right).
+	const FVector WorldCorners[4] = { VisualAnchorA, VisualAnchorB, VisualAnchorC, VisualAnchorD };
+	glm::dvec3 Corners[4];
+	for (int32 Corner = 0; Corner < 4; ++Corner)
+	{
+		const FVector World = TableCenter + (WorldCorners[Corner] - TableCenter) * Margin;
+		const FVector Local = ARTileset->GetActorTransform().InverseTransformPosition(World);
+		const FVector Ecef  = ARGeoRef->TransformUnrealPositionToEarthCenteredEarthFixed(Local);
+		Corners[Corner] = glm::dvec3(Ecef.X, Ecef.Y, Ecef.Z);
+	}
+
+	if (!CutoutExcluder->SetCutout(Corners))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[TransformationManager][CutoutCulling] Degenerate cutout, nothing is excluded until the next update."));
+	}
+}
+#pragma endregion
+
 #pragma region Elevation
 FVector UTransformationsManager::CalcOffsetMoonOnElevation() const
 {
@@ -626,6 +751,7 @@ void UTransformationsManager::RecalibrateFromAnchors()
 	// Reposition the moon to match the re-seeded table center (rotation / TableZ are left untouched).
 	ARGeoRef->SetActorLocation(CalcOffsetMoonOnElevation());
 	CurrentMoonPosition = ARGeoRef->GetActorLocation();
+	UpdateCutoutExcluder();
 
 	// Anchor world positions just shifted (re-localization), so the cutout must follow.
 	//TODO: we have to examine this deeper
