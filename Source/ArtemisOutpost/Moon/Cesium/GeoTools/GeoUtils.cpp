@@ -30,6 +30,7 @@ FVector UGeoUtils::GetUpVector(FVector AtCoordsWithHeight, ACesiumGeoreference* 
 
 FMatrix UGeoUtils::GetLocalSpatialReferenceFrame(const FVector &LonLatHeightPos, ACesiumGeoreference* CesiumGeoreference)
 {
+	// TODO: this doesnt work correctly since getUpVector assumes static GeoRef at WorldOrigin which is not the case
 	// We build local cartesian reference frame at given location
 	// We use Unreal's left-handed coordinate system as reference,
 	// Where th Z-Axis points up and the Y-Axis points to right ->

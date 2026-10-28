@@ -6,7 +6,7 @@
 #include "GameFramework/PlayerState.h"
 #include "ArtemisOutpost/Miscellaneous/DataTypes.h"
 #include "ArtemisOutpost/Player/PlayerCues/PlayerCueTypes.h"
-#include "ArtemisOutpost/Player/PlayerCues/VRCues/TrackerPoseTypes.h"
+#include "ArtemisOutpost/Player/PlayerCues/WorldCues/TrackerPoseTypes.h"
 #include "ArtemisPlayerState.generated.h"
 
 class ACharVR;
@@ -72,6 +72,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player Cues")
 	AMasterRover* GetMasterRover() const { return MasterRover; }
+
+	// The pawn of the player's current context (CueState.Context): VR -> VRChar, AR -> ARPawn. In R (HMD doffed) the
+	// context names no pawn, so it falls back to the engine-possessed pawn (APlayerState::GetPawn). Built from
+	// replicated values only, so it works on every machine, the owning client included. Null while not known yet.
+	UFUNCTION(BlueprintPure, Category = "Player Cues")
+	APawn* GetActivePawn() const;
 
 	// ---- Server mutators (no-ops without authority) ----
 	void ServerSetXRMode(ERVMode Mode);

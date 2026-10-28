@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AnchorsCueVisualizer.h"
+#include "VRCuesAnchors.h"
 
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "ArtemisOutpost/Anchors/AnchorsManagerSubsystem.h"
 
-AAnchorsCueVisualizer::AAnchorsCueVisualizer()
+AVRCuesAnchors::AVRCuesAnchors()
 {
 	AnchorA = CreateDefaultSubobject<USceneComponent>(TEXT("AnchorA"));
 	AnchorA->SetupAttachment(Root);
@@ -21,7 +21,7 @@ AAnchorsCueVisualizer::AAnchorsCueVisualizer()
 	AnchorD->SetupAttachment(Root);
 }
 
-const USceneComponent* AAnchorsCueVisualizer::GetAnchorComponent(int32 Index) const
+const USceneComponent* AVRCuesAnchors::GetAnchorComponent(int32 Index) const
 {
 	switch (Index)
 	{
@@ -33,7 +33,7 @@ const USceneComponent* AAnchorsCueVisualizer::GetAnchorComponent(int32 Index) co
 	}
 }
 
-bool AAnchorsCueVisualizer::RefreshAnchorsFrame()
+bool AVRCuesAnchors::RefreshAnchorsFrame()
 {
 	const UWorld* World = GetWorld();
 	const UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
@@ -43,7 +43,7 @@ bool AAnchorsCueVisualizer::RefreshAnchorsFrame()
 	const bool bNowHasFrame = AnchorsManager && AnchorsManager->GetAnchorsFrameTransform(Frame);
 	if (bNowHasFrame != bHasAnchorsFrame)
 	{
-		//UE_LOG(LogTemp, Log, TEXT("[VRCues] %s anchors frame %s"), *GetName(), bNowHasFrame ? TEXT("ready") : TEXT("lost"));
+		//UE_LOG(LogTemp, Log, TEXT("[WorldCues] %s anchors frame %s"), *GetName(), bNowHasFrame ? TEXT("ready") : TEXT("lost"));
 	}
 
 	bHasAnchorsFrame = bNowHasFrame;

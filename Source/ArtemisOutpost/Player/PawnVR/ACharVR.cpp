@@ -21,7 +21,6 @@
 #include "ControllerRays/ControllerRayComponent.h"
 #include "ArtemisOutpost/Player/PlayerCues/PlayerCuesManager.h"
 #include "ArtemisOutpost/Player/PlayerCues/AwarenessHUD/AwarenessHUDComponent.h"
-#include "ArtemisOutpost/Player/PlayerCues/VRCues/VRCuesPresenterComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/OverlapResult.h"
@@ -162,9 +161,6 @@ void ACharVR::Tick(float DeltaTime)
 		bTiltSuppressedLogged = false;
 	}
 
-	// The VR cue visualizers exist exactly while this pawn renders the local VR view.
-	UpdateVRCuesPresenter(bDrivesLocalView);
-
 	if (bDrivesLocalView)
 	{
 		// VR mode: tilt the horizon to the surface and keep the body under the HMD.
@@ -212,7 +208,7 @@ void ACharVR::UpdateARPuppetTransform()
 			return Geo->GetActorQuat() * LocalBasis.ToQuat();
 		};
 
-		const FQuat MasterQuat = GetActorQuat();
+		const FQuat MasterQuat = GetMesh() ? GetMesh()->GetComponentQuat() : GetActorQuat();
 		const FQuat VRSurface  = SurfaceQuatWorld(GeoRefsManager->GetVRMoon(), MasterGeoPosition);
 		const FQuat ARSurface  = SurfaceQuatWorld(GeoRefsManager->GetARMoon(), MasterGeoPosition);
 
@@ -529,23 +525,6 @@ FRotator ACharVR::GetTrackingSpaceTilt() const
 FVector ACharVR::GetTrackingSpacePivot() const
 {
 	return UHeadMountedDisplayFunctionLibrary::GetTrackingToWorldTransform(const_cast<ACharVR*>(this)).GetLocation();
-}
-
-void ACharVR::UpdateVRCuesPresenter(bool bShouldPresent)
-{
-	if (bShouldPresent == bVRCuesPresenting)
-	{
-		return;
-	}
-	bVRCuesPresenting = bShouldPresent;
-
-	UVRCuesPresenterComponent* Presenter = FindComponentByClass<UVRCuesPresenterComponent>();
-	if (!Presenter)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ACharVR: %s has no UVRCuesPresenterComponent, VR cue visualizers stay off (add it in BP_VRChar)."), *GetName());
-		return;
-	}
-	Presenter->SetPresenting(bShouldPresent);
 }
 
 void ACharVR::UpdateCapsuleFollowsHMD()

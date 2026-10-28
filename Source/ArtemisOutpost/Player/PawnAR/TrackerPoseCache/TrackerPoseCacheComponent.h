@@ -45,7 +45,7 @@ public:
 	 * same frame you call this, so the pose from frame k-1 meets the anchors of frame k (same WTM space).
 	 * Returns false when there is no cached pose yet or the anchors are not ready, in which case nothing should be sent.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Tracker Replication")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Tracker Replication")
 	bool GetCachedPoses(FTransform& OutCamera, FTransform& OutLeft, FTransform& OutRight);
 	
 	UFUNCTION(BlueprintPure, Category = "Tracker Replication")

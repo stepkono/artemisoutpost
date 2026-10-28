@@ -64,6 +64,16 @@ void AArtemisPlayerState::ServerSetPawns(ACharVR* InVRChar, APawnAR* InARPawn, A
 	if (InRover)  { MasterRover = InRover; }
 }
 
+APawn* AArtemisPlayerState::GetActivePawn() const
+{
+	switch (CueState.Context)
+	{
+	case ERVMode::VR: return VRChar;
+	case ERVMode::AR: return ARPawn;
+	default:          return GetPawn();
+	}
+}
+
 // ---- Server mutators ----
 
 void AArtemisPlayerState::ServerSetXRMode(ERVMode Mode)

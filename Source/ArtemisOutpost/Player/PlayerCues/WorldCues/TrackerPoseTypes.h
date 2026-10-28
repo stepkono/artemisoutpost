@@ -46,3 +46,50 @@ struct ARTEMISOUTPOST_API FTrackerPose
 	// Seconds since the server wrote this pose, measured in server time, valid on any peer.
 	double GetAgeSeconds(const UWorld* World) const;
 };
+
+/**
+ * The LOCAL player's (the viewer's) own tracked devices, world space, this frame. Not replicated: filled on each
+ * client by the presenter from the local pawn and written into the cues (AWorldCue::WriteViewerTrackers), e.g. for
+ * proximity effects. An untracked controller reports the tracking origin, so it must be ignored via its flag.
+ */
+USTRUCT(BlueprintType)
+struct ARTEMISOUTPOST_API FCueLocalViewerTrackers
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	FTransform Head;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	FTransform Left;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	FTransform Right;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	bool bLeftTracked = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	bool bRightTracked = false;
+};
+
+/**
+ * Who a world cue is about. Constant for the lifetime of the player's PlayerState (a reconnect gets a new one).
+ * Assembled by UWorldCuesPresenterComponent::GetOwnerPlayerIdentity: UPID and number from the PlayerState, the colour
+ * from the replicated PlayersRoster entry, which AServerGameMode fills from its PlayerColors (the source of truth).
+ */
+USTRUCT(BlueprintType)
+struct ARTEMISOUTPOST_API FCuePlayerIdentity
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	FString UPID;
+
+	// 1-based, -1 while unknown.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	int32 PlayerNumber = -1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tracker Pose")
+	FLinearColor Color = FLinearColor::White;
+};

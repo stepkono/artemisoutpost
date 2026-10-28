@@ -70,7 +70,7 @@ public:
 	// surface-alignment base orientation, in tracking space around the tracking origin. The spatial anchor actors carry
 	// it TWICE (MetaXR's FAnchorsXR::TryGetAnchorTransform re-applies it by hand, verified 2026-09-24).
 	// UAnchorsManagerSubsystem::TryGetAnchorsFrame compensates for both (frame lives in the camera's space),
-	// AVRCueVisualizer::ApplyXRBaseTilt only for raw anchor actors. Identity when no tilt is active (AR).
+	// AVRWorldCue::ApplyXRBaseTilt only for raw anchor actors. Identity when no tilt is active (AR).
 	// Local machine only: it reads the global XR system.
 	UFUNCTION(BlueprintPure, Category = "VR|Surface Alignment")
 	FRotator GetTrackingSpaceTilt() const;
@@ -257,12 +257,6 @@ private:
 	// Maps this pawn's VR-moon pose onto ARPuppet on the AR moon. Runs on every client instance
 	// (remote proxies included) since other players' puppets are driven by those proxies.
 	void UpdateARPuppetTransform();
-
-	// Switches the UVRCuesPresenterComponent (added in BP_VRChar) on while this pawn drives the local VR view
-	// and off otherwise. Transition-only, called from Tick after the bDrivesLocalView decision.
-	void UpdateVRCuesPresenter(bool bShouldPresent);
-
-	bool bVRCuesPresenting = false;
 
 	// One-shot guard so the local floor/origin setup is applied exactly once.
 	bool bLocalVRSetupApplied = false;
