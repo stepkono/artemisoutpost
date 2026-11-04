@@ -34,6 +34,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AR Moon")
 	ACesium3DTileset* GetARTileset();
 
+	// True if this AR pawn belongs to the player on this machine, valid already in BeginPlay. Uses the replicated Owner,
+	// which arrives with the pawn itself: a normal join possesses the pawn on spawn, a VR restore sets the owner
+	// explicitly (AServerGameMode::TryRestoreIntoVR). Do not use IsLocallyControlled for this, a restored AR pawn has
+	// no controller until the first switch to AR. False on the server for every client's pawn.
+	UFUNCTION(BlueprintPure, Category = "AR Pawn")
+	bool IsOwnedByLocalPlayer() const;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

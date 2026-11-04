@@ -87,6 +87,12 @@ public:
 #pragma endregion
 	
 #pragma region Getters
+	// The zoom (visual scale) the camera has actually adopted: updated together with OnWTMShouldResize, one frame after
+	// CurrentMoonVisualScale (which leads while a WTM change is still queued). Read it to sync anything that missed
+	// the event, e.g. cues spawned after the last zoom (see UVisualScaleSyncComponent).
+	UFUNCTION(BlueprintPure, Category = "Transformations Manager")
+	float GetCommittedVisualScale() const { return CommittedVisualScale; }
+
 	UFUNCTION(BlueprintCallable)
 	FVector GetGeoRoverPos();
 
@@ -271,6 +277,10 @@ private:
 	
 	UPROPERTY()
 	float CurrentMoonVisualScale = 1; 
+
+	// See GetCommittedVisualScale. Set only where OnWTMShouldResize is broadcast (and reset on activation).
+	UPROPERTY()
+	float CommittedVisualScale = 1;
 	
 	UPROPERTY()
 	float TargetAbsoluteMoonScale = 1;

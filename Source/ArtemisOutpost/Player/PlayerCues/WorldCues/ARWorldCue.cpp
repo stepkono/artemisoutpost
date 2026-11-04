@@ -2,7 +2,11 @@
 
 #include "ARWorldCue.h"
 
+#include "ArtemisOutpost/Moon/Transformation/VisualScaleSyncComponent.h"
+
 AARWorldCue::AARWorldCue()
 {
 	CueContext = ERVMode::AR;
+
+	VisualScaleSync = CreateDefaultSubobject<UVisualScaleSyncComponent>(TEXT("VisualScaleSync"));
 }

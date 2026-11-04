@@ -139,6 +139,39 @@ void APawnController::OnPossess(APawn* InPawn)
 	}
 }
 
+void APawnController::AcknowledgePossession(APawn* P)
+{
+	Super::AcknowledgePossession(P);
+
+	// The engine also calls this with null (torn-off pawn) and again for the same pawn, only the first real pawn counts.
+	if (!bFirstPossess || !P || !IsLocalController())
+	{
+		return;
+	}
+	bFirstPossess = false;
+
+	// A fresh controller normally gets the AR pawn first. The VR char first means the server restored a player that
+	// dropped in VR (AServerGameMode::TryRestoreIntoVR).
+	if (ACharVR* RestoredVRChar = Cast<ACharVR>(P))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PawnController: first possession is VR char %s, restoring the VR context after a reconnect."), *RestoredVRChar->GetName());
+		OnXRModeRestored(RestoredVRChar);
+	}
+}
+
+void APawnController::SetARPawn(APawnAR* InARPawn)
+{
+	if (!HasAuthority() || !InARPawn)
+	{
+		return;
+	}
+	ARPawn = InARPawn;
+	if (AArtemisPlayerState* PS = GetArtemisPlayerState())
+	{
+		PS->ServerSetPawns(nullptr, ARPawn, nullptr);
+	}
+}
+
 void APawnController::InitializePawns(ACharVR* InVRChar, AMasterRover* InMasterRover)
 {
 	const TCHAR* Net = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");

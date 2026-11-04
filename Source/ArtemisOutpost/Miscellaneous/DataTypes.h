@@ -134,6 +134,16 @@ struct FCalibratedData
 	FVector PlaneNormal;
 };
 
+// The context a player is currently in. "R" = Reality: the HMD is doffed, we cannot know whether the
+// person sits at the PC or just took the headset off, so we do not claim more than "not in XR".
+UENUM(BlueprintType)
+enum class ERVMode : uint8
+{
+	VR UMETA(DisplayName = "VR"),
+	AR UMETA(DisplayName = "AR"),
+	R UMETA(DisplayName = "R"),
+};
+
 USTRUCT(BlueprintType)
 struct FArtemisPlayer
 {
@@ -160,7 +170,13 @@ struct FArtemisPlayer
 	ACharVR* VRChar = nullptr;
 	
 	UPROPERTY(BlueprintReadOnly)
-	FLinearColor PlayerColor; 
+	FLinearColor PlayerColor;
+
+	// Server-only: the last AR or VR mode of this player, never R (a doffed HMD does not change it). Lives in the
+	// slot because the PlayerState does not survive a reconnect. AServerGameMode reads it to restore a player that
+	// dropped in VR straight into the VR char. Written by AArtemisPlayerState::ServerSetXRMode.
+	UPROPERTY(BlueprintReadOnly, NotReplicated)
+	ERVMode LastARVRMode = ERVMode::AR;
 };
 
 UENUM(BlueprintType)
@@ -211,17 +227,7 @@ struct FPositionMetaData
 	TEnumAsByte<ERessourceType> RessourceType = ERessourceType::NoneRessource;
 	
 	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<EBuildingType> BuildingType = EBuildingType::NoneBuilding;	
-};
-
-// The context a player is currently in. "R" = Reality: the HMD is doffed, we cannot know whether the
-// person sits at the PC or just took the headset off, so we do not claim more than "not in XR".
-UENUM(BlueprintType)
-enum class ERVMode : uint8
-{
-	VR UMETA(DisplayName = "VR"),
-	AR UMETA(DisplayName = "AR"),
-	R UMETA(DisplayName = "R"),
+	TEnumAsByte<EBuildingType> BuildingType = EBuildingType::NoneBuilding;
 };
 
 UENUM(BlueprintType)

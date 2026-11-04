@@ -17,11 +17,16 @@ class ARTEMISOUTPOST_API UXRUtilsSubsystem : public UGameInstanceSubsystem
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
+	// Relative: applies only the CURRENT WTM step (XRScaleFactor) around the cached tracking origin.
+	// Correct only when called exactly once per step on a position that was right before it.
+	// Used by the TransformationsManager to predict the table center after a queued step.
 	UFUNCTION(BlueprintCallable)
-	FVector GetXRInvariantPosition(const FVector &WorldPosition) const;
+	FVector GetXRInvariantPositionRelative(const FVector &WorldPosition) const;
 
+	// Absolute: AuthoredScale (the scale at zoom 1) times the committed zoom of the TransformationsManager.
+	// Independent of history, so it is also correct for actors spawned after a zoom.
 	UFUNCTION(BlueprintCallable)
-	FVector GetXRInvariantScale(const FVector &WorldScale) const;
+	FVector GetXRInvariantScaleAbsolute(const FVector &AuthoredScale) const;
 
 	UFUNCTION(BlueprintCallable)
 	FTransform GetXRTransform() const;

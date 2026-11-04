@@ -9,6 +9,7 @@
 #include "ArtemisOutpost/Player/PawnAR/PawnAR.h"
 #include "ArtemisOutpost/Player/Rover/AMasterRover.h"
 #include "ArtemisOutpost/StudyData/Providers/PlayerActionProvider/PlayerActionProvider.h"
+#include "ArtemisOutpost/GameData/ServerGameMode.h"
 
 AArtemisPlayerState::AArtemisPlayerState()
 {
@@ -83,6 +84,21 @@ void AArtemisPlayerState::ServerSetXRMode(ERVMode Mode)
 		return;
 	}
 	LastMRMode = Mode;
+
+	// The slot outlives this PlayerState, a reconnect reads the mode from there (AServerGameMode::TryRestoreIntoVR).
+	if (Mode == ERVMode::AR || Mode == ERVMode::VR)
+	{
+		AServerGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AServerGameMode>() : nullptr;
+		if (FArtemisPlayer* Slot = GameMode ? GameMode->FindPlayerSlot(UPID) : nullptr)
+		{
+			Slot->LastARVRMode = Mode;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Cues] %s: no player slot for UPID '%s', LastARVRMode not stored. A reconnect will start in AR."), *GetName(), *UPID);
+		}
+	}
+
 	RecomputeContext();
 }
 

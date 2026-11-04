@@ -8,14 +8,20 @@
 #include "ArtemisOutpost/Moon/Cesium/GeoTools/GeoUtils.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "Kismet/KismetMaterialLibrary.h"
+#include "ArtemisOutpost/Player/PawnAR/PawnAR.h"
+#include "ArtemisOutpost/XR/XRUtilsSubsystem.h"
+#include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
+#include "IXRTrackingSystem.h"
 
 
 // Sets default values for this component's properties
 UMapCutoutManager::UMapCutoutManager()
 {
-	// The cutout material is refreshed event-driven (via TransformationsManager::OnCutoutNeedsUpdate),
-	// not every frame, so this component does not need to tick.
-	PrimaryComponentTick.bCanEverTick = false;
+	// The cutout material is refreshed event-driven (via TransformationsManager::OnCutoutNeedsUpdate). The tick only
+	// runs while the seed waits for the player to be in AR (bSeedPending).
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	// ...
 }
@@ -57,6 +63,13 @@ void UMapCutoutManager::BeginPlay()
 
 	AnchorsManager = GetWorld()->GetGameInstance()->GetSubsystem<UAnchorsManagerSubsystem>();
 
+	// The XR base orientation lives on the XR system and survives a reconnect. A player who dropped in VR would carry
+	// the last VR tilt into the new world. In VR the VR char sets it again every frame, so clearing it here is safe.
+	if (UXRUtilsSubsystem* XRUtils = GetWorld()->GetGameInstance()->GetSubsystem<UXRUtilsSubsystem>())
+	{
+		XRUtils->ResetXRBaseOrientation();
+	}
+
 	// The cutout material is driven by the anchors' world positions, which change whenever the GeoRef
 	// zooms (WorldToMeters) or the anchors are re-seeded. Re-push them only on those events — the
 	// TransformationsManager fires OnCutoutNeedsUpdate on exactly the frame they change.
@@ -94,6 +107,29 @@ void UMapCutoutManager::BeginPlay()
 void UMapCutoutManager::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (!bSeedPending)
+	{
+		SetComponentTickEnabled(false);
+		return;
+	}
+
+	SeedReadyTicks = IsReadyToSeed() ? SeedReadyTicks + 1 : 0;
+	if (SeedReadyTicks >= RequiredReadyTicks)
+	{
+		HandleAnchorsSpawned();
+	}
+}
+
+bool UMapCutoutManager::IsReadyToSeed() const
+{
+	const APlayerController* LocalPC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	if (!LocalPC || !Cast<APawnAR>(LocalPC->GetPawn()))
+	{
+		return false;
+	}
+	// The VR char resets the tilt when it stops driving the view. Until then the anchors carry it (twice, MetaXR).
+	return !GEngine || !GEngine->XRSystem.IsValid() || GEngine->XRSystem->GetBaseOrientation().Equals(FQuat::Identity, 1.e-4);
 }
 
 void UMapCutoutManager::HandleAnchorsUpdate(const FOrderedAnchors& RawAnchors)
@@ -143,6 +179,26 @@ void UMapCutoutManager::HandleAnchorsSpawned()
 		UE_LOG(LogTemp, Warning, TEXT("MapCutoutManager: Anchor set is incomplete or invalid. Aborting handling."));
 		return;
 	}
+
+	// Seed only after the player has been in AR (AR pawn possessed, no VR tilt) for RequiredReadyTicks. On a normal
+	// start that is already true and the seed runs two ticks later. After a reconnect into VR it waits for the first
+	// switch to AR.
+	if (SeedReadyTicks < RequiredReadyTicks)
+	{
+		if (!bSeedPending)
+		{
+			const APlayerController* LocalPC = GetWorld()->GetFirstPlayerController();
+			UE_LOG(LogTemp, Log, TEXT("[Cutout][Seed] Anchors ready, seed pending until the player is in AR (pawn=%s, base orientation=%s)."),
+				*GetNameSafe(LocalPC ? LocalPC->GetPawn() : nullptr),
+				(GEngine && GEngine->XRSystem.IsValid()) ? *GEngine->XRSystem->GetBaseOrientation().Rotator().ToString() : TEXT("no XR system"));
+		}
+		bSeedPending = true;
+		SetComponentTickEnabled(true);
+		return;
+	}
+	bSeedPending = false;
+	SeedReadyTicks = 0;
+	SetComponentTickEnabled(false);
 
 	UE_LOG(LogTemp, Log, TEXT("MapCutoutManager: Handling physical anchor positions..."));
 

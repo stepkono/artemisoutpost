@@ -117,7 +117,8 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		APawnController* OldController = Existing->PawnController;
 		if (OldController && OldController != PlayerController)
 		{
-			// Per-connection AR pawn is disposable, the new controller already got a fresh default pawn.
+			// Per-connection AR pawn is disposable. The new controller gets a fresh one right after this, in
+			// HandleStartingNewPlayer (engine default spawn, or TryRestoreIntoVR).
 			APawnAR* OldAR = OldController->GetARPawn();
 			if (IsValid(OldAR))
 			{
@@ -130,7 +131,7 @@ void AServerGameMode::ProcessNewPlayer(APawnController* PlayerController)
 		
 		Existing->PawnController = PlayerController;
 
-		// A reconnect gets a FRESH PlayerState; give it the same number so the colour tag is stable.
+		// A reconnect gets a FRESH PlayerState; give it the same number so the color tag is stable.
 		Existing->PlayerState = PlayerController->GetArtemisPlayerState();
 		if (AArtemisPlayerState* PS = Existing->PlayerState)
 		{
@@ -195,6 +196,74 @@ void AServerGameMode::RegisterPlayerPawns(APawnController* PlayerController, AMa
 TMap<FString, FArtemisPlayer> AServerGameMode::GetPlayersInGame()
 {
 	return PlayersInGame;
+}
+
+FArtemisPlayer* AServerGameMode::FindPlayerSlot(const FString& UPID)
+{
+	return UPID.IsEmpty() ? nullptr : PlayersInGame.Find(UPID);
+}
+
+void AServerGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
+{
+	if (TryRestoreIntoVR(Cast<APawnController>(NewPlayer)))
+	{
+		return;
+	}
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
+}
+
+bool AServerGameMode::TryRestoreIntoVR(APawnController* PlayerController)
+{
+	// The spectator host never restores, and only a slot that last reported VR does.
+	if (!PlayerController || MustSpectate(PlayerController))
+	{
+		return false;
+	}
+	const FArtemisPlayer* Slot = FindPlayerSlot(PlayerController->GetPlayerUPID());
+	if (!Slot || Slot->LastARVRMode != ERVMode::VR)
+	{
+		return false;
+	}
+
+	ACharVR* VRChar = Slot->VRChar;
+	if (!IsValid(VRChar))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: UPID %s dropped in VR but its VR char is gone. Restoring into AR instead."), *Slot->UPID);
+		return false;
+	}
+
+	// The game expects both pawns to exist, so spawn the AR pawn the way RestartPlayer would, but leave it
+	// unpossessed. It still gets this player as owner: the owner replicates with the pawn, so the client can tell its
+	// own AR pawn apart already in BeginPlay (APawnAR::IsOwnedByLocalPlayer), and the Server RPCs in its BeginPlay are
+	// not dropped. A possessed AR pawn has the same owner.
+	AActor* StartSpot = FindPlayerStart(PlayerController);
+	APawn* DefaultPawn = StartSpot ? SpawnDefaultPawnFor(PlayerController, StartSpot) : nullptr;
+	APawnAR* NewARPawn = Cast<APawnAR>(DefaultPawn);
+	if (!NewARPawn)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ServerGameMode: VR restore for UPID %s could not spawn the AR pawn (start spot=%s, spawned=%s). Restoring into AR instead."),
+			*Slot->UPID, *GetNameSafe(StartSpot), *GetNameSafe(DefaultPawn));
+		if (IsValid(DefaultPawn))
+		{
+			DefaultPawn->Destroy();
+		}
+		return false;
+	}
+	NewARPawn->SetOwner(PlayerController);
+	PlayerController->SetARPawn(NewARPawn);
+
+	// The VR char was unpossessed in APawnController::OnNetCleanup and stayed where the player left it. Possess it
+	// without moving it. The client detects this as its first possession (APawnController::AcknowledgePossession).
+	PlayerController->Possess(VRChar);
+
+	if (AArtemisPlayerState* PS = PlayerController->GetArtemisPlayerState())
+	{
+		PS->ServerSetXRMode(ERVMode::VR);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("ServerGameMode: UPID %s (player #%d) dropped in VR, restored into %s at %s. AR pawn %s spawned unpossessed."),
+		*Slot->UPID, Slot->PlayerNumber, *VRChar->GetName(), *VRChar->GetActorLocation().ToString(), *NewARPawn->GetName());
+	return true;
 }
 
 void AServerGameMode::Logout(AController* Exiting)

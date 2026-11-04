@@ -120,6 +120,7 @@ void UTransformationsManager::Tick(float DeltaTime)
 		// The WTM change has now taken effect, so the anchors' world positions reflect the new scale.
 		// Notify listeners (cutout material) to re-push them.
 		//UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Scale committed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"), OnCutoutNeedsUpdate.IsBound() ? 1 : 0); // TODO
+		CommittedVisualScale = CurrentMoonVisualScale;
 		OnWTMShouldResize.Broadcast(CurrentMoonVisualScale); 
 		OnCutoutNeedsUpdate.Broadcast();
 	}
@@ -267,6 +268,7 @@ void UTransformationsManager::InitConstants(const FVector &InTableCenter, const 
 		// WorldToMeters scaling: the GeoRef actor scale stays fixed; CurrentMoonVisualScale is the
 		// world-scale multiplier that drives the zoom and starts neutral at 1.
 		CurrentMoonVisualScale   = 1.0;
+		CommittedVisualScale     = 1.0;
 		InitialMoonScalingFactor = 1 / ARGeoRef->GetActorScale3D().X;
 		InitialMoonPosition      = ARGeoRef->GetActorLocation();
 		CurrentMoonPosition      = InitialMoonPosition;
@@ -619,7 +621,7 @@ float UTransformationsManager::CalcTargetAbsoluteMoonScale()
 FVector UTransformationsManager::CalcNewTableCenter()
 {
 	PreviousTableCenter = TableCenter;
-	return XRUtils->GetXRInvariantPosition(TableCenter);
+	return XRUtils->GetXRInvariantPositionRelative(TableCenter);
 }
 
 void UTransformationsManager::MoveAndExpandCutout()
@@ -757,6 +759,7 @@ void UTransformationsManager::RecalibrateFromAnchors()
 	//TODO: we have to examine this deeper
 	//UE_LOG(LogTemp, Log, TEXT("[Cutout][TM] Re-seed — broadcasting OnCutoutNeedsUpdate (bound listeners=%d)"), OnCutoutNeedsUpdate.IsBound() ? 1 : 0);
 	OnCutoutNeedsUpdate.Broadcast();
+	CommittedVisualScale = CurrentMoonVisualScale;
 	OnWTMShouldResize.Broadcast(CurrentMoonVisualScale); 
 	//UE_LOG(LogTemp, Warning, TEXT("[TM][Recalib] Re-seeded from anchors. TableCenter=%s"), *TableCenter.ToString());
 }

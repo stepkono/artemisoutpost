@@ -11,6 +11,7 @@
 #include "ArtemisOutpost/Player/PlayerCues/AwarenessHUD/AwarenessHUDComponent.h"
 #include "ArtemisOutpost/Player/PawnAR/TrackerPoseCache/TrackerPoseCacheComponent.h"
 #include "EnhancedInputComponent.h"
+#include "GameFramework/PlayerController.h"
 
 
 // Sets default values
@@ -202,4 +203,11 @@ void APawnAR::NotifyControllerChanged()
 ACesium3DTileset* APawnAR::GetARTileset()
 {
 	return ARTileSet;
+}
+
+bool APawnAR::IsOwnedByLocalPlayer() const
+{
+	const UWorld* World = GetWorld();
+	const APlayerController* LocalPC = World ? World->GetFirstPlayerController() : nullptr;
+	return LocalPC && IsOwnedBy(LocalPC);
 }

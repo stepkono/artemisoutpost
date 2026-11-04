@@ -3,6 +3,9 @@
 
 #include "XRUtilsSubsystem.h"
 
+#include "ArtemisOutpost/Moon/Transformation/TransformationsManager.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "IXRTrackingSystem.h"
 
@@ -11,7 +14,7 @@ void UXRUtilsSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 }
 
-FVector UXRUtilsSubsystem::GetXRInvariantPosition(const FVector &WorldPosition) const
+FVector UXRUtilsSubsystem::GetXRInvariantPositionRelative(const FVector &WorldPosition) const
 {
 	if (!XRTransform.IsValid())
 	{
@@ -27,9 +30,23 @@ FVector UXRUtilsSubsystem::GetXRInvariantPosition(const FVector &WorldPosition) 
 	return CalibratedWorldPosition;
 }
 
-FVector UXRUtilsSubsystem::GetXRInvariantScale(const FVector &WorldScale) const
+FVector UXRUtilsSubsystem::GetXRInvariantScaleAbsolute(const FVector &AuthoredScale) const
 {
-	return WorldScale * XRScaleFactor;
+	const UGameInstance* GameInstance = GetGameInstance();
+	const UWorld* World = GameInstance ? GameInstance->GetWorld() : nullptr;
+	const UTransformationsManager* TransformationsManager = World ? World->GetSubsystem<UTransformationsManager>() : nullptr;
+	if (!TransformationsManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[XRUtilsSubsystem]: Unable to retrieve the TransformationsManager. Returning the authored scale."));
+		return AuthoredScale;
+	}
+
+	const FVector Result = AuthoredScale * TransformationsManager->GetCommittedVisualScale();
+	// TODO: temporary diagnostic, remove once the zoom scaling is verified.
+	UE_LOG(LogTemp, Warning, TEXT("[XRUtilsSubsystem] ScaleAbsolute: in=%s committed=%f out=%s liveWTM=%f"),
+		*AuthoredScale.ToString(), TransformationsManager->GetCommittedVisualScale(), *Result.ToString(),
+		UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(GetGameInstance()->GetWorld()));
+	return Result;
 }
 
 void UXRUtilsSubsystem::SetXRTransform(FTransform TrackingToWorldTransform)

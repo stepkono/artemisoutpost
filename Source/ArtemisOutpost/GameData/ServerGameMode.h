@@ -38,8 +38,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Players Management")
 	TMap<FString, FArtemisPlayer> GetPlayersInGame();
 
+	// Server: the live slot for a UPID, or null. Do not keep the pointer, the map may reallocate on the next join.
+	FArtemisPlayer* FindPlayerSlot(const FString& UPID);
+
 protected:
 	virtual void OnPostLogin(AController* NewPlayer) override;
+
+	// Runs right after OnPostLogin (ProcessNewPlayer has updated the slot), before the engine spawns and possesses
+	// the default AR pawn. A player whose slot says VR is restored into the parked VR char instead, see
+	// TryRestoreIntoVR. Everyone else takes the engine path.
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 
 	// Timeout drop or graceful leave: the slot stays, only its PlayerState is cleared in the roster.
 	virtual void Logout(AController* Exiting) override;
@@ -54,6 +62,10 @@ private:
 
 	// Mirrors one PlayersInGame slot into the replicated AArtemisGameState::PlayersRoster.
 	void WritePlayerToRoster(const FArtemisPlayer& Player) const;
+
+	// Reconnect after a drop in VR: spawn the AR pawn unpossessed (the game expects both pawns), possess the VR
+	// char where it was parked and set the context to VR. False = not a VR restore, use the engine path.
+	bool TryRestoreIntoVR(APawnController* PlayerController);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Players Management")

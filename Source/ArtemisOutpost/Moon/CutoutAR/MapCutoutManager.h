@@ -43,9 +43,17 @@ private:
 	UFUNCTION()
 	bool IsAuthoritativeClient() const; 
 	
+	// The seed: calibrates the table from the anchors and activates the TransformationsManager (TableZ, TargetFrame,
+	// XRTransform are frozen here). Runs only when IsReadyToSeed, otherwise it marks the seed pending and the tick
+	// retries until the player is in AR.
 	UFUNCTION()
 	void HandleAnchorsSpawned();
-	
+
+	// The anchors only describe the physical table in the AR pawn's tracking space with no VR tilt. After a reconnect
+	// into VR the anchors arrive while the VR char is possessed and the tilt is active, seeding then would freeze a
+	// flipped or misplaced table.
+	bool IsReadyToSeed() const;
+
 public: 
 	FCutoutSet OnCutoutSet; 
 	
@@ -65,8 +73,16 @@ private:
 	UPROPERTY()
 	float InitialMoonScalingFactor; 
 	
-	bool bAnchorsSpawned = false; 
-	
+	bool bAnchorsSpawned = false;
+
+	// Anchors are located but the player was not in AR yet. The tick is enabled only while this is true.
+	bool bSeedPending = false;
+
+	// Consecutive ticks IsReadyToSeed held. After the tilt reset the tracking space follows on the next frame and the
+	// anchor actors one frame later, so the seed waits for RequiredReadyTicks.
+	int32 SeedReadyTicks = 0;
+	static constexpr int32 RequiredReadyTicks = 2;
+
 	UPROPERTY()
 	AActor* MoonGeoRef; 
 };

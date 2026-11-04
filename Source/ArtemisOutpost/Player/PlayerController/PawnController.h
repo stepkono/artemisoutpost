@@ -52,6 +52,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AR/VR Pawns")
 	APawnAR* GetARPawn() const { return ARPawn; }
 
+	// Server: registers an AR pawn that is NOT possessed (VR restore after a reconnect). OnPossess does the same for
+	// a possessed one.
+	void SetARPawn(APawnAR* InARPawn);
+
 	// This player's replicated awareness state (valid on the server and on every client once the
 	// PlayerState has replicated). Null before that.
 	UFUNCTION(BlueprintPure, Category = "Player Cues")
@@ -127,10 +131,22 @@ protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
 
+	// Client side of a possession (OnPossess only runs on the server). Fires OnXRModeRestored when the very first
+	// pawn this controller receives is the VR char.
+	virtual void AcknowledgePossession(APawn* P) override;
+
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "VR Pawn")
 	void VRPawnInitialized();
+
+	// Client: the player dropped in VR and the server restored them straight into their parked VR char
+	// (AServerGameMode::TryRestoreIntoVR). A fresh controller can only get the VR char as its first pawn this way.
+	// The server already possessed the VR char and set the context, so run the client half of the VR switch:
+	// Set XRMode(VR) first, then everything else except the teleport, Align Normal with Surface and the
+	// Run on Server possess.
+	UFUNCTION(BlueprintImplementableEvent, Category = "XR Mode")
+	void OnXRModeRestored(ACharVR* RestoredVRChar);
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Mini Game")
 	bool bIsPlayingMinigame = false;
@@ -173,4 +189,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Minigame")
 	UMinigamePlayerController* MinigameController;
+
+private:
+	// Client: true until the first non-null pawn is acknowledged. Every connection gets a fresh controller, so this
+	// resets on each reconnect by itself.
+	bool bFirstPossess = true;
 };
