@@ -1,0 +1,29 @@
+--- a/Plugins/CesiumForUnreal/Source/CesiumRuntime/Private/ExtensionImageAssetUnreal.cpp
++++ b/Plugins/CesiumForUnreal/Source/CesiumRuntime/Private/ExtensionImageAssetUnreal.cpp
+@@ -1,6 +1,7 @@
+ #include "ExtensionImageAssetUnreal.h"
+ #include "CesiumRuntime.h"
+ #include "CesiumTextureUtility.h"
++#include "Misc/App.h" // FApp::CanEverRender()
+ #include <CesiumGltf/ImageAsset.h>
+ #include <CesiumGltfReader/GltfReader.h>
+ 
+@@ -32,6 +33,18 @@
+     return extension;
+   }
+ 
++  // Dedicated / NullRHI servers have no rendering thread. Creating a GPU texture
++  // resource here enqueues a render command that, on this CesiumAsync worker
++  // thread, runs inline and trips check(IsInRenderingThread()) -> crash.
++  // Skip GPU texture creation entirely: leave _pTextureResource null (an already
++  // handled "no texture" state in CesiumTextureUtility), but still resolve the
++  // promise so getFuture().isReady() holds for the downstream checks. Tile
++  // geometry and collision are built separately and are unaffected.
++  if (!FApp::CanEverRender()) {
++    maybePromise->resolve();
++    return extension;
++  }
++
+   // Proceed to load the image in this thread.
+   TUniquePtr<FCesiumTextureResource, FCesiumTextureResourceDeleter> pResource =
+       FCesiumTextureResource::CreateNew(

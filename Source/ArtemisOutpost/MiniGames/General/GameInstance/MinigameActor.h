@@ -83,6 +83,13 @@ public:
 	// Base is a no-op.
 	virtual void ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent);
 
+	// Client-side, generic minigame input: one stick sample from IA_MG_Stick, routed by the
+	// UMinigamePlayerController (only while the View does not use the stick for navigation). Phase is
+	// Triggered while held and Completed on release (Value is zero then). The model turns the sample
+	// into an intent and sends it through SubmitInput. It never touches input assets or the View.
+	// Base is a no-op (a minigame without stick gameplay needs no override).
+	virtual void ProcessStick(FVector2D Value, EInputActionType Phase);
+
 	EMiniGameType GetType();
 
 protected:

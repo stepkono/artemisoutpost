@@ -42,6 +42,21 @@ void ABuildingTool::ActivateTool()
 	EnsureBuildingBoundsInitialized();
 }
 
+void ABuildingTool::DeactivateTool()
+{
+	// Only when a placement runs: AHandToolBase::BeginPlay also holsters, and the BP visualizer may not
+	// exist yet at that point.
+	if (bPlacementBegan)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[BuildingTool] DeactivateTool: ending the running placement (%s), hiding the preview."),
+			*UEnum::GetValueAsString(CurrentBuildingType));
+		TogglePlacementVisual(false);
+		bPlacementBegan = false;
+	}
+
+	Super::DeactivateTool();
+}
+
 void ABuildingTool::EnsureBuildingBoundsInitialized()
 {
 	if (!ArtemisNet::IsServerHost(GetNetMode()) && !IsOwnerLocallyControlled())

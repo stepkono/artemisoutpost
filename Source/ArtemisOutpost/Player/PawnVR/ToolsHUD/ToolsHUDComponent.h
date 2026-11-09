@@ -31,8 +31,8 @@ public:
 	UToolsHUDComponent();
 
 	// Called from ACharVR::SetupPlayerInputComponent (local player only). Binds ONLY the thumbstick
-	// navigation. The toggle + trigger are routed in Blueprint (one trigger, state-based); the trigger
-	// calls ConfirmSelection() when the menu is open.
+	// navigation. The trigger is routed by UPlayerInputModeComponent::HandleTrigger, which calls
+	// ConfirmSelection() in the HUDMenu activity. Open/Close report to that component, which owns IMC_HUD.
 	void BindInput(UEnhancedInputComponent* EnhancedInputComponent);
 
 	UFUNCTION(BlueprintCallable, Category = "Tools HUD")

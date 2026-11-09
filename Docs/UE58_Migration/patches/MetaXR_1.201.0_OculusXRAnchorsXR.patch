@@ -1,0 +1,96 @@
+--- a/Plugins/MetaXR/Source/OculusXRAnchors/Private/openxr/OculusXRAnchorsXR.cpp
++++ b/Plugins/MetaXR/Source/OculusXRAnchors/Private/openxr/OculusXRAnchorsXR.cpp
+@@ -105,20 +105,20 @@
+ 			bExtDiscoveryEnabled = InModule->IsExtensionEnabled(XR_META_SPATIAL_ENTITY_DISCOVERY_EXTENSION_NAME);
+ 			bExtPersistenceEnabled = InModule->IsExtensionEnabled(XR_META_SPATIAL_ENTITY_PERSISTENCE_EXTENSION_NAME);
+ 			bExtSharingMetaEnabled = InModule->IsExtensionEnabled(XR_META_SPATIAL_ENTITY_SHARING_EXTENSION_NAME);
+-			bExtSharingMetaEnabled = InModule->IsExtensionEnabled(XR_META_SPATIAL_ENTITY_GROUP_SHARING_EXTENSION_NAME);
++			bExtGroupSharingEnabled = InModule->IsExtensionEnabled(XR_META_SPATIAL_ENTITY_GROUP_SHARING_EXTENSION_NAME);
+ 
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("[Anchors] Extensions available"));
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Spatial Entity: %hs"), bExtAnchorsEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Container:		%hs"), bExtContainerEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Query:			%hs"), bExtQueryEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Sharing:		%hs"), bExtSharingEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Storage:		%hs"), bExtStorageEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Storage Batch:  %hs"), bExtStorageBatchEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Users:			%hs"), bExtUserEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Discovery:		%hs"), bExtDiscoveryEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Persistence:	%hs"), bExtPersistenceEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Sharing Meta:	%hs"), bExtSharingMetaEnabled ? "ENABLED" : "DISABLED");
+-			UE_LOG(LogOculusXRAnchors, Log, TEXT("			Group Sharing:	%hs"), bExtGroupSharingEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("[Anchors] Extensions available"));
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Spatial Entity: %hs"), bExtAnchorsEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Container:		%hs"), bExtContainerEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Query:			%hs"), bExtQueryEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Sharing:		%hs"), bExtSharingEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Storage:		%hs"), bExtStorageEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Storage Batch:  %hs"), bExtStorageBatchEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Users:			%hs"), bExtUserEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Discovery:		%hs"), bExtDiscoveryEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Persistence:	%hs"), bExtPersistenceEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Sharing Meta:	%hs"), bExtSharingMetaEnabled ? "ENABLED" : "DISABLED");
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("			Group Sharing:	%hs"), bExtGroupSharingEnabled ? "ENABLED" : "DISABLED");
+ 		}
+ 
+ 		return InNext;
+@@ -293,14 +293,24 @@
+ 
+ 			UE_LOG(LogOculusXRAnchors, Verbose, TEXT("[FAnchorsXR::OnEvent] XrEventDataSpaceQueryResultsAvailableFB"));
+ 			UE_LOG(LogOculusXRAnchors, Verbose, TEXT("						RequestId: %llu"), event->requestId);
+-
++			
++			// Edit: Do NOT early-return on a missing AnchorQueryBindings/GetSharedAnchorsBindings entry.
++			// The group-async retrieval (FGetAnchorsSharedWithGroup) registers in FAsyncRequestSystem,
++			// not in those legacy maps, so HasAnchorQueryBinding() returns false for it. Bailing here
++			// skipped xrRetrieveSpaceQueryResultsFB and the OculusSpaceQueryResult broadcast below,
++			// causing GetSharedAnchorsAsync to always return 0 anchors. Retrieving + broadcasting
++			// unconditionally is safe: the legacy element handler and the async request both key off
++			// their own state and no-op if the request id isn't theirs.
++			
++			/*
+ 			// Check if the requestId is found in AnchorQueryBindings or GetSharedAnchorsBindings
+ 			auto* AnchorsInstance = OculusXRAnchors::FOculusXRAnchors::GetInstance();
+ 			if (!AnchorsInstance || !AnchorsInstance->HasAnchorQueryBinding(event->requestId))
+-			{
+-				UE_LOG(LogOculusXRAnchors, Log, TEXT("RequestId %llu not found in AnchorQueryBindings or GetSharedAnchorsBindings, skipping xrRetrieveSpaceQueryResultsFB"), event->requestId);
+-				return;
+-			}
++				{
++					UE_LOG(LogOculusXRAnchors, Log, TEXT("RequestId %llu not found in AnchorQueryBindings or GetSharedAnchorsBindings, skipping xrRetrieveSpaceQueryResultsFB"), event->requestId);
++					return;
++				}
++			 */
+ 
+ 			// Initial query for the number of elements
+ 			XrSpaceQueryResultsFB queryResults{ XR_TYPE_SPACE_QUERY_RESULTS_FB, nullptr };
+@@ -420,7 +430,11 @@
+ 			UE_LOG(LogOculusXRAnchors, Verbose, TEXT("						RequestId: %llu"), event->requestId);
+ 			UE_LOG(LogOculusXRAnchors, Verbose, TEXT("						Result:    %d"), event->result);
+ 
+-			FOculusXRAnchorEventDelegates::OculusSpaceShareComplete.Broadcast(
++			// This can probably stay commented out
++			//FOculusXRAnchorEventDelegates::OculusSpaceShareComplete.Broadcast(event->requestId, OculusXRAnchors::GetResultFromXrResult(event->result));
++
++			// Edit: Broadcast on the new async request delegate so FShareAnchorsWithGroups picks it up
++			FOculusXRAnchorEventDelegates::OculusShareAnchorsComplete.Broadcast(
+ 				event->requestId,
+ 				OculusXRAnchors::GetResultFromXrResult(event->result));
+ 		}
+@@ -1102,7 +1116,15 @@
+ 			UE_LOG(LogOculusXRAnchors, Warning, TEXT("[ShareAnchorsWithGroups] XR state is invalid."));
+ 			return XR_ERROR_VALIDATION_FAILURE;
+ 		}
+-
++		
++		if (!IsSharingMetaExtensionSupported())
++		{
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("[ShareAnchorsWithGroups] Spatial entity sharing (Meta) extensions are unsupported - IsSharingMetaExtensionSupported"));
++		}
++		if (!IsGroupSharingExtensionSupported())
++		{
++			UE_LOG(LogOculusXRAnchors, Warning, TEXT("[ShareAnchorsWithGroups] Spatial entity sharing (Meta) extensions are unsupported - IsGroupSharingExtensionSupported"));
++		}
+ 		if (!IsSharingMetaExtensionSupported() || !IsGroupSharingExtensionSupported())
+ 		{
+ 			UE_LOG(LogOculusXRAnchors, Warning, TEXT("[ShareAnchorsWithGroups] Spatial entity sharing (Meta) extensions are unsupported."));

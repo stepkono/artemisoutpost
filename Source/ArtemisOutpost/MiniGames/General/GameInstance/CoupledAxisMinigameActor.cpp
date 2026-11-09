@@ -360,6 +360,63 @@ void ACoupledAxisMinigameActor::ResetDwell()
 
 // ---- Client-side input interpretation ----
 
+void ACoupledAxisMinigameActor::ProcessStick(FVector2D Stick, EInputActionType Phase)
+{
+	// Rotate the axis THIS player owns (resolved from ownership, so the input layer needs no axis
+	// knowledge). No owned axis -> nothing to turn.
+	const int32 Axis = GetAxisOwnedBy(GetLocalPlayerUPID());
+	if (Axis == INDEX_NONE)
+	{
+		return;
+	}
+
+	// Gesture end (stick released): reset so the next grab starts fresh, no delta jump.
+	if (Phase == EInputActionType::Completed || Phase == EInputActionType::Canceled)
+	{
+		bHasLastStickAngle = false;
+		return;
+	}
+	if (Phase != EInputActionType::Triggered)
+	{
+		return;
+	}
+
+	// Deadzone is already applied by the action's EnhancedInput modifier -> a centered stick reads ~zero.
+	if (Stick.IsNearlyZero())
+	{
+		bHasLastStickAngle = false;
+		return;
+	}
+
+	// Dial model: delta = change in the stick's angle since last frame (circle the stick to turn).
+	const float CurrentAngle = FMath::RadiansToDegrees(FMath::Atan2(Stick.Y, Stick.X));
+	if (!bHasLastStickAngle)
+	{
+		LastStickAngleDeg = CurrentAngle;
+		bHasLastStickAngle = true;
+		return; // first frame of the gesture: set the reference, emit no delta yet
+	}
+
+	const float Delta = FMath::FindDeltaAngleDegrees(LastStickAngleDeg, CurrentAngle);
+	LastStickAngleDeg = CurrentAngle;
+
+	// Gate closed (e.g. the Habitat is waiting for the second player): the reference angle above keeps
+	// following the stick so nothing accumulates, but no delta is sent. The server refuses anyway, this
+	// only saves the RPCs. Derived from the replicated axes, so it may lag the server by a frame, which
+	// is harmless in both directions.
+	FString ClosedReason;
+	if (!IsRotationOpen(ClosedReason))
+	{
+		return;
+	}
+
+	FMinigameInput In;
+	In.Type = EMinigameInputType::Rotate;
+	In.AxisIndex = Axis;
+	In.Delta = Delta;
+	SubmitInput(In);
+}
+
 void ACoupledAxisMinigameActor::ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent)
 {
 	// Data-driven dispatch: the BP child maps each concrete InputAction asset to an intent type.
@@ -374,64 +431,9 @@ void ACoupledAxisMinigameActor::ProcessInput(UInputAction* InputAction, EInputAc
 	switch (*Intent)
 	{
 	case EMinigameInputType::Rotate:
-	{
-		// Rotate the axis THIS player owns (resolved from ownership, so the input layer needs no
-		// axis knowledge). No owned axis -> nothing to turn.
-		const int32 Axis = GetAxisOwnedBy(LocalUPID);
-		if (Axis == INDEX_NONE)
-		{
-			return;
-		}
-
-		// Gesture end (stick released): reset so the next grab starts fresh, no delta jump.
-		if (TriggerEvent == EInputActionType::Completed || TriggerEvent == EInputActionType::Canceled)
-		{
-			bHasLastStickAngle = false;
-			return;
-		}
-		if (TriggerEvent != EInputActionType::Triggered)
-		{
-			return;
-		}
-
-		// Read the current stick from the local player's Enhanced Input. Deadzone is already applied
-		// by the action's EnhancedInput modifier -> a centered stick reads ~zero.
-		const FVector2D Stick = GetLocalActionValue(InputAction);
-		if (Stick.IsNearlyZero())
-		{
-			bHasLastStickAngle = false;
-			return;
-		}
-
-		// Dial model: delta = change in the stick's angle since last frame (circle the stick to turn).
-		const float CurrentAngle = FMath::RadiansToDegrees(FMath::Atan2(Stick.Y, Stick.X));
-		if (!bHasLastStickAngle)
-		{
-			LastStickAngleDeg = CurrentAngle;
-			bHasLastStickAngle = true;
-			return; // first frame of the gesture: set the reference, emit no delta yet
-		}
-
-		const float Delta = FMath::FindDeltaAngleDegrees(LastStickAngleDeg, CurrentAngle);
-		LastStickAngleDeg = CurrentAngle;
-
-		// Gate closed (e.g. the Habitat is waiting for the second player): the reference angle above
-		// keeps following the stick so nothing accumulates, but no delta is sent. The server refuses
-		// anyway; this only saves the RPCs. Derived from the replicated axes, so it may lag the server
-		// by a frame, which is harmless in both directions.
-		FString ClosedReason;
-		if (!IsRotationOpen(ClosedReason))
-		{
-			return;
-		}
-
-		FMinigameInput In;
-		In.Type = EMinigameInputType::Rotate;
-		In.AxisIndex = Axis;
-		In.Delta = Delta;
-		SubmitInput(In);
+		// TRANSITION ONLY: the old per-game path reads the value and hands it to the generic gesture.
+		ProcessStick(GetLocalActionValue(InputAction), TriggerEvent);
 		break;
-	}
 
 	case EMinigameInputType::ReleaseAxis:
 	{

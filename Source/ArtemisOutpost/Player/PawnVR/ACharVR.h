@@ -47,7 +47,7 @@ public:
 	void SetShouldReplicateTransform(bool bReplicateTransform);
 
 	// The hand tool the trigger currently drives (set by AHandToolBase::ActivateTool/DeactivateTool).
-	// BP_VRChar routes IA_Trigger to GetActiveTool()->ExecuteAction()/EndAction().
+	// UPlayerInputModeComponent::HandleTrigger routes the trigger to its ExecuteAction()/EndAction().
 	UFUNCTION(BlueprintPure, Category = "Hand Tools")
 	AHandToolBase* GetActiveTool() const { return ActiveHandTool; }
 	
@@ -139,6 +139,9 @@ private:
 	void LogVRMotionAnomalies(float DeltaTime);
 
 protected:
+	UFUNCTION(BlueprintPure, Category = "AR Pawn")
+	bool IsOwnedByLocalPlayer() const;
+	
 	UPROPERTY(BlueprintReadWrite, Category = "Player Height")
 	float Height = 180;
 	

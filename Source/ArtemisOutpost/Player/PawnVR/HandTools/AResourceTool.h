@@ -59,8 +59,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
 	float ScanningRadius = 100;
 
+	// Trace length (cm) from the muzzle. At shallow aims the floor is further away than 2 m, so a short
+	// trace kills the hole a little way out. Tune in BP_ResourceTool if needed.
 	UPROPERTY(EditAnywhere, Category = "Scanning Tool")
-	float ScanningDistance = 200;
+	float ScanningDistance = 800;
 
 	// Mining speed: fraction (0..1) of a vein sample mined per second while under the scan circle.
 	// 1.0 => a sample takes ~1 s of full coverage to disappear.
@@ -89,4 +91,7 @@ private:
 
 	UPROPERTY()
 	USceneComponent* Muzzle;
+
+	// Last actor the see-through trace hit, only to log changes.
+	TWeakObjectPtr<AActor> LastScanHitActor;
 };

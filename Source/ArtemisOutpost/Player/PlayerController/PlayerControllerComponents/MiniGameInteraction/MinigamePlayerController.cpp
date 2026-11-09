@@ -7,8 +7,11 @@
 #include "ArtemisOutpost/MiniGames/General/GameInstance/MinigameActor.h"
 #include "ArtemisOutpost/MiniGames/General/GameInstance/CoupledAxisMinigameActor.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
+#include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/InputMode/PlayerInputModeComponent.h"
+#include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedPlayerInput.h"
+#include "InputActionValue.h"
 
 UMinigamePlayerController::UMinigamePlayerController()
 {
@@ -102,6 +105,13 @@ void UMinigamePlayerController::OpenUI(AMinigameActor* Target)
 	}
 
 	ActiveTarget = Target;
+
+	// The slot is ours from here on, View or not: the owner adds IMC_MiniGame, closes the HUD and
+	// holsters a drawn tool (and its placement preview).
+	if (UPlayerInputModeComponent* InputMode = UPlayerInputModeComponent::FindFor(GetOwner()))
+	{
+		InputMode->SetActivity(EInputActivity::MiniGame, Target->GetName());
+	}
 
 	APlayerController* PC = Cast<APlayerController>(GetOwner());
 	const TSubclassOf<UMiniGameUI> WidgetClass = Target->GetMiniGameUIClass();
@@ -212,6 +222,73 @@ void UMinigamePlayerController::CloseUI()
 	}
 
 	ActiveTarget = nullptr;
+
+	// After clearing ActiveTarget, so the owner's teardown sees no slot and sends no extra leave.
+	if (UPlayerInputModeComponent* InputMode = UPlayerInputModeComponent::FindFor(GetOwner()))
+	{
+		InputMode->LeaveActivity(EInputActivity::MiniGame, TEXT("view closed"));
+	}
+}
+
+// ---- Input (generic contract, bound once) ----
+
+void UMinigamePlayerController::BindInput(UEnhancedInputComponent* EnhancedInputComponent)
+{
+	if (!EnhancedInputComponent)
+	{
+		return;
+	}
+
+	if (StickAction)
+	{
+		EnhancedInputComponent->BindAction(StickAction, ETriggerEvent::Triggered, this, &UMinigamePlayerController::HandleStickTriggered);
+		EnhancedInputComponent->BindAction(StickAction, ETriggerEvent::Completed, this, &UMinigamePlayerController::HandleStickReleased);
+		EnhancedInputComponent->BindAction(StickAction, ETriggerEvent::Canceled, this, &UMinigamePlayerController::HandleStickReleased);
+	}
+	else
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Input] StickAction is not set on the MinigameController (BP_PawnController) -> no stick input in minigames."));
+	}
+
+	if (CancelAction)
+	{
+		EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Started, this, &UMinigamePlayerController::HandleCancel);
+	}
+	else
+	{
+		UE_LOG(LogMinigame, Warning, TEXT("[Input] CancelAction is not set on the MinigameController (BP_PawnController) -> minigames cannot be left with a button."));
+	}
+}
+
+void UMinigamePlayerController::HandleStickTriggered(const FInputActionValue& Value)
+{
+	const FVector2D Stick = Value.Get<FVector2D>();
+
+	// While the View shows a menu screen it owns the stick (highlight navigation). Withheld from the
+	// model then, otherwise the gesture would run against a not yet claimed axis.
+	if (ActiveView && ActiveView->WantsNavigationInput())
+	{
+		ActiveView->HandleNavigate(Stick);
+		return;
+	}
+	if (ActiveTarget)
+	{
+		ActiveTarget->ProcessStick(Stick, EInputActionType::Triggered);
+	}
+}
+
+void UMinigamePlayerController::HandleStickReleased()
+{
+	// Lets the model end its gesture (the dial resets, so the next grab emits no jump).
+	if (ActiveTarget)
+	{
+		ActiveTarget->ProcessStick(FVector2D::ZeroVector, EInputActionType::Completed);
+	}
+}
+
+void UMinigamePlayerController::HandleCancel()
+{
+	RequestLeave();
 }
 
 // ---- Wiring handlers ----

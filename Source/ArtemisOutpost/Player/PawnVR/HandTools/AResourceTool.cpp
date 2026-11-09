@@ -4,6 +4,7 @@
 #include "AResourceTool.h"
 
 #include "Kismet/KismetMaterialLibrary.h"
+#include "GameFramework/Pawn.h"
 
 
 // Sets default values
@@ -77,6 +78,9 @@ void AResourceTool::SetScannerOn(bool bScannerOn)
 
 void AResourceTool::BeginScan(EScanMode Mode)
 {
+	UE_LOG(LogTemp, Log, TEXT("[ResourceTool] BeginScan: Mode=%s, tool %s."),
+		*UEnum::GetValueAsString(Mode), bToolActive ? TEXT("already drawn") : TEXT("drawing now"));
+
 	CurrentScanMode = Mode;
 	if (!bToolActive)
 	{
@@ -140,7 +144,27 @@ void AResourceTool::SeeThroughSurface(FVector& OutHitLocation)
 	FHitResult Hit;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ScanTrace), /*bTraceComplex=*/true, this);
 
+	// The holder's capsule (object type Pawn) blocks ECC_WorldStatic. Without this the aim line hits the
+	// own body at hip height whenever it crosses the capsule, the hit is too far from the floor pixels
+	// and the see-through hole disappears in a cone around the player. The actors attached to the pawn
+	// (the other hand tool, the placement visualizer) are ignored for the same reason.
+	if (APawn* Holder = GetOwningPawn())
+	{
+		Params.AddIgnoredActor(Holder);
+		TArray<AActor*> AttachedToHolder;
+		Holder->GetAttachedActors(AttachedToHolder, /*bResetArray=*/true, /*bRecursivelyIncludeAttachedActors=*/true);
+		Params.AddIgnoredActors(AttachedToHolder);
+	}
+
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, BeginTrace, EndTrace, ECollisionChannel::ECC_WorldStatic, Params);
+
+	// Verification aid: log the blocking actor only when it changes (never the VR char after the fix).
+	if (Hit.GetActor() != LastScanHitActor.Get())
+	{
+		LastScanHitActor = Hit.GetActor();
+		UE_LOG(LogTemp, Verbose, TEXT("[ResourceTool] SeeThroughSurface: trace now hits %s."), *GetNameSafe(Hit.GetActor()));
+	}
+
 	if (bHit)
 	{
 		// UE_LOG(LogTemp, Warning, TEXT("ScanningTool: Found Hit."));

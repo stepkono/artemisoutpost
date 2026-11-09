@@ -3,6 +3,7 @@
 #include "ToolsHUDComponent.h"
 
 #include "ToolsHUDWidget.h"
+#include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/InputMode/PlayerInputModeComponent.h"
 #include "Components/WidgetComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
@@ -90,14 +91,21 @@ void UToolsHUDComponent::OpenMenu()
 	{
 		return;
 	}
+
+	// The input-mode owner decides whether the HUD may open (not inside a minigame).
+	UPlayerInputModeComponent* InputMode = UPlayerInputModeComponent::FindFor(GetOwner());
+	if (InputMode && !InputMode->CanEnter(EInputActivity::HUDMenu))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ToolsHUD] OpenMenu refused: the player is inside a minigame."));
+		return;
+	}
+
 	if (!EnsureWidget())
 	{
 		UE_LOG(LogTemp, Error, TEXT("[ToolsHUD] OpenMenu aborted: widget setup incomplete (WidgetClass / anchor)."));
 		return;
 	}
 
-	// "Focus" (the mapping-context swap that suppresses locomotion) is done in Blueprint before this
-	// call. Here we only show the widget and reset it to the Main page.
 	if (AnchorWidgetComp)
 	{
 		AnchorWidgetComp->SetVisibility(true);
@@ -105,6 +113,12 @@ void UToolsHUDComponent::OpenMenu()
 
 	ActiveWidget->OpenToPage(EToolHUDPage::Main);
 	bIsOpen = true;
+
+	// Focus: the owner adds IMC_HUD and holsters a drawn tool.
+	if (InputMode)
+	{
+		InputMode->SetActivity(EInputActivity::HUDMenu, TEXT("HUD opened"));
+	}
 }
 
 void UToolsHUDComponent::CloseMenu()
@@ -114,7 +128,6 @@ void UToolsHUDComponent::CloseMenu()
 		return;
 	}
 
-	// The Blueprint removes IMC_HUD after this call; here we only hide the widget.
 	if (ActiveWidget)
 	{
 		ActiveWidget->NotifyClosed();
@@ -125,6 +138,13 @@ void UToolsHUDComponent::CloseMenu()
 	}
 
 	bIsOpen = false;
+
+	// Every close path (X tile, Build*/Scan* tile, toggle, teardown) reports here, so IMC_HUD is always
+	// removed. A Build*/Scan* tile then draws its tool, which enters HandTool.
+	if (UPlayerInputModeComponent* InputMode = UPlayerInputModeComponent::FindFor(GetOwner()))
+	{
+		InputMode->LeaveActivity(EInputActivity::HUDMenu, TEXT("HUD closed"));
+	}
 }
 
 void UToolsHUDComponent::ToggleMenu()
@@ -174,8 +194,10 @@ void UToolsHUDComponent::HandleToolActionConfirmed(EHUDAction Action)
 		break;
 	}
 
-	// One public event carrying the raw action. BP switches on it: OpenBuilding -> activate tool,
-	// BuildHabitat -> BeginPlacement, CloseMenu -> holster, etc.
+	// One public event carrying the raw action. BP switches on it for the leaf actions only:
+	// Build* -> BeginPlacement, SurfaceScan/ResourceMiner -> BeginScan, AreaScan -> its tool. Those
+	// draw the tool themselves. Page actions (OpenBuilding/OpenScanning/Back) must NOT draw a tool:
+	// drawing enters HandTool, which tears the HUD down before the sub-page is visible.
 	OnHUDAction.Broadcast(Action);
 }
 

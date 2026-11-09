@@ -239,6 +239,11 @@ void AMinigameActor::ProcessInput(UInputAction* InputAction, EInputActionType Tr
 	// Base does nothing; concrete minigames interpret their own input.
 }
 
+void AMinigameActor::ProcessStick(FVector2D Value, EInputActionType Phase)
+{
+	// Base does nothing; minigames with stick gameplay override.
+}
+
 void AMinigameActor::SubmitInput(const FMinigameInput& Input)
 {
 	APawnController* PC = GetLocalController();
@@ -486,17 +491,16 @@ void AMinigameActor::RefreshLocalUI()
 
 	if (bShouldOpen && !bLocalUIOpen)
 	{
-		UE_LOG(LogMinigame, Log, TEXT("[View] %s: local player '%s' holds a slot -> ActivateMiniGameInput(%s) + OpenUI."),
-			*GetName(), *LocalUPID, *UEnum::GetValueAsString(MiniGameType));
-		PC->ActivateMiniGameInput(MiniGameType);
+		// The input-mode owner adds IMC_MiniGame from inside OpenUI (MiniGame activity).
+		UE_LOG(LogMinigame, Log, TEXT("[View] %s: local player '%s' holds a slot -> OpenUI."),
+			*GetName(), *LocalUPID);
 		Controller->OpenUI(this);
 		bLocalUIOpen = true;
 	}
 	else if (!bShouldOpen && bLocalUIOpen)
 	{
-		UE_LOG(LogMinigame, Log, TEXT("[View] %s: local player '%s' no longer holds a slot -> DeactivateMiniGameInput + CloseUI."),
+		UE_LOG(LogMinigame, Log, TEXT("[View] %s: local player '%s' no longer holds a slot -> CloseUI."),
 			*GetName(), *LocalUPID);
-		PC->DeactivateMiniGameInput();
 		Controller->CloseUI();
 		bLocalUIOpen = false;
 	}

@@ -55,6 +55,10 @@ public:
 	// possession (and therefore the owning connection) only arrives after BeginPlay.
 	virtual void ActivateTool() override;
 
+	// AHandToolBase: holstering ends a running placement, so the arc and the BP visualizer actor are
+	// hidden with the tool (they are separate from the tool mesh, hiding the tool alone leaves them).
+	virtual void DeactivateTool() override;
+
 	virtual EToolActivity GetToolActivity() const override { return EToolActivity::Building; }
 
 	// Geodetic "up" (moon surface normal) at a world position, via the VR-moon georeference.

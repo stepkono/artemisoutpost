@@ -10,6 +10,8 @@
 
 class AMinigameActor;
 class UMiniGameUI;
+class UEnhancedInputComponent;
+struct FInputActionValue;
 
 // The per-player minigame Controller (MVC), attached to APawnController. Two jobs:
 //  1) Transport: routes the local player's intents to the server. A minigame actor is server-owned
@@ -51,20 +53,42 @@ public:
 	void OpenUI(AMinigameActor* Target);
 	void CloseUI();
 	
-	UFUNCTION(BlueprintPure, Category = "Minigame")	
-	bool IsMiniGameActive(); 
-	
+	UFUNCTION(BlueprintPure, Category = "Minigame")
+	bool IsMiniGameActive();
+
+	// True while this client holds a minigame (from OpenUI until CloseUI), View or not.
+	bool HasActiveMinigame() const { return ActiveTarget != nullptr; }
+
+	// Called from ACharVR::SetupPlayerInputComponent (local player only). Binds the generic minigame
+	// actions once. They live in IMC_MiniGame, which only the input-mode owner adds (MiniGame activity),
+	// so they fire only inside a minigame. Same pattern as UToolsHUDComponent::BindInput.
+	void BindInput(UEnhancedInputComponent* EnhancedInputComponent);
+
+	// TRANSITION ONLY: the old per-game BP path. Removed in the second C++ pass.
 	UFUNCTION(BlueprintCallable, Category = "Minigame")
 	void SubmitInputAction(UInputAction* InputAction, EInputActionType InputActionType);
 
-	// Trigger / "enter" while a minigame View is open. Routed from BP_VRChar's E_TriggerMode switch
-	// (MiniGameMode case). Deliberately takes NO intent: Blueprint does not know which screen the
-	// View is on, the View does, so it decides what the press means (axis selection screen -> claim
-	// the highlighted axis). Keeps one trigger binding correct as more screens are added.
+	// Trigger / "enter" while a minigame View is open. Routed by UPlayerInputModeComponent::HandleTrigger
+	// in the MiniGame activity. Deliberately takes NO intent: only the View knows which screen it is on,
+	// so it decides what the press means (axis selection screen -> claim the highlighted axis).
 	UFUNCTION(BlueprintCallable, Category = "Minigame")
 	void SubmitEnterAction();
 
+protected:
+	// IA_MG_Stick (Axis2D, right thumbstick, dead zone modifier). View navigation while the View wants
+	// it, otherwise the model's stick gesture (ProcessStick).
+	UPROPERTY(EditDefaultsOnly, Category = "Minigame|Input")
+	TObjectPtr<UInputAction> StickAction;
+
+	// IA_MG_Cancel (bool, right A). Leaves the minigame.
+	UPROPERTY(EditDefaultsOnly, Category = "Minigame|Input")
+	TObjectPtr<UInputAction> CancelAction;
+
 private:
+	void HandleStickTriggered(const FInputActionValue& Value);
+	void HandleStickReleased();
+	void HandleCancel();
+
 	FString GetPlayerUPID() const;
 
 	// Current value of an InputAction from the LOCAL player's Enhanced Input, as a 2D vector. Used to

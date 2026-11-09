@@ -35,7 +35,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Hand Tool")
 	bool IsToolActive() const { return bToolActive; }
 
-	// Trigger DOWN, routed from BP_VRChar when this tool is the active one (ACharVR::GetActiveTool()).
+	// Trigger DOWN, routed by UPlayerInputModeComponent::HandleTrigger in the HandTool activity.
 	// Override per tool in C++: BuildingTool = place; ScanningTool = start scan (hold). Plain virtual +
 	// BlueprintCallable — BP calls it on the base pointer and it dispatches to the C++ override.
 	UFUNCTION(BlueprintCallable, Category = "Hand Tool")

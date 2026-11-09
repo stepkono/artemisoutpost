@@ -15,6 +15,8 @@
 #include "ArtemisOutpost/XR/XRUtilsSubsystem.h"
 #include "ArtemisOutpost/Networking/ClientServerConnection/NetUtils.h"
 #include "ArtemisOutpost/Player/PlayerController/PawnController.h"
+#include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/InputMode/PlayerInputModeComponent.h"
+#include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/MiniGameInteraction/MinigamePlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "ArtemisOutpost/Moon/Cesium/GeoTools/GeoUtils.h"
 #include "ToolsHUD/ToolsHUDComponent.h"
@@ -249,6 +251,24 @@ void ACharVR::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		if (AwarenessHUDComponent)
 		{
 			AwarenessHUDComponent->BindInput(EIC);
+		}
+
+		// Controller-side input: the right trigger (input-mode owner) and the generic minigame actions.
+		// The controller is set here (this runs on the client restart after possession).
+		if (APawnController* PC = Cast<APawnController>(GetController()))
+		{
+			if (UPlayerInputModeComponent* InputMode = PC->GetInputModeComponent())
+			{
+				InputMode->BindInput(EIC);
+			}
+			if (UMinigamePlayerController* MinigameController = PC->GetMinigamePlayerController())
+			{
+				MinigameController->BindInput(EIC);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ACharVR: SetupPlayerInputComponent without an APawnController -> trigger and minigame input are not bound."));
 		}
 	}
 }
@@ -903,4 +923,11 @@ void ACharVR::ToggleVRCharPuppet(bool bShouldActivate)
 	
 	ARPuppet->SetActorHiddenInGame(!bShouldActivate);
 	ARPuppet->SetActorEnableCollision(bShouldActivate);
+}
+
+bool ACharVR::IsOwnedByLocalPlayer() const
+{
+	const UWorld* World = GetWorld();
+	const APlayerController* LocalPC = World ? World->GetFirstPlayerController() : nullptr;
+	return LocalPC && IsOwnedBy(LocalPC);
 }

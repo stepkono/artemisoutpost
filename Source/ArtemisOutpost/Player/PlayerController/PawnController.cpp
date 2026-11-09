@@ -11,6 +11,7 @@
 #include "ArtemisOutpost/GameData/ServerGameMode.h"
 #include "ArtemisOutpost/Moon/Cesium/CustomCesiumCameraManager.h"
 #include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/MiniGameInteraction/MinigamePlayerController.h"
+#include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/InputMode/PlayerInputModeComponent.h"
 #include "ArtemisOutpost/Moon/MoonResources/MoonResourcesManager.h"
 #include "ArtemisOutpost/StudyData/Providers/PlayerActionProvider/PlayerActionProvider.h"
 #include "ArtemisOutpost/GameData/ArtemisPlayerState.h"
@@ -18,11 +19,17 @@
 APawnController::APawnController()
 {
 	MinigameController = CreateDefaultSubobject<UMinigamePlayerController>(TEXT("MinigameController"));
+	InputModeComponent = CreateDefaultSubobject<UPlayerInputModeComponent>(TEXT("InputMode"));
 }
 
 UMinigamePlayerController* APawnController::GetMinigamePlayerController() const
 {
 	return MinigameController;
+}
+
+UPlayerInputModeComponent* APawnController::GetInputModeComponent() const
+{
+	return InputModeComponent;
 }
 
 void APawnController::BeginPlay()
@@ -142,6 +149,13 @@ void APawnController::OnPossess(APawn* InPawn)
 void APawnController::AcknowledgePossession(APawn* P)
 {
 	Super::AcknowledgePossession(P);
+
+	// Any pawn other than the VR char (the AR switch) ends the VR activity, so no overlay context (IMC_HUD,
+	// IMC_MiniGame) survives into AR and no tool stays drawn.
+	if (P && IsLocalController() && !Cast<ACharVR>(P) && InputModeComponent)
+	{
+		InputModeComponent->SetActivity(EInputActivity::Free, TEXT("possessed a non-VR pawn"));
+	}
 
 	// The engine also calls this with null (torn-off pawn) and again for the same pawn, only the first real pawn counts.
 	if (!bFirstPossess || !P || !IsLocalController())

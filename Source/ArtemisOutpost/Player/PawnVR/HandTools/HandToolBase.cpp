@@ -5,6 +5,7 @@
 #include "GameFramework/Pawn.h"
 #include "ArtemisOutpost/Player/PawnVR/ACharVR.h"
 #include "ArtemisOutpost/Player/PlayerCues/PlayerCuesManager.h"
+#include "ArtemisOutpost/Player/PlayerController/PlayerControllerComponents/InputMode/PlayerInputModeComponent.h"
 
 AHandToolBase::AHandToolBase()
 {
@@ -32,7 +33,17 @@ void AHandToolBase::ActivateTool()
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(IsOwnerLocallyControlled());
 
-	// Register as the pawn's active tool so BP_VRChar can route the trigger to us (GetActiveTool()).
+	// Enter the HandTool activity BEFORE registering: the owner holsters a different drawn tool, which it
+	// finds as the pawn's current active tool. Only the holder reports.
+	if (IsOwnerLocallyControlled())
+	{
+		if (UPlayerInputModeComponent* InputMode = UPlayerInputModeComponent::FindFor(GetOwningPawn()))
+		{
+			InputMode->EnterHandTool(this);
+		}
+	}
+
+	// Register as the pawn's active tool so the trigger reaches us (UPlayerInputModeComponent::HandleTrigger).
 	if (ACharVR* VR = Cast<ACharVR>(GetOwningPawn()))
 	{
 		VR->SetActiveHandTool(this);
@@ -66,17 +77,29 @@ void AHandToolBase::DeactivateTool()
 
 	// Clear ourselves as the active tool — but only if we still are (a tool activated afterwards may
 	// already have taken over).
+	bool bWasActiveTool = false;
 	if (ACharVR* VR = Cast<ACharVR>(GetOwningPawn()))
 	{
 		if (VR->GetActiveTool() == this)
 		{
 			VR->SetActiveHandTool(nullptr);
+			bWasActiveTool = true;
 		}
 	}
 
 	ReportToolActivity(false);
 
 	OnToolDeactivated();
+
+	// Holstered by the player (HUD tile, BP HolsterTool): back to Free. When the owner itself holsters us
+	// in a teardown, its re-entrancy guard ignores this. A tool that was not the active one changes nothing.
+	if (bWasActiveTool && IsOwnerLocallyControlled())
+	{
+		if (UPlayerInputModeComponent* InputMode = UPlayerInputModeComponent::FindFor(GetOwningPawn()))
+		{
+			InputMode->LeaveActivity(EInputActivity::HandTool, FString::Printf(TEXT("%s holstered"), *GetName()));
+		}
+	}
 }
 
 APawn* AHandToolBase::GetOwningPawn() const

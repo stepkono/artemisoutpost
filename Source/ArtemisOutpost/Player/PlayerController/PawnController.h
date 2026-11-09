@@ -12,6 +12,7 @@
 #include "PawnController.generated.h"
 
 class UMinigamePlayerController;
+class UPlayerInputModeComponent;
 class UResourceVeinSpline;
 class AArtemisPlayerState;
 
@@ -111,6 +112,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Minigame")
 	UMinigamePlayerController* GetMinigamePlayerController() const;
 
+	// The single owner of the local player's input activity and overlay mapping contexts.
+	UFUNCTION(BlueprintPure, Category = "Input Mode")
+	UPlayerInputModeComponent* GetInputModeComponent() const;
+
 	// Set server-side from the ?UPID= login option (see AServerGameMode::InitNewPlayer). The client
 	// sets its own UPID from the save/GameInstance in BeginPlay. On the server this also stamps the
 	// UPID onto the PlayerState so every client can map PlayerState -> player.
@@ -189,6 +194,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Minigame")
 	UMinigamePlayerController* MinigameController;
+
+	// Assign HUDContext, MiniGameContext and TriggerAction on this component in BP_PawnController.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input Mode")
+	TObjectPtr<UPlayerInputModeComponent> InputModeComponent;
 
 private:
 	// Client: true until the first non-null pawn is acknowledged. Every connection gets a fresh controller, so this

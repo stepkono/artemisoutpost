@@ -100,6 +100,10 @@ public:
 	// The analog value is read on demand via GetLocalActionValue. Shared by every coupled-axis game.
 	virtual void ProcessInput(UInputAction* InputAction, EInputActionType TriggerEvent) override;
 
+	// Generic stick contract: the dial gesture. Circle the stick to turn the axis this player owns
+	// (stick angle change -> delta degrees). Release resets the gesture. Shared by every coupled game.
+	virtual void ProcessStick(FVector2D Stick, EInputActionType Phase) override;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnStart() override;
